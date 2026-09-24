@@ -1,0 +1,278 @@
+.energy-map-card {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.energy-map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px;
+    border-bottom: 1px solid #eef0f4;
+}
+
+.energy-map-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #172033;
+}
+
+.energy-map-level {
+    display: block;
+    margin-top: 5px;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.energy-map-total {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1677ff;
+    text-align: right;
+}
+
+.energy-map-total span {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.energy-map-wrapper {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background: #f8fbff;
+}
+
+.energy-map-wrapper svg {
+    width: 100%;
+    height: 100%;
+}
+
+.energy-map-wrapper .rsm-geography {
+    outline: none;
+    transition:
+        opacity 0.2s ease,
+        filter 0.2s ease;
+}
+
+.energy-map-wrapper .rsm-geography:hover {
+    opacity: 0.78;
+    filter: brightness(0.95);
+    cursor: pointer;
+}
+
+.energy-map-marker {
+    cursor: pointer;
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.energy-map-marker:hover {
+    opacity: 0.8;
+}
+
+.energy-map-label {
+    font-size: 9px;
+    font-weight: 600;
+    fill: #172033;
+    pointer-events: none;
+}
+
+.energy-map-tooltip {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    min-width: 150px;
+
+    padding: 12px 14px;
+
+    background: #ffffff;
+
+    border: 1px solid #dbe4f0;
+
+    border-radius: 8px;
+
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.12);
+
+    z-index: 20;
+}
+
+.energy-map-tooltip strong {
+    font-size: 13px;
+    color: #172033;
+}
+
+.energy-map-tooltip span {
+    font-size: 12px;
+    color: #475569;
+}
+
+.energy-map-legend {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-top: 1px solid #eef0f4;
+
+    font-size: 11px;
+    color: #64748b;
+}
+
+.energy-gradient {
+    flex: 1;
+    max-width: 250px;
+    height: 10px;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            to right,
+            hsl(214, 90%, 92%),
+            hsl(214, 90%, 25%)
+        );
+}
+
+.energy-map-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 10px 20px;
+
+    background: #f8fafc;
+
+    border-top: 1px solid #eef0f4;
+
+    font-size: 12px;
+
+    color: #475569;
+
+    overflow-x: auto;
+}
+
+.energy-map-breadcrumb span:last-child {
+    color: #1677ff;
+    font-weight: 700;
+}
+
+.energy-map-breadcrumb b {
+    color: #94a3b8;
+}
+
+@media (max-width: 768px) {
+
+    .energy-map-wrapper {
+        height: 400px;
+    }
+
+    .energy-map-header {
+        padding: 14px;
+    }
+
+    .energy-map-header h3 {
+        font-size: 15px;
+    }
+
+    .energy-map-total {
+        font-size: 16px;
+    }
+
+}
+
+.energy-map-card {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.energy-map-header {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid #eef0f4;
+    box-sizing: border-box;
+}
+
+.energy-map-header h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #172033;
+}
+
+.energy-map-wrapper {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    background: #f8fbff;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.energy-map-wrapper svg {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.energy-map-tooltip {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    min-width: 130px;
+    padding: 8px 10px;
+    background: #ffffff;
+    border: 1px solid #dbe4f0;
+    border-radius: 6px;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.12);
+    z-index: 20;
+}
+
+.energy-map-tooltip strong {
+    display: block;
+    font-size: 11px;
+    color: #172033;
+}
+
+.energy-map-tooltip span {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    color: #475569;
+}
+
+.energy-map-marker {
+    cursor: pointer;
+}
+
+.energy-map-label {
+    font-size: 8px;
+    font-weight: 600;
+    fill: #172033;
+    pointer-events: none;
+}
+
+.energy-map-breadcrumb {
+    display: none;
+}

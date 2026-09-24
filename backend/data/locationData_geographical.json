@@ -1,0 +1,1697 @@
+[
+  {
+    "state_id": "AP",
+    "state_name": "Andhra Pradesh",
+    "districts": [
+      {
+        "district_id": "AP-D01",
+        "district_name": "Guntur",
+        "talukas": [
+          {
+            "taluka_id": "AP-D01-T01",
+            "taluka_name": "Amaravati Taluka",
+            "cities": [
+              {
+                "city_id": "AP-D01-T01-C01",
+                "city_name": "Amaravati",
+                "branches": [
+                  {
+                    "branch_id": "AP-B01",
+                    "branch_name": "Amaravati Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "AP-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-AP-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-AP-B01-01"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "AP-B01-F02",
+                        "floor_name": "Floor-02",
+                        "sites": [
+                          {
+                            "site_id": "AC-AP-B01-02",
+                            "device_name": "AC-02",
+                            "status": "ON",
+                            "ac_id": "AC-AP-B01-02"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "AR",
+    "state_name": "Arunachal Pradesh",
+    "districts": [
+      {
+        "district_id": "AR-D01",
+        "district_name": "Papum Pare",
+        "talukas": [
+          {
+            "taluka_id": "AR-D01-T01",
+            "taluka_name": "Itanagar Taluka",
+            "cities": [
+              {
+                "city_id": "AR-D01-T01-C01",
+                "city_name": "Itanagar",
+                "branches": [
+                  {
+                    "branch_id": "AR-B01",
+                    "branch_name": "Itanagar Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "AR-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-AR-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-AR-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "AS",
+    "state_name": "Assam",
+    "districts": [
+      {
+        "district_id": "AS-D01",
+        "district_name": "Kamrup Metropolitan",
+        "talukas": [
+          {
+            "taluka_id": "AS-D01-T01",
+            "taluka_name": "Guwahati Taluka",
+            "cities": [
+              {
+                "city_id": "AS-D01-T01-C01",
+                "city_name": "Guwahati",
+                "branches": [
+                  {
+                    "branch_id": "AS-B01",
+                    "branch_name": "Guwahati Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "AS-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-AS-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-AS-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "BR",
+    "state_name": "Bihar",
+    "districts": [
+      {
+        "district_id": "BR-D01",
+        "district_name": "Patna",
+        "talukas": [
+          {
+            "taluka_id": "BR-D01-T01",
+            "taluka_name": "Patna Taluka",
+            "cities": [
+              {
+                "city_id": "BR-D01-T01-C01",
+                "city_name": "Patna",
+                "branches": [
+                  {
+                    "branch_id": "BR-B01",
+                    "branch_name": "Patna Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "BR-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-BR-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-BR-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "CG",
+    "state_name": "Chhattisgarh",
+    "districts": [
+      {
+        "district_id": "CG-D01",
+        "district_name": "Raipur",
+        "talukas": [
+          {
+            "taluka_id": "CG-D01-T01",
+            "taluka_name": "Raipur Taluka",
+            "cities": [
+              {
+                "city_id": "CG-D01-T01-C01",
+                "city_name": "Raipur",
+                "branches": [
+                  {
+                    "branch_id": "CG-B01",
+                    "branch_name": "Raipur Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "CG-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-CG-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-CG-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "GA",
+    "state_name": "Goa",
+    "districts": [
+      {
+        "district_id": "GA-D01",
+        "district_name": "North Goa",
+        "talukas": [
+          {
+            "taluka_id": "GA-D01-T01",
+            "taluka_name": "Panaji Taluka",
+            "cities": [
+              {
+                "city_id": "GA-D01-T01-C01",
+                "city_name": "Panaji",
+                "branches": [
+                  {
+                    "branch_id": "GA-B01",
+                    "branch_name": "Panaji Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "GA-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-GA-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-GA-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "GJ",
+    "state_name": "Gujarat",
+    "districts": [
+      {
+        "district_id": "GJ-D01",
+        "district_name": "Ahmedabad",
+        "talukas": [
+          {
+            "taluka_id": "GJ-D01-T01",
+            "taluka_name": "Ahmedabad Taluka",
+            "cities": [
+              {
+                "city_id": "GJ-D01-T01-C01",
+                "city_name": "Ahmedabad",
+                "branches": [
+                  {
+                    "branch_id": "GJ-B01",
+                    "branch_name": "Ahmedabad Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "GJ-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-GJ-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-GJ-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": [
+                      {
+                        "site_id": "AC-GJ-B01-02",
+                        "device_name": "AC-02",
+                        "status": "ON",
+                        "ac_id": "AC-GJ-B01-02"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "HR",
+    "state_name": "Haryana",
+    "districts": [
+      {
+        "district_id": "HR-D01",
+        "district_name": "Gurugram",
+        "talukas": [
+          {
+            "taluka_id": "HR-D01-T01",
+            "taluka_name": "Gurugram Taluka",
+            "cities": [
+              {
+                "city_id": "HR-D01-T01-C01",
+                "city_name": "Gurugram",
+                "branches": [
+                  {
+                    "branch_id": "HR-B01",
+                    "branch_name": "Gurugram Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "HR-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-HR-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-HR-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "HP",
+    "state_name": "Himachal Pradesh",
+    "districts": [
+      {
+        "district_id": "HP-D01",
+        "district_name": "Shimla",
+        "talukas": [
+          {
+            "taluka_id": "HP-D01-T01",
+            "taluka_name": "Shimla Taluka",
+            "cities": [
+              {
+                "city_id": "HP-D01-T01-C01",
+                "city_name": "Shimla",
+                "branches": [
+                  {
+                    "branch_id": "HP-B01",
+                    "branch_name": "Shimla Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "HP-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-HP-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-HP-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "JH",
+    "state_name": "Jharkhand",
+    "districts": [
+      {
+        "district_id": "JH-D01",
+        "district_name": "Ranchi",
+        "talukas": [
+          {
+            "taluka_id": "JH-D01-T01",
+            "taluka_name": "Ranchi Taluka",
+            "cities": [
+              {
+                "city_id": "JH-D01-T01-C01",
+                "city_name": "Ranchi",
+                "branches": [
+                  {
+                    "branch_id": "JH-B01",
+                    "branch_name": "Ranchi Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "JH-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-JH-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-JH-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "KA",
+    "state_name": "Karnataka",
+    "districts": [
+      {
+        "district_id": "KA-D01",
+        "district_name": "Bengaluru Urban",
+        "talukas": [
+          {
+            "taluka_id": "KA-D01-T01",
+            "taluka_name": "Bengaluru Taluka",
+            "cities": [
+              {
+                "city_id": "KA-D01-T01-C01",
+                "city_name": "Bengaluru",
+                "branches": [
+                  {
+                    "branch_id": "KA-B01",
+                    "branch_name": "Bengaluru Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "KA-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-KA-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-KA-B01-01"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "KA-B01-F02",
+                        "floor_name": "Floor-02",
+                        "sites": [
+                          {
+                            "site_id": "AC-KA-B01-02",
+                            "device_name": "AC-02",
+                            "status": "ON",
+                            "ac_id": "AC-KA-B01-02"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "KA-B01-F03",
+                        "floor_name": "Floor-03",
+                        "sites": [
+                          {
+                            "site_id": "AC-KA-B01-03",
+                            "device_name": "AC-03",
+                            "status": "ON",
+                            "ac_id": "AC-KA-B01-03"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "KL",
+    "state_name": "Kerala",
+    "districts": [
+      {
+        "district_id": "KL-D01",
+        "district_name": "Thiruvananthapuram",
+        "talukas": [
+          {
+            "taluka_id": "KL-D01-T01",
+            "taluka_name": "Thiruvananthapuram Taluka",
+            "cities": [
+              {
+                "city_id": "KL-D01-T01-C01",
+                "city_name": "Thiruvananthapuram",
+                "branches": [
+                  {
+                    "branch_id": "KL-B01",
+                    "branch_name": "Thiruvananthapuram Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "KL-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-KL-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-KL-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "MP",
+    "state_name": "Madhya Pradesh",
+    "districts": [
+      {
+        "district_id": "MP-D01",
+        "district_name": "Bhopal",
+        "talukas": [
+          {
+            "taluka_id": "MP-D01-T01",
+            "taluka_name": "Bhopal Taluka",
+            "cities": [
+              {
+                "city_id": "MP-D01-T01-C01",
+                "city_name": "Bhopal",
+                "branches": [
+                  {
+                    "branch_id": "MP-B01",
+                    "branch_name": "Bhopal Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "MP-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-MP-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-MP-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "MH",
+    "state_name": "Maharashtra",
+    "districts": [
+      {
+        "district_id": "MH-D01",
+        "district_name": "Pune",
+        "talukas": [
+          {
+            "taluka_id": "MH-D01-T01",
+            "taluka_name": "Pune Taluka",
+            "cities": [
+              {
+                "city_id": "MH-D01-T01-C01",
+                "city_name": "Pune",
+                "branches": [
+                  {
+                    "branch_id": "MH-B01",
+                    "branch_name": "Pune Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "MH-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-MH-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-MH-B01-01"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "MH-B01-F02",
+                        "floor_name": "Floor-02",
+                        "sites": [
+                          {
+                            "site_id": "AC-MH-B01-02",
+                            "device_name": "AC-02",
+                            "status": "ON",
+                            "ac_id": "AC-MH-B01-02"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "MH-B01-F03",
+                        "floor_name": "Floor-03",
+                        "sites": [
+                          {
+                            "site_id": "AC-MH-B01-03",
+                            "device_name": "AC-03",
+                            "status": "ON",
+                            "ac_id": "AC-MH-B01-03"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": [
+                      {
+                        "site_id": "AC-MH-B01-04",
+                        "device_name": "AC-04",
+                        "status": "OFF",
+                        "ac_id": "AC-MH-B01-04"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "MN",
+    "state_name": "Manipur",
+    "districts": [
+      {
+        "district_id": "MN-D01",
+        "district_name": "Imphal West",
+        "talukas": [
+          {
+            "taluka_id": "MN-D01-T01",
+            "taluka_name": "Imphal Taluka",
+            "cities": [
+              {
+                "city_id": "MN-D01-T01-C01",
+                "city_name": "Imphal",
+                "branches": [
+                  {
+                    "branch_id": "MN-B01",
+                    "branch_name": "Imphal Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "MN-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-MN-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-MN-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "ML",
+    "state_name": "Meghalaya",
+    "districts": [
+      {
+        "district_id": "ML-D01",
+        "district_name": "East Khasi Hills",
+        "talukas": [
+          {
+            "taluka_id": "ML-D01-T01",
+            "taluka_name": "Shillong Taluka",
+            "cities": [
+              {
+                "city_id": "ML-D01-T01-C01",
+                "city_name": "Shillong",
+                "branches": [
+                  {
+                    "branch_id": "ML-B01",
+                    "branch_name": "Shillong Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "ML-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-ML-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-ML-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "MZ",
+    "state_name": "Mizoram",
+    "districts": [
+      {
+        "district_id": "MZ-D01",
+        "district_name": "Aizawl",
+        "talukas": [
+          {
+            "taluka_id": "MZ-D01-T01",
+            "taluka_name": "Aizawl Taluka",
+            "cities": [
+              {
+                "city_id": "MZ-D01-T01-C01",
+                "city_name": "Aizawl",
+                "branches": [
+                  {
+                    "branch_id": "MZ-B01",
+                    "branch_name": "Aizawl Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "MZ-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-MZ-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-MZ-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "NL",
+    "state_name": "Nagaland",
+    "districts": [
+      {
+        "district_id": "NL-D01",
+        "district_name": "Kohima",
+        "talukas": [
+          {
+            "taluka_id": "NL-D01-T01",
+            "taluka_name": "Kohima Taluka",
+            "cities": [
+              {
+                "city_id": "NL-D01-T01-C01",
+                "city_name": "Kohima",
+                "branches": [
+                  {
+                    "branch_id": "NL-B01",
+                    "branch_name": "Kohima Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "NL-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-NL-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-NL-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "OD",
+    "state_name": "Odisha",
+    "districts": [
+      {
+        "district_id": "OD-D01",
+        "district_name": "Khordha",
+        "talukas": [
+          {
+            "taluka_id": "OD-D01-T01",
+            "taluka_name": "Bhubaneswar Taluka",
+            "cities": [
+              {
+                "city_id": "OD-D01-T01-C01",
+                "city_name": "Bhubaneswar",
+                "branches": [
+                  {
+                    "branch_id": "OD-B01",
+                    "branch_name": "Bhubaneswar Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "OD-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-OD-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-OD-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "PB",
+    "state_name": "Punjab",
+    "districts": [
+      {
+        "district_id": "PB-D01",
+        "district_name": "Ludhiana",
+        "talukas": [
+          {
+            "taluka_id": "PB-D01-T01",
+            "taluka_name": "Ludhiana Taluka",
+            "cities": [
+              {
+                "city_id": "PB-D01-T01-C01",
+                "city_name": "Ludhiana",
+                "branches": [
+                  {
+                    "branch_id": "PB-B01",
+                    "branch_name": "Ludhiana Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "PB-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-PB-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-PB-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "RJ",
+    "state_name": "Rajasthan",
+    "districts": [
+      {
+        "district_id": "RJ-D01",
+        "district_name": "Jaipur",
+        "talukas": [
+          {
+            "taluka_id": "RJ-D01-T01",
+            "taluka_name": "Jaipur Taluka",
+            "cities": [
+              {
+                "city_id": "RJ-D01-T01-C01",
+                "city_name": "Jaipur",
+                "branches": [
+                  {
+                    "branch_id": "RJ-B01",
+                    "branch_name": "Jaipur Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "RJ-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-RJ-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-RJ-B01-01"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "RJ-B01-F02",
+                        "floor_name": "Floor-02",
+                        "sites": [
+                          {
+                            "site_id": "AC-RJ-B01-02",
+                            "device_name": "AC-02",
+                            "status": "ON",
+                            "ac_id": "AC-RJ-B01-02"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "SK",
+    "state_name": "Sikkim",
+    "districts": [
+      {
+        "district_id": "SK-D01",
+        "district_name": "Gangtok",
+        "talukas": [
+          {
+            "taluka_id": "SK-D01-T01",
+            "taluka_name": "Gangtok Taluka",
+            "cities": [
+              {
+                "city_id": "SK-D01-T01-C01",
+                "city_name": "Gangtok",
+                "branches": [
+                  {
+                    "branch_id": "SK-B01",
+                    "branch_name": "Gangtok Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "SK-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-SK-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-SK-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "TN",
+    "state_name": "Tamil Nadu",
+    "districts": [
+      {
+        "district_id": "TN-D01",
+        "district_name": "Chennai",
+        "talukas": [
+          {
+            "taluka_id": "TN-D01-T01",
+            "taluka_name": "Chennai Taluka",
+            "cities": [
+              {
+                "city_id": "TN-D01-T01-C01",
+                "city_name": "Chennai",
+                "branches": [
+                  {
+                    "branch_id": "TN-B01",
+                    "branch_name": "Chennai Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "TN-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-TN-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-TN-B01-01"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "TN-B01-F02",
+                        "floor_name": "Floor-02",
+                        "sites": [
+                          {
+                            "site_id": "AC-TN-B01-02",
+                            "device_name": "AC-02",
+                            "status": "ON",
+                            "ac_id": "AC-TN-B01-02"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "TN-B01-F03",
+                        "floor_name": "Floor-03",
+                        "sites": [
+                          {
+                            "site_id": "AC-TN-B01-03",
+                            "device_name": "AC-03",
+                            "status": "ON",
+                            "ac_id": "AC-TN-B01-03"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "TS",
+    "state_name": "Telangana",
+    "districts": [
+      {
+        "district_id": "TS-D01",
+        "district_name": "Hyderabad",
+        "talukas": [
+          {
+            "taluka_id": "TS-D01-T01",
+            "taluka_name": "Hyderabad Taluka",
+            "cities": [
+              {
+                "city_id": "TS-D01-T01-C01",
+                "city_name": "Hyderabad",
+                "branches": [
+                  {
+                    "branch_id": "TS-B01",
+                    "branch_name": "Hyderabad Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "TS-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-TS-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-TS-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "TR",
+    "state_name": "Tripura",
+    "districts": [
+      {
+        "district_id": "TR-D01",
+        "district_name": "West Tripura",
+        "talukas": [
+          {
+            "taluka_id": "TR-D01-T01",
+            "taluka_name": "Agartala Taluka",
+            "cities": [
+              {
+                "city_id": "TR-D01-T01-C01",
+                "city_name": "Agartala",
+                "branches": [
+                  {
+                    "branch_id": "TR-B01",
+                    "branch_name": "Agartala Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "TR-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-TR-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-TR-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "UP",
+    "state_name": "Uttar Pradesh",
+    "districts": [
+      {
+        "district_id": "UP-D01",
+        "district_name": "Lucknow",
+        "talukas": [
+          {
+            "taluka_id": "UP-D01-T01",
+            "taluka_name": "Lucknow Taluka",
+            "cities": [
+              {
+                "city_id": "UP-D01-T01-C01",
+                "city_name": "Lucknow",
+                "branches": [
+                  {
+                    "branch_id": "UP-B01",
+                    "branch_name": "Lucknow Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "UP-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-UP-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-UP-B01-01"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "UP-B01-F02",
+                        "floor_name": "Floor-02",
+                        "sites": [
+                          {
+                            "site_id": "AC-UP-B01-02",
+                            "device_name": "AC-02",
+                            "status": "ON",
+                            "ac_id": "AC-UP-B01-02"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "UP-B01-F03",
+                        "floor_name": "Floor-03",
+                        "sites": [
+                          {
+                            "site_id": "AC-UP-B01-03",
+                            "device_name": "AC-03",
+                            "status": "ON",
+                            "ac_id": "AC-UP-B01-03"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "UK",
+    "state_name": "Uttarakhand",
+    "districts": [
+      {
+        "district_id": "UK-D01",
+        "district_name": "Dehradun",
+        "talukas": [
+          {
+            "taluka_id": "UK-D01-T01",
+            "taluka_name": "Dehradun Taluka",
+            "cities": [
+              {
+                "city_id": "UK-D01-T01-C01",
+                "city_name": "Dehradun",
+                "branches": [
+                  {
+                    "branch_id": "UK-B01",
+                    "branch_name": "Dehradun Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "UK-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-UK-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-UK-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "WB",
+    "state_name": "West Bengal",
+    "districts": [
+      {
+        "district_id": "WB-D01",
+        "district_name": "Kolkata",
+        "talukas": [
+          {
+            "taluka_id": "WB-D01-T01",
+            "taluka_name": "Kolkata Taluka",
+            "cities": [
+              {
+                "city_id": "WB-D01-T01-C01",
+                "city_name": "Kolkata",
+                "branches": [
+                  {
+                    "branch_id": "WB-B01",
+                    "branch_name": "Kolkata Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "WB-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-WB-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-WB-B01-01"
+                          }
+                        ]
+                      },
+                      {
+                        "floor_id": "WB-B01-F02",
+                        "floor_name": "Floor-02",
+                        "sites": [
+                          {
+                            "site_id": "AC-WB-B01-02",
+                            "device_name": "AC-02",
+                            "status": "ON",
+                            "ac_id": "AC-WB-B01-02"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "AN",
+    "state_name": "Andaman and Nicobar Islands",
+    "districts": [
+      {
+        "district_id": "AN-D01",
+        "district_name": "South Andaman",
+        "talukas": [
+          {
+            "taluka_id": "AN-D01-T01",
+            "taluka_name": "Port Blair Taluka",
+            "cities": [
+              {
+                "city_id": "AN-D01-T01-C01",
+                "city_name": "Port Blair",
+                "branches": [
+                  {
+                    "branch_id": "AN-B01",
+                    "branch_name": "Port Blair Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "AN-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-AN-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-AN-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "CH",
+    "state_name": "Chandigarh",
+    "districts": [
+      {
+        "district_id": "CH-D01",
+        "district_name": "Chandigarh",
+        "talukas": [
+          {
+            "taluka_id": "CH-D01-T01",
+            "taluka_name": "Chandigarh Taluka",
+            "cities": [
+              {
+                "city_id": "CH-D01-T01-C01",
+                "city_name": "Chandigarh",
+                "branches": [
+                  {
+                    "branch_id": "CH-B01",
+                    "branch_name": "Chandigarh Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "CH-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-CH-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-CH-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "DN",
+    "state_name": "Dadra and Nagar Haveli and Daman and Diu",
+    "districts": [
+      {
+        "district_id": "DN-D01",
+        "district_name": "Daman",
+        "talukas": [
+          {
+            "taluka_id": "DN-D01-T01",
+            "taluka_name": "Daman Taluka",
+            "cities": [
+              {
+                "city_id": "DN-D01-T01-C01",
+                "city_name": "Daman",
+                "branches": [
+                  {
+                    "branch_id": "DN-B01",
+                    "branch_name": "Daman Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "DN-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-DN-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-DN-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "DL",
+    "state_name": "Delhi",
+    "districts": [
+      {
+        "district_id": "DL-D01",
+        "district_name": "Central Delhi",
+        "talukas": [
+          {
+            "taluka_id": "DL-D01-T01",
+            "taluka_name": "New Delhi Taluka",
+            "cities": [
+              {
+                "city_id": "DL-D01-T01-C01",
+                "city_name": "New Delhi",
+                "branches": [
+                  {
+                    "branch_id": "DL-B01",
+                    "branch_name": "New Delhi Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "DL-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-DL-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-DL-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": [
+                      {
+                        "site_id": "AC-DL-B01-02",
+                        "device_name": "AC-02",
+                        "status": "ON",
+                        "ac_id": "AC-DL-B01-02"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "JK",
+    "state_name": "Jammu and Kashmir",
+    "districts": [
+      {
+        "district_id": "JK-D01",
+        "district_name": "Srinagar",
+        "talukas": [
+          {
+            "taluka_id": "JK-D01-T01",
+            "taluka_name": "Srinagar Taluka",
+            "cities": [
+              {
+                "city_id": "JK-D01-T01-C01",
+                "city_name": "Srinagar",
+                "branches": [
+                  {
+                    "branch_id": "JK-B01",
+                    "branch_name": "Srinagar Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "JK-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-JK-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-JK-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "LA",
+    "state_name": "Ladakh",
+    "districts": [
+      {
+        "district_id": "LA-D01",
+        "district_name": "Leh",
+        "talukas": [
+          {
+            "taluka_id": "LA-D01-T01",
+            "taluka_name": "Leh Taluka",
+            "cities": [
+              {
+                "city_id": "LA-D01-T01-C01",
+                "city_name": "Leh",
+                "branches": [
+                  {
+                    "branch_id": "LA-B01",
+                    "branch_name": "Leh Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "LA-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-LA-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-LA-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "LD",
+    "state_name": "Lakshadweep",
+    "districts": [
+      {
+        "district_id": "LD-D01",
+        "district_name": "Kavaratti",
+        "talukas": [
+          {
+            "taluka_id": "LD-D01-T01",
+            "taluka_name": "Kavaratti Taluka",
+            "cities": [
+              {
+                "city_id": "LD-D01-T01-C01",
+                "city_name": "Kavaratti",
+                "branches": [
+                  {
+                    "branch_id": "LD-B01",
+                    "branch_name": "Kavaratti Branch 01",
+                    "floors": [
+                      {
+                        "floor_id": "LD-B01-F01",
+                        "floor_name": "Floor-01",
+                        "sites": [
+                          {
+                            "site_id": "AC-LD-B01-01",
+                            "device_name": "AC-01",
+                            "status": "ON",
+                            "ac_id": "AC-LD-B01-01"
+                          }
+                        ]
+                      }
+                    ],
+                    "sites": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "PY",
+    "state_name": "Puducherry",
+    "districts": [
+      {
+        "district_id": "PY-D01",
+        "district_name": "Puducherry",
+        "talukas": [
+          {
+            "taluka_id": "PY-D01-T01",
+            "taluka_name": "Puducherry Taluka",
+            "cities": [
+              {
+                "city_id": "PY-D01-T01-C01",
+                "city_name": "Puducherry",
+                "branches": [
+                  {
+                    "branch_id": "PY-B01",
+                    "branch_name": "Puducherry Branch 01",
+                    "floors": [],
+                    "sites": [
+                      {
+                        "site_id": "AC-PY-B01-01",
+                        "device_name": "AC-01",
+                        "status": "ON",
+                        "ac_id": "AC-PY-B01-01"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

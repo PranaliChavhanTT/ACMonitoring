@@ -1,0 +1,826 @@
+[
+  {
+    "state_id": "MH",
+    "state_name": "Maharashtra",
+    "cities": [
+      {
+        "city_id": "MH-01",
+        "city_name": "Pune",
+        "branches": [
+          {
+            "branch_id": "MH-01-B01",
+            "branch_name": "Pune Branch 01",
+            "floors": [
+              {
+                "floor_id": "MH-01-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "MH-01-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "MH-01-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "MH-01-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "MH-01-B02",
+            "branch_name": "Pune Branch 02",
+            "floors": [
+              {
+                "floor_id": "MH-01-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "MH-01-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "MH-01-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "MH-01-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "MH-02",
+        "city_name": "Mumbai",
+        "branches": [
+          {
+            "branch_id": "MH-02-B01",
+            "branch_name": "Mumbai Branch 01",
+            "floors": [
+              {
+                "floor_id": "MH-02-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "MH-02-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "MH-02-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "MH-02-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "MH-02-B02",
+            "branch_name": "Mumbai Branch 02",
+            "floors": [
+              {
+                "floor_id": "MH-02-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "MH-02-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "MH-02-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "MH-02-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "MH-03",
+        "city_name": "Nashik",
+        "branches": [
+          {
+            "branch_id": "MH-03-B01",
+            "branch_name": "Nashik Branch 01",
+            "floors": [
+              {
+                "floor_id": "MH-03-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "MH-03-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "MH-03-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "MH-03-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "MH-03-B02",
+            "branch_name": "Nashik Branch 02",
+            "floors": [
+              {
+                "floor_id": "MH-03-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "MH-03-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "MH-03-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "MH-03-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "MH-04",
+        "city_name": "Nagpur",
+        "branches": [
+          {
+            "branch_id": "MH-04-B01",
+            "branch_name": "Nagpur Branch 01",
+            "floors": [
+              {
+                "floor_id": "MH-04-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "MH-04-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "MH-04-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "MH-04-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "MH-04-B02",
+            "branch_name": "Nagpur Branch 02",
+            "floors": [
+              {
+                "floor_id": "MH-04-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "MH-04-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "MH-04-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "MH-04-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "GJ",
+    "state_name": "Gujarat",
+    "cities": [
+      {
+        "city_id": "GJ-01",
+        "city_name": "Ahmedabad",
+        "branches": [
+          {
+            "branch_id": "GJ-01-B01",
+            "branch_name": "Ahmedabad Branch 01",
+            "floors": [
+              {
+                "floor_id": "GJ-01-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "GJ-01-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "GJ-01-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "GJ-01-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "GJ-01-B02",
+            "branch_name": "Ahmedabad Branch 02",
+            "floors": [
+              {
+                "floor_id": "GJ-01-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "GJ-01-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "GJ-01-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "GJ-01-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "GJ-02",
+        "city_name": "Surat",
+        "branches": [
+          {
+            "branch_id": "GJ-02-B01",
+            "branch_name": "Surat Branch 01",
+            "floors": [
+              {
+                "floor_id": "GJ-02-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "GJ-02-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "GJ-02-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "GJ-02-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "GJ-02-B02",
+            "branch_name": "Surat Branch 02",
+            "floors": [
+              {
+                "floor_id": "GJ-02-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "GJ-02-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "GJ-02-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "GJ-02-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "GJ-03",
+        "city_name": "Vadodara",
+        "branches": [
+          {
+            "branch_id": "GJ-03-B01",
+            "branch_name": "Vadodara Branch 01",
+            "floors": [
+              {
+                "floor_id": "GJ-03-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "GJ-03-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "GJ-03-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "GJ-03-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "GJ-03-B02",
+            "branch_name": "Vadodara Branch 02",
+            "floors": [
+              {
+                "floor_id": "GJ-03-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "GJ-03-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "GJ-03-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "GJ-03-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "GJ-04",
+        "city_name": "Rajkot",
+        "branches": [
+          {
+            "branch_id": "GJ-04-B01",
+            "branch_name": "Rajkot Branch 01",
+            "floors": [
+              {
+                "floor_id": "GJ-04-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "GJ-04-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "GJ-04-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "GJ-04-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "GJ-04-B02",
+            "branch_name": "Rajkot Branch 02",
+            "floors": [
+              {
+                "floor_id": "GJ-04-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "GJ-04-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "GJ-04-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "GJ-04-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "KA",
+    "state_name": "Karnataka",
+    "cities": [
+      {
+        "city_id": "KA-01",
+        "city_name": "Bengaluru",
+        "branches": [
+          {
+            "branch_id": "KA-01-B01",
+            "branch_name": "Bengaluru Branch 01",
+            "floors": [
+              {
+                "floor_id": "KA-01-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KA-01-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KA-01-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KA-01-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "KA-01-B02",
+            "branch_name": "Bengaluru Branch 02",
+            "floors": [
+              {
+                "floor_id": "KA-01-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KA-01-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KA-01-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KA-01-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "KA-02",
+        "city_name": "Mysuru",
+        "branches": [
+          {
+            "branch_id": "KA-02-B01",
+            "branch_name": "Mysuru Branch 01",
+            "floors": [
+              {
+                "floor_id": "KA-02-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KA-02-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KA-02-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KA-02-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "KA-02-B02",
+            "branch_name": "Mysuru Branch 02",
+            "floors": [
+              {
+                "floor_id": "KA-02-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KA-02-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KA-02-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KA-02-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "KA-03",
+        "city_name": "Mangaluru",
+        "branches": [
+          {
+            "branch_id": "KA-03-B01",
+            "branch_name": "Mangaluru Branch 01",
+            "floors": [
+              {
+                "floor_id": "KA-03-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KA-03-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KA-03-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KA-03-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "KA-03-B02",
+            "branch_name": "Mangaluru Branch 02",
+            "floors": [
+              {
+                "floor_id": "KA-03-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KA-03-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KA-03-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KA-03-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "KA-04",
+        "city_name": "Hubballi",
+        "branches": [
+          {
+            "branch_id": "KA-04-B01",
+            "branch_name": "Hubballi Branch 01",
+            "floors": [
+              {
+                "floor_id": "KA-04-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KA-04-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KA-04-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KA-04-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "KA-04-B02",
+            "branch_name": "Hubballi Branch 02",
+            "floors": [
+              {
+                "floor_id": "KA-04-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KA-04-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KA-04-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KA-04-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "state_id": "KL",
+    "state_name": "Kerala",
+    "cities": [
+      {
+        "city_id": "KL-01",
+        "city_name": "Kochi",
+        "branches": [
+          {
+            "branch_id": "KL-01-B01",
+            "branch_name": "Kochi Branch 01",
+            "floors": [
+              {
+                "floor_id": "KL-01-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KL-01-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KL-01-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KL-01-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "KL-01-B02",
+            "branch_name": "Kochi Branch 02",
+            "floors": [
+              {
+                "floor_id": "KL-01-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KL-01-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KL-01-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KL-01-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "KL-02",
+        "city_name": "Thiruvananthapuram",
+        "branches": [
+          {
+            "branch_id": "KL-02-B01",
+            "branch_name": "Thiruvananthapuram Branch 01",
+            "floors": [
+              {
+                "floor_id": "KL-02-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KL-02-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KL-02-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KL-02-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "KL-02-B02",
+            "branch_name": "Thiruvananthapuram Branch 02",
+            "floors": [
+              {
+                "floor_id": "KL-02-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KL-02-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KL-02-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KL-02-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "KL-03",
+        "city_name": "Kozhikode",
+        "branches": [
+          {
+            "branch_id": "KL-03-B01",
+            "branch_name": "Kozhikode Branch 01",
+            "floors": [
+              {
+                "floor_id": "KL-03-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KL-03-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KL-03-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KL-03-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "KL-03-B02",
+            "branch_name": "Kozhikode Branch 02",
+            "floors": [
+              {
+                "floor_id": "KL-03-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KL-03-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KL-03-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KL-03-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "city_id": "KL-04",
+        "city_name": "Thrissur",
+        "branches": [
+          {
+            "branch_id": "KL-04-B01",
+            "branch_name": "Thrissur Branch 01",
+            "floors": [
+              {
+                "floor_id": "KL-04-B01-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KL-04-B01-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KL-04-B01-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KL-04-B01-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          },
+          {
+            "branch_id": "KL-04-B02",
+            "branch_name": "Thrissur Branch 02",
+            "floors": [
+              {
+                "floor_id": "KL-04-B02-F01",
+                "floor_name": "Floor-01"
+              },
+              {
+                "floor_id": "KL-04-B02-F02",
+                "floor_name": "Floor-02"
+              },
+              {
+                "floor_id": "KL-04-B02-F03",
+                "floor_name": "Floor-03"
+              },
+              {
+                "floor_id": "KL-04-B02-F04",
+                "floor_name": "Floor-04"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

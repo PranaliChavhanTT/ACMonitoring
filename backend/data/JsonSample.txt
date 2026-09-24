@@ -1,0 +1,31 @@
+Expected Output
+=================================================
+{
+  "timestamp":"2026-09-21T10:15:01",
+  "ac_id":"AC001",
+  "indoor_temperature":26.4,
+  "indoor_humidity":58.2,
+  "voltage":230.4,
+  "current":3.95,
+  "power":908.0,
+  "energy":12854,
+  "frequency":50.0,
+  "power_factor":0.97,
+  "alarm_status":0
+},
+
+
+Actual Output
+=================================================
+Timestamp          : 2026-09-23T18:11:19
+AC ID              : AC001
+Indoor Temperature : 0.00 C
+Indoor Humidity    : 0.00 %
+Voltage            : 238.5 V
+Current            : 0.514 A
+Power ( Active Power )              : 76.0 W
+Energy             : 8 Wh
+Frequency          : 49.9 Hz
+Power Factor       : 0.62
+Alarm Status       : 0
+Relay Status       : ON

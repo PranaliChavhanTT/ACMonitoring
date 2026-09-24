@@ -1,0 +1,19 @@
+// src/components/ProtectedRoute.jsx
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "./AuthContext";
+import { getDashboardPath } from "./MenuConfig";
+
+export default function ProtectedRoute({ children, allowedRoles }) {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={getDashboardPath(user.role)} replace />;
+  }
+
+  return children;
+}

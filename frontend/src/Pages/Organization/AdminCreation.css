@@ -1,0 +1,67 @@
+.admins-stepper {
+  display: flex;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+}
+
+.admins-stepper li {
+  display: flex;
+  align-items: center;
+}
+
+.step-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.step-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.step-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admins-stepper li.active .step-btn {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.admins-stepper li.done .step-btn {
+  color: #16a34a;
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admins-stepper li.active .step-num {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.admins-stepper li.done .step-num {
+  background: #16a34a;
+  color: #fff;
+}

@@ -1,0 +1,336 @@
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-w, 260px);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid var(--border, #e6edf5);
+  box-shadow: 2px 0 24px -14px rgba(15, 23, 42, 0.18);
+  z-index: 1001;
+  overflow: hidden;
+  transition: width 0.28s ease, transform 0.28s ease;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-w-collapsed, 78px);
+}
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+.sidebar-brand {
+  flex: none;
+  height: var(--header-h, 68px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border, #e6edf5);
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  box-shadow: 0 6px 16px -8px rgba(37, 99, 235, 0.9);
+}
+
+.sidebar-brand h2 {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.sidebar-brand h2 span {
+  color: #2563eb;
+}
+
+.sidebar-close {
+  display: none;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e6edf5);
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.sidebar-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #dbe4ef;
+  border-radius: 99px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #c5d3e3;
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #526478;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.nav-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Active — soft blue pill */
+.nav-item.active {
+  background: #e6efff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 22px;
+  border-radius: 0 4px 4px 0;
+  /* background: #2563eb; */
+}
+
+.nav-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+}
+
+.nav-label {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-caret {
+  flex: none;
+  color: #94a3b8;
+  transition: transform 0.25s ease;
+}
+
+.nav-item:hover .nav-caret {
+  color: #64748b;
+}
+
+.nav-item.open .nav-caret {
+  transform: rotate(180deg);
+}
+
+/* =========================================================
+   SUBMENU (animated)
+   ========================================================= */
+.nav-submenu {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.nav-submenu.open {
+  grid-template-rows: 1fr;
+}
+
+.nav-submenu-inner {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 9px;
+  padding-left: 14px;
+  border-left: 1px solid #e6edf5;
+}
+
+.nav-submenu .nav-item {
+  height: 38px;
+  font-size: 13px;
+}
+
+/* =========================================================
+   COLLAPSED STATE
+   ========================================================= */
+.sidebar.collapsed .sidebar-brand h2,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-caret {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar.collapsed .nav-submenu {
+  display: none;
+}
+
+/* =========================================================
+   FOOTER / LOGOUT
+   ========================================================= */
+.sidebar-foot {
+  flex: none;
+  padding: 12px;
+  border-top: 1px solid var(--border, #e6edf5);
+}
+
+.logout-btn {
+  width: 100%;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #e6edf5);
+  background: #f8fafc;
+  color: #526478;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.logout-btn:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.sidebar.collapsed .logout-btn {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar.collapsed .logout-btn span {
+  display: none;
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+@media (max-width: 900px) {
+  .sidebar,
+  .sidebar.collapsed {
+    width: var(--sidebar-w, 260px);
+    transform: translateX(-100%);
+    box-shadow: 0 0 60px rgba(15, 23, 42, 0.28);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Force full appearance on mobile even when "collapsed" */
+  .sidebar.collapsed .sidebar-brand {
+    justify-content: flex-start;
+    padding: 0 18px;
+  }
+
+  .sidebar.collapsed .sidebar-brand h2 {
+    display: block;
+  }
+
+  .sidebar.collapsed .nav-item {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+
+  .sidebar.collapsed .nav-label {
+    display: block;
+  }
+
+  .sidebar.collapsed .nav-caret {
+    display: block;
+  }
+
+  .sidebar.collapsed .nav-submenu {
+    display: grid;
+  }
+
+  .sidebar.collapsed .logout-btn {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+
+  .sidebar.collapsed .logout-btn span {
+    display: inline;
+  }
+
+  .sidebar-close {
+    display: grid;
+  }
+}
