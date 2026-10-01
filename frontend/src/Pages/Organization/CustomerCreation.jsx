@@ -58,6 +58,7 @@ const emptyForm = {
   contact_person_email: "",
   phone: "",
   hierarchy_type: "",
+  password: "",          // login password for the customer (main user)
   is_active: true,
 };
 
@@ -173,6 +174,7 @@ function Customer_Creation() {
       contact_person_email: customer.contact_person_email || "",
       phone: customer.phone || "",
       hierarchy_type: hierarchy,
+      password: "",
       is_active: customer.is_active ?? true,
     });
 
@@ -247,6 +249,24 @@ function Customer_Creation() {
       return;
     }
 
+    // The customer is the main user of the product, so the login is created
+    // together with the customer (contact person email, else company email).
+    if (
+      !isEditing &&
+      !form.contact_person_email.trim() &&
+      !form.company_email.trim()
+    ) {
+      setFormError(
+        "Enter a Contact Person Email (or Company Email) — it is the customer's login."
+      );
+      return;
+    }
+
+    if (!isEditing && !form.password.trim()) {
+      setFormError("Password is required for the customer's login.");
+      return;
+    }
+
     /* ---------------- Payload ---------------- */
 
     const payload = {
@@ -259,6 +279,8 @@ function Customer_Creation() {
       hierarchy_type: selectedHierarchy || form.hierarchy_type,
       is_active: form.is_active,
     };
+
+    if (form.password.trim()) payload.password = form.password;
 
     setSaving(true);
 
@@ -411,7 +433,7 @@ function Customer_Creation() {
             {isEditing ? "Edit" : "Create"}
           </button>
         </li>
-        <li className={view === "hierarchy" ? "active" : ""}>
+        {/* <li className={view === "hierarchy" ? "active" : ""}>
           <button
             type="button"
             className="step-btn"
@@ -425,7 +447,7 @@ function Customer_Creation() {
             <span className="step-num">3</span>
             Hierarchy
           </button>
-        </li>
+        </li> */}
       </ol>
 
       {view === "list" && (
@@ -693,6 +715,33 @@ function Customer_Creation() {
                   }
                   placeholder="+91 98765 43210"
                 />
+              </label>
+
+              {/* LOGIN PASSWORD — the customer is the main user */}
+
+              <label>
+                {isEditing
+                  ? "Login Password (leave blank to keep current)"
+                  : "Login Password *"}
+
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "password",
+                      e.target.value
+                    )
+                  }
+                  placeholder={isEditing ? "••••••••" : "Set a password"}
+                  required={!isEditing}
+                  autoComplete="new-password"
+                />
+
+                <small className="field-hint">
+                  The customer logs in with the Contact Person Email
+                  (or Company Email if that is empty).
+                </small>
               </label>
 
             </div>

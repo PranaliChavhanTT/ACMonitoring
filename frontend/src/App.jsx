@@ -16,6 +16,8 @@ import Admin_Dashboard from "./Pages/Admin/Admin_Dashbaord";
 import Eng_Dashboard from "./Pages/Engineer/Eng_Dashboard";
 import EngCreation from "./Pages/Organization/EngCreation";
 import Locations from "./Pages/Organization/Locations";
+import ACCreation from "./Pages/Organization/ACCreation";
+import Treands from "./Second_Person/Forntend/Treands";
 
 
 function RootRedirect() {
@@ -82,6 +84,24 @@ export default function App() {
               // <Page roles={[ROLES.ENGINEER]}>
               <Page roles={[ROLES.ORG_SUPER_ADMIN]}>
                 <Locations />
+              </Page>
+            }
+          />
+
+          <Route
+            path="/org/device"
+            element={
+              <Page>
+                <ACCreation />
+              </Page>
+            }
+          />
+
+          <Route
+            path="/org/dashboard/trends"
+            element={
+              <Page>
+                <Treands />
               </Page>
             }
           />

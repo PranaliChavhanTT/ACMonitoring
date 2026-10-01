@@ -28,11 +28,11 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "192.168.1.8",
-    "192.168.1.24",
+    "192.168.1.3",
+    "192.168.1.13",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = ["http://198.168.1.8:8000", "http://198.168.1.24:3000"]
+CORS_ALLOW_ALL_ORIGINS = ["http://192.168.1.3:8000", "http://192.168.1.13:3000"]
 
 # ALLOWED_HOSTS = ["*"]
 

@@ -26,7 +26,7 @@ class ACData(models.Model):
 
 class Role(models.TextChoices):
     ORG_SUPER_ADMIN = "ORG_SUPER_ADMIN", "Organization (Super Admin)"
-    CUSTOMER = "CUSTOMER", "Customer Admin"
+    CUSTOMER = "CUSTOMER", "Customer"
     # ZONAL_ADMIN = "ZONAL_ADMIN", "Zonal Admin"
     # CIRCLE_ADMIN = "CIRCLE_ADMIN", "Circle Admin"
     BR_ADMIN    = "BR_ADMIN", "Branch Admin"
@@ -374,6 +374,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         Circle, null=True, blank=True,
         on_delete=models.SET_NULL, related_name="users"
     )
+    state = models.ForeignKey(
+        State, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="users"
+    )
+    district = models.ForeignKey(
+        District, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="users"
+    )
     branch = models.ForeignKey(
         Branch, null=True, blank=True,
         on_delete=models.SET_NULL, related_name="users"
@@ -382,6 +390,19 @@ class User(AbstractBaseUser, PermissionsMixin):
         Site, null=True, blank=True,
         on_delete=models.SET_NULL, related_name="users"
     )
+
+    zone     = models.ForeignKey(Zone,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+    circle   = models.ForeignKey(Circle,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+    region   = models.ForeignKey(Region,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+    division = models.ForeignKey(Division, null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+
+    state    = models.ForeignKey(State,    null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+    district = models.ForeignKey(District, null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+    taluka   = models.ForeignKey(Taluka,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+    city     = models.ForeignKey(City,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+
+    branch   = models.ForeignKey(Branch,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+    site     = models.ForeignKey(Site,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

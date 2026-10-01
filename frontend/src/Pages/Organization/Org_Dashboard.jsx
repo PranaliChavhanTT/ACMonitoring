@@ -11,7 +11,7 @@ import "./Org_Dashboard.css";
 import FilterDashboard from "./FilterDashboard";
 import ACDashboard from "../../Second_Person/Forntend/ACDashboard";
 
-const API_URL = "http://192.168.1.8:8000/api/ac-data/";
+const API_URL = "http://192.168.1.3:8000/api/ac-data/";
 
 const FILTER_KEYS = [
     "zone",

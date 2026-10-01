@@ -20,32 +20,75 @@ ROLE_SCOPE_FIELD = {
     Role.ENGINEER: "site",
 }
 
+ROLE_KEEP_FIELDS = {
+    Role.ORG_SUPER_ADMIN: set(),
+    Role.CUSTOMER:        {"customer"},
+    Role.BR_ADMIN:        {"customer", "zone", "circle", "branch"},
+    Role.ENGINEER:        {"customer", "zone", "circle", "branch", "site"},
+}
+
+ROLE_REQUIRED_FIELD = {
+    Role.ORG_SUPER_ADMIN: None,
+    Role.CUSTOMER:        "customer",
+    Role.BR_ADMIN:        "customer",
+    Role.ENGINEER:        "customer",
+}
+
+ALL_SCOPE_FIELDS = ["customer", "zone", "circle", "branch", "site"]
+
 
 @receiver(pre_save, sender=User)
 def validate_user_scope(sender, instance, **kwargs):
     if not instance.role:
         raise DRFValidationError("User must have a role.")
 
-    required_field = ROLE_SCOPE_FIELD.get(instance.role)
-    if not required_field:
+    if instance.role not in ROLE_KEEP_FIELDS:
         raise DRFValidationError(f"Unknown role: {instance.role}")
 
-    # Pending-create flow — skip scope validation, clear downstream scopes.
-    if getattr(instance, "_skip_scope_check", False):
-        for f in ["customer", "zone", "circle", "branch", "site"]:
-            setattr(instance, f"{f}_id", None)
-        return
+    keep = ROLE_KEEP_FIELDS[instance.role]
 
-    if instance.role != Role.ORG_SUPER_ADMIN:
+    # --- Derive the upper chain from the most specific scope that is set ---
+    if "site" in keep and instance.site_id:
+        site = Site.objects.select_related("branch").get(pk=instance.site_id)
+        site_customer_id = site.branch.customer_id
+        if instance.customer_id and site_customer_id and instance.customer_id != site_customer_id:
+            raise DRFValidationError("Selected site does not belong to this customer.")
+        instance.branch_id = site.branch_id
+        instance.customer_id = site_customer_id or instance.customer_id
+
+    if "branch" in keep and instance.branch_id and not instance.site_id:
+        branch_customer_id = (
+            Branch.objects.filter(pk=instance.branch_id)
+            .values_list("customer_id", flat=True)
+            .first()
+        )
+        if instance.customer_id and branch_customer_id and instance.customer_id != branch_customer_id:
+            raise DRFValidationError("Selected branch does not belong to this customer.")
+        instance.customer_id = branch_customer_id or instance.customer_id
+
+    if "zone" in keep and instance.zone_id:
+        zone_customer_id = (
+            Zone.objects.filter(pk=instance.zone_id)
+            .values_list("customer_id", flat=True)
+            .first()
+        )
+        if instance.customer_id and zone_customer_id and instance.customer_id != zone_customer_id:
+            raise DRFValidationError("Selected zone does not belong to this customer.")
+        instance.customer_id = zone_customer_id or instance.customer_id
+
+    # --- Required scope (skipped for the "created, not yet assigned" step) ---
+    required_field = ROLE_REQUIRED_FIELD.get(instance.role)
+    if required_field and not getattr(instance, "_skip_scope_check", False):
         if not getattr(instance, f"{required_field}_id"):
             raise DRFValidationError(
                 f"Role '{instance.role}' requires '{required_field}' to be set."
             )
 
-    # Clear unrelated DOWNSTREAM scopes — never organization.
-    for f in ["customer", "zone", "circle", "branch", "site"]:
-        if f != required_field:
+    # --- Clear scopes this role must not carry — never organization ---
+    for f in ALL_SCOPE_FIELDS:
+        if f not in keep:
             setattr(instance, f"{f}_id", None)
+
 
 @receiver(post_save, sender=User)
 def set_staff_flag(sender, instance, created, **kwargs):

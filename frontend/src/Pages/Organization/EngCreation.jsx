@@ -1328,10 +1328,12 @@ import {
   FiUserPlus, FiEdit2, FiEdit3,
 } from "react-icons/fi";
 import "./AdminCreation.css";   // same stylesheet as Admin_Creation
+import { useAuth } from "../Layout/AuthContext";
 
 const API_BASE  = "http://localhost:8000/api";
 const USERS_URL = `${API_BASE}/admins/`;   // reuse admin endpoints; filter by role on client
 const SITES_URL = `${API_BASE}/sites/`;
+const CUSTOMERS_URL = `${API_BASE}/customers/`;
 
 const getToken = () =>
   localStorage.getItem("token") ||
@@ -1350,6 +1352,7 @@ const authHeaders = () => {
 
 const EMPTY_FORM = {
   id:        null,
+  customer:  "",          // super admin only: picked before the admin
   parent:    "",          // selected admin id
   name:      "",
   email:     "",
@@ -1359,12 +1362,13 @@ const EMPTY_FORM = {
   is_active: true,
 };
 
-// Admin roles that can own engineers (adjust if needed).
-const ADMIN_ROLES = ["ORG_SUPER_ADMIN", "CUSTOMER", "BR_ADMIN"];
+// Engineers are created under a Branch Admin of a customer.
+// (There is no "customer admin" — the customer is the main user.)
+const ADMIN_ROLES = ["BR_ADMIN"];
 
 const ROLE_LABEL = {
   ORG_SUPER_ADMIN: "Org Super Admin",
-  CUSTOMER:      "Customer Admin",
+  CUSTOMER:      "Customer",
   BR_ADMIN:        "Branch Admin",
   ENGINEER:        "Engineer",
 };
@@ -1388,6 +1392,11 @@ const getCustomerName = (eng) => {
   );
 };
 
+const idOf = (v) => {
+  if (v === null || v === undefined || v === "") return "";
+  return String(typeof v === "object" ? v.id ?? "" : v);
+};
+
 const getBranchName = (eng) => {
   if (!eng) return "-";
   return eng.branch_name || eng.branch?.name || eng.branch || "-";
@@ -1409,10 +1418,20 @@ const getParentId = (eng) => {
 };
 
 function EngCreation() {
+  // Logged-in user comes from the auth context. For a CUSTOMER login,
+  // `scopeId` is the customer id and `scopeName` the company name.
+  const { user: currentUser } = useAuth();
+  const isCustomerUser      = currentUser?.role === "CUSTOMER";
+  const currentCustomerId   = isCustomerUser ? String(currentUser.scopeId ?? "") : "";
+  const currentCustomerName = isCustomerUser
+    ? currentUser.scopeName || `Customer #${currentCustomerId}`
+    : "";
+
   const [view, setView] = useState("list");     // "list" | "form" | "assign"
 
-  const [users, setUsers]     = useState([]);
-  const [sites, setSites]     = useState([]);
+  const [users, setUsers]         = useState([]);
+  const [customers, setCustomers] = useState([]);   // super admin only
+  const [sites, setSites]         = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
   const [search, setSearch]   = useState("");
@@ -1454,12 +1473,39 @@ function EngCreation() {
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   // --------------------------------------------------------
-  // FETCH SITES
+  // FETCH CUSTOMERS (super admin only — a customer login only
+  // ever works inside its own customer)
   // --------------------------------------------------------
-  const fetchSites = useCallback(async () => {
+  useEffect(() => {
+    if (isCustomerUser) return;
+    (async () => {
+      try {
+        const res = await fetch(CUSTOMERS_URL, {
+          method: "GET", cache: "no-store", headers: authHeaders(),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setCustomers(normalizeList(await res.json()));
+      } catch (err) {
+        setError(err.message || "Unable to load customers.");
+      }
+    })();
+  }, [isCustomerUser]);
+
+  // --------------------------------------------------------
+  // FETCH SITES — only the sites of the engineer's customer,
+  // narrowed to the admin's branch when the admin has one.
+  // --------------------------------------------------------
+  const fetchSites = useCallback(async (eng) => {
     setSitesLoading(true);
     try {
-      const res = await fetch(SITES_URL, {
+      const qs = new URLSearchParams();
+      const custId   = isCustomerUser ? currentCustomerId : idOf(eng?.customer);
+      const branchId = idOf(eng?.branch);
+      if (custId)   qs.set("customer", custId);
+      if (branchId) qs.set("branch", branchId);
+
+      const url = qs.toString() ? `${SITES_URL}?${qs}` : SITES_URL;
+      const res = await fetch(url, {
         method: "GET", cache: "no-store", headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1470,7 +1516,7 @@ function EngCreation() {
     } finally {
       setSitesLoading(false);
     }
-  }, []);
+  }, [isCustomerUser, currentCustomerId]);
 
   // --------------------------------------------------------
   // DERIVED
@@ -1480,10 +1526,22 @@ function EngCreation() {
     [users]
   );
 
-  const admins = useMemo(
-    () => users.filter((u) => ADMIN_ROLES.includes(u.role)),
-    [users]
-  );
+  // Admins the engineer can be placed under.
+  //  - customer login : the Branch Admins of that customer
+  //  - super admin    : the Branch Admins of the customer picked in the form
+  const admins = useMemo(() => {
+    const all = users.filter((u) => ADMIN_ROLES.includes(u.role));
+    const custId = isCustomerUser ? currentCustomerId : form.customer;
+    if (!custId) return isCustomerUser ? all : [];
+    return all.filter((u) => idOf(u.customer) === String(custId));
+  }, [users, isCustomerUser, currentCustomerId, form.customer]);
+
+  const customerLabel = (eng) => {
+    const id = idOf(eng?.customer);
+    if (isCustomerUser && (!id || id === currentCustomerId)) return currentCustomerName;
+    const found = customers.find((c) => String(c.id) === id);
+    return found ? found.company || found.name || id : id || "-";
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1507,6 +1565,7 @@ function EngCreation() {
   const openEditPanel = (eng) => {
     setForm({
       id:        eng.id,
+      customer:  idOf(eng.customer),
       parent:    getParentId(eng),
       name:      eng.name || "",
       email:     eng.email || "",
@@ -1540,8 +1599,7 @@ function EngCreation() {
     setSelectedSite(target.site ?? "");
     setAssignError("");
     setView("assign");
-
-    if (sites.length === 0) fetchSites();
+    fetchSites(target);
   };
 
   // --------------------------------------------------------
@@ -1554,6 +1612,10 @@ function EngCreation() {
     e.preventDefault();
     setFormError("");
 
+    // Super admin picks the customer first; a customer login never does.
+    if (!isEditing && !isCustomerUser && !form.customer) {
+      return setFormError("Please select a customer first.");
+    }
     if (!isEditing && !form.parent) {
       return setFormError("Please select the admin this engineer belongs to.");
     }
@@ -1571,9 +1633,13 @@ function EngCreation() {
     };
     if (form.password.trim()) payload.password = form.password;
 
-    // Attach the parent admin only when creating.
-    // Rename `parent` to whatever your backend expects (e.g. `admin_id`).
-    if (!isEditing) payload.parent = form.parent;
+    // On create, send the admin the engineer belongs to.
+    //  - customer login : the backend attaches the customer itself
+    //  - super admin    : the customer chosen in the form is sent as well
+    if (!isEditing) {
+      payload.parent = form.parent;
+      if (!isCustomerUser) payload.customer = form.customer;
+    }
 
     setSaving(true);
     try {
@@ -1606,7 +1672,7 @@ function EngCreation() {
         setSelectedSite(saved.site ?? "");
         setAssignError("");
         setView("assign");
-        fetchSites();
+        fetchSites(saved);
       }
     } catch (err) {
       setFormError(err.message || "Could not save engineer.");
@@ -1623,7 +1689,7 @@ function EngCreation() {
     setSelectedSite(eng.site ?? "");
     setAssignError("");
     setView("assign");
-    fetchSites();
+    fetchSites(eng);
   };
 
   const handleAssignSave = async () => {
@@ -1753,6 +1819,7 @@ function EngCreation() {
                     <th>Name</th>
                     <th>Email</th>
                     <th>Phone</th>
+                    {!isCustomerUser && <th>Customer</th>}
                     <th>Site</th>
                     <th>Status</th>
                     <th className="actions-col">Actions</th>
@@ -1764,6 +1831,7 @@ function EngCreation() {
                       <td><strong>{u.name || "-"}</strong></td>
                       <td>{u.email}</td>
                       <td>{u.phone || "-"}</td>
+                      {!isCustomerUser && <td>{customerLabel(u)}</td>}
                       <td>{u.scope_name || "-"}</td>
                       <td>
                         <span className={u.is_active ? "status-active" : "status-inactive"}>
@@ -1823,34 +1891,72 @@ function EngCreation() {
           <form onSubmit={handleSubmit} className="admins-form">
             <div className="form-grid">
 
-              <label className="full-width">
-                Admin *
-                <select
-                  value={form.parent}
-                  onChange={(e) => handleFieldChange("parent", e.target.value)}
-                  required={!isEditing}
-                  disabled={isEditing}
-                >
-                  <option value="">— Select an admin —</option>
-                  {admins.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                      {a.email ? ` — ${a.email}` : ""}
-                      {ROLE_LABEL[a.role] ? ` (${ROLE_LABEL[a.role]})` : ""}
+              {/* Super admin: pick the customer first, then the admin under it.
+                  Customer login: no customer picker — it is their own. */}
+              {!isEditing && !isCustomerUser && (
+                <label className="full-width">
+                  Customer *
+                  <select
+                    value={form.customer}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        customer: e.target.value,
+                        parent: "",           // admin list depends on customer
+                      }))
+                    }
+                    required
+                  >
+                    <option value="">— Select a customer —</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.company || c.name}
+                        {c.code ? ` (${c.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {customers.length === 0 && (
+                    <small className="field-hint">
+                      No customers available. Create a customer first.
+                    </small>
+                  )}
+                </label>
+              )}
+
+              {!isEditing && (
+                <label className="full-width">
+                  Admin *
+                  <select
+                    value={form.parent}
+                    onChange={(e) => handleFieldChange("parent", e.target.value)}
+                    required
+                    disabled={!isCustomerUser && !form.customer}
+                  >
+                    <option value="">
+                      {!isCustomerUser && !form.customer
+                        ? "— Select a customer first —"
+                        : "— Select an admin —"}
                     </option>
-                  ))}
-                </select>
-                {!isEditing && admins.length === 0 && (
-                  <small className="field-hint">
-                    No admins available. Create an admin first.
-                  </small>
-                )}
-                {isEditing && (
-                  <small className="field-hint">
-                    The parent admin cannot be changed after creation.
-                  </small>
-                )}
-              </label>
+                    {admins.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                        {a.email ? ` — ${a.email}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {(isCustomerUser || form.customer) && admins.length === 0 && (
+                    <small className="field-hint">
+                      No admins available
+                      {isCustomerUser ? "" : " for this customer"}. Create an admin first.
+                    </small>
+                  )}
+                  {isCustomerUser && (
+                    <small className="field-hint">
+                      Engineer will be created under {currentCustomerName}.
+                    </small>
+                  )}
+                </label>
+              )}
 
               <label>
                 Name *
@@ -1961,7 +2067,7 @@ function EngCreation() {
             <div className="assign-row">
               <span className="assign-label">Customer</span>
               <span className="assign-value">
-                {getCustomerName(pendingEng)}
+                {customerLabel(pendingEng)}
               </span>
             </div>
 
@@ -1987,7 +2093,9 @@ function EngCreation() {
               {sitesLoading ? (
                 <span className="assign-loading">Loading sites...</span>
               ) : sites.length === 0 ? (
-                <span className="assign-loading">No sites available.</span>
+                <span className="assign-loading">
+                  No sites available for this customer{idOf(pendingEng.branch) ? " / branch" : ""}.
+                </span>
               ) : (
                 <select
                   value={selectedSite}

@@ -12,6 +12,7 @@ import {
   Bell,
   Radio,
   MapPinned,
+  AirVent,
 } from "lucide-react";
 
 export const ROLES = {
@@ -67,6 +68,7 @@ export const MENU_CONFIG = {
       ],
     },
     { label: "Sites", path: "/org/locations", icon: MapPinned },
+    { label: "AC's", path: "/org/device", icon: AirVent },
     { label: "Reports", path: "/org/reports", icon: FileBarChart },
     { label: "Settings", path: "/org/settings", icon: Settings },
   ],
@@ -77,12 +79,12 @@ export const MENU_CONFIG = {
       label: "Master",
       icon: UserCog,
       children: [
-        // { label: "Customers", path: "/customers", icon: Users },
         { label: "Admins", path: "/admins", icon: HardHat },
         { label: "Engineers", path: "/engineers", icon: Wrench },
       ],
     },
     { label: "Sites", path: "/locations", icon: MapPinned },
+    { label: "AC's", path: "/org/device", icon: AirVent },
     { label: "Reports", path: "/reports", icon: FileBarChart },
     { label: "Settings", path: "/settings", icon: Settings },
   ],
@@ -91,7 +93,7 @@ export const MENU_CONFIG = {
     { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
     { label: "Sites", path: "/admin/sites", icon: Radio },
     { label: "Engineers", path: "/admin/engineers", icon: HardHat },
-    { label: "Tickets", path: "/admin/tickets", icon: Ticket },
+    // { label: "Tickets", path: "/admin/tickets", icon: Ticket },
     { label: "Reports", path: "/admin/reports", icon: FileBarChart },
   ],
 
@@ -99,7 +101,7 @@ export const MENU_CONFIG = {
     { label: "Dashboard", path: "/engineer/dashboard", icon: LayoutDashboard },
     { label: "My Sites", path: "/engineer/sites", icon: MapPin },
     { label: "My Tasks", path: "/engineer/tasks", icon: ClipboardList },
-    { label: "Tickets", path: "/engineer/tickets", icon: Ticket },
+    // { label: "Tickets", path: "/engineer/tickets", icon: Ticket },
     // { label: "Maintenance", path: "/engineer/maintenance", icon: Wrench },
     { label: "Alerts", path: "/engineer/alerts", icon: Bell },
   ],
