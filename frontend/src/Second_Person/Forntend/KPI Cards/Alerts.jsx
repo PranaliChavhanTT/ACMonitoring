@@ -1,43 +1,31 @@
-// import React from "react";
-
-// function Alerts({ value = 0 }) {
-//   return (
-//     <div className="kpi-card">
-//       <div className="kpi-icon">⚠️</div>
-
-//       <div className="kpi-content">
-//         <p>Alerts</p>
-
-//         <h2>{value}</h2>
-
-//         <span>Active Alerts</span>
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default Alerts;
-
-
 import React from "react";
 
-function Alerts({ data = [] }) {
+function Alerts({ data = [], active = false, onClick }) {
   const alertCount = data.filter(
     (item) => Number(item.alarm_status) === 1
   ).length;
 
   return (
-    <div className="kpi-card">
+    <button
+      type="button"
+      className="kpi-card"
+      onClick={onClick}
+      title={active ? "Showing alert ACs. Click to clear." : "Show alert ACs"}
+      style={{
+        textAlign: "left",
+        width: "100%",
+        cursor: onClick ? "pointer" : "default",
+        border: active ? "2px solid #dc2626" : undefined,
+      }}
+    >
       <div className="kpi-icon">⚠️</div>
 
       <div className="kpi-content">
         <p>Alerts</p>
-
         <h2>{alertCount}</h2>
-
-        <span>Active Alerts</span>
+        <span>{active ? "Filtered Alerts" : "Active Alerts"}</span>
       </div>
-    </div>
+    </button>
   );
 }
 

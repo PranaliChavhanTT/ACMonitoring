@@ -1,13 +1,28 @@
 Main api - 
 https://ac-monitoring.postman.co/workspace/Telemetry-API-Testing~1719f7dd-314f-40d5-a82f-94daeade1a0f/http-request/45175292-878d5519-1454-45d9-98f0-4a0470ae103b?historyId=6abdf26627d6a73f2f8556e7&utm_source=postman&utm_medium=response_tab&utm_campaign=core&utm_content=link
 
+
+GET https://3tp.tapasyatech.in/api/plugins/telemetry/DEVICE/2e6f6850-a6c4-11f1-8880-6fd8cb50dc0b/values/timeseries/history?keys=data&startTs=1790818506000&endTs=1790832989000
 with params - 
 keys - data
 startTs - 1790818506000 (eg only)
 endTs - 1790832989000 (eg only)
 
-
 body - 
+{
+    "username":"shrutika.kanade@tapasyatech.in",
+    "password":"Shrutika@343"
+}
+
+--------------------------------------------------------
+
+For New Token -
+POST https://tapasyatech.in
+with headers -
+key - contentType
+value - application/json
+
+body -
 {
     "username":"shrutika.kanade@tapasyatech.in",
     "password":"Shrutika@343"

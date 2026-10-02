@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.db import transaction
 from .models import (
-    ACData, User, Organization, Customer, HierarchyType,
+    ACData, DashboardPreference, User, Organization, Customer, HierarchyType,
     Zone, Circle, Region, Division,
     State, District, Taluka, City,
     Branch, Floor, Site, Role,
@@ -578,4 +578,27 @@ class AdminSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+class DashboardPreferenceSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DashboardPreference
+        fields = [
+            "id",
+            "name",
+            "customer",
+            "main_filters",
+            "card_filters",
+            "visible_widgets",
+            "is_default",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "customer",
+            "created_at",
+            "updated_at",
+        ]
 

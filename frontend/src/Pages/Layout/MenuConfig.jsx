@@ -84,7 +84,7 @@ export const MENU_CONFIG = {
       ],
     },
     { label: "Sites", path: "/locations", icon: MapPinned },
-    { label: "AC's", path: "/org/device", icon: AirVent },
+    { label: "AC's", path: "/device", icon: AirVent },
     { label: "Reports", path: "/reports", icon: FileBarChart },
     { label: "Settings", path: "/settings", icon: Settings },
   ],
@@ -92,6 +92,7 @@ export const MENU_CONFIG = {
   [ROLES.BR_ADMIN]: [
     { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
     { label: "Sites", path: "/admin/sites", icon: Radio },
+    { label: "AC's", path: "/admin/device", icon: AirVent },
     { label: "Engineers", path: "/admin/engineers", icon: HardHat },
     // { label: "Tickets", path: "/admin/tickets", icon: Ticket },
     { label: "Reports", path: "/admin/reports", icon: FileBarChart },

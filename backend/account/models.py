@@ -581,3 +581,135 @@ class LocationCircle(models.Model):
 
     def __str__(self):
         return self.circle_name
+
+class ACDevice(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+
+    ac_id = models.CharField(
+        max_length=100,
+        unique=True,
+        db_index=True
+    )
+
+    device_name = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    site = models.ForeignKey(
+        Site,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ac_devices"
+    )
+
+    status = models.CharField(
+        max_length=20,
+        default="OFF"
+    )
+
+    capacity_ton = models.FloatField(
+        null=True,
+        blank=True
+    )
+
+    installation_date = models.DateField(
+        null=True,
+        blank=True
+    )
+
+    last_maintenance_date = models.DateField(
+        null=True,
+        blank=True
+    )
+
+    assigned_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_ac_devices"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "ac_devices"
+        ordering = ["ac_id"]
+
+    def __str__(self):
+        return f"{self.ac_id} - {self.device_name}"
+
+
+class DashboardPreference(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="dashboard_preferences",
+    )
+
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="dashboard_preferences",
+    )
+
+    name = models.CharField(
+        max_length=255,
+        default="My Dashboard"
+    )
+
+    main_filters = models.JSONField(
+        default=dict,
+        blank=True
+    )
+
+    card_filters = models.JSONField(
+        default=dict,
+        blank=True
+    )
+
+    visible_widgets = models.JSONField(
+        default=dict,
+        blank=True
+    )
+
+    is_default = models.BooleanField(
+        default=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        db_table = "dashboard_preferences"
+        ordering = ["-is_default", "-updated_at"]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "name"],
+                name="unique_dashboard_name_per_user",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.name}"

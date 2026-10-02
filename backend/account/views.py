@@ -37,7 +37,7 @@
 
 # from .serializers import (
 #     AdminSerializer, FloorSerializer, LoginSerializer, UserSerializer,
-#     OrganizationSerializer, CustomerSerializer, ZoneSerializer,
+#     OrganizationSerializer, CustomerSerializer, DashboardPreferenceSerializer, ZoneSerializer,
 #     CircleSerializer, StateSerializer, DistrictSerializer, BranchSerializer, SiteSerializer,
 # )
 
@@ -2594,11 +2594,12 @@ from .models import (
     Site,
     LoginAudit,
     Role,
+    DashboardPreference,
 )
 
 from .serializers import (
     AdminSerializer, CitySerializer, DivisionSerializer, FloorSerializer, LoginSerializer, RegionSerializer, TalukaSerializer, UserSerializer,
-    OrganizationSerializer, CustomerSerializer, ZoneSerializer,
+    OrganizationSerializer, CustomerSerializer, DashboardPreferenceSerializer, ZoneSerializer,
     CircleSerializer, StateSerializer, DistrictSerializer, BranchSerializer, SiteSerializer,
 )
 
@@ -3315,6 +3316,11 @@ def _flatten_device(mapping):
         "capacity_ton": mapping.get("capacity_ton", ""),
         "installation_date": mapping.get("installation_date", ""),
         "last_maintenance_date": mapping.get("last_maintenance_date", ""),
+        "customer_id":      mapping.get("customer_id", ""),
+        "created_by_id":    mapping.get("created_by_id", ""),
+        "created_by_name":  mapping.get("created_by_name", ""),
+        "created_by_email": mapping.get("created_by_email", ""),
+        "created_by_role":  mapping.get("created_by_role", ""),
     }
 
     geo = mapping.get("geographical") or {}
@@ -3357,15 +3363,74 @@ def devices(request):
         )
 
 
+from . import ownership
+
+
+def nodes_for_mapping(mapping, branch_index):
+    """Tree branch node(s) an AC mapping points at (legacy maps may hit both trees)."""
+    hier = (mapping.get("hierarchy_type") or "").upper()
+    blocks = []
+    if mapping.get("geographical"):
+        blocks.append(("GEOGRAPHICAL", mapping["geographical"]))
+    if mapping.get("zonal"):
+        blocks.append(("ZONAL", mapping["zonal"]))
+    if not blocks and hier:
+        blocks.append((hier, mapping))
+    nodes = []
+    for h, block in blocks:
+        if hier and h != hier:
+            continue
+        node = branch_index.get((h, block.get("branch_id")))
+        if node is not None:
+            nodes.append(node)
+    return nodes
+
+
+def user_can_see_ac(user, ac_id, device_map, branch_index):
+    if user.role == Role.ORG_SUPER_ADMIN:
+        return True
+    mapping = device_map.get(ac_id)
+    if not mapping:
+        return False          # not assigned to any site yet -> only the Super Admin sees it
+    return any(ownership.can_see_branch(user, n) for n in nodes_for_mapping(mapping, branch_index))
+
+
+def scope_ac_records(records, user):
+    if user.role == Role.ORG_SUPER_ADMIN:
+        return records
+    device_map = build_device_location_map()
+    idx = ownership.build_branch_index()
+    return [r for r in records if user_can_see_ac(user, r.get("ac_id", ""), device_map, idx)]
+
+
 def _devices_impl(request):
     device_map = build_device_location_map()
     if request.method == "GET":
-        result = []
+        user = request.user
+        idx = ownership.build_branch_index()
+
+        visible = []
         for ac_id, mapping in device_map.items():
             if not isinstance(mapping, dict):
                 continue
+            if user_can_see_ac(user, ac_id, device_map, idx):
+                visible.append((ac_id, mapping, nodes_for_mapping(mapping, idx)))
+
+        all_nodes = [n for _, _, ns in visible for n in ns]
+        lookup = ownership.OwnerLookup.for_nodes(all_nodes)
+
+        result = []
+        for ac_id, mapping, nodes in visible:
             flat = _flatten_device(mapping)
             flat["ac_id"] = ac_id
+            # ownership is resolved live from the site the AC sits in
+            owner_node = next((n for n in nodes if n.get("customer_id")), nodes[0] if nodes else None)
+            if owner_node is not None:
+                info = lookup.describe(owner_node)
+                flat["customer_id"] = owner_node.get("customer_id") or flat.get("customer_id") or ""
+                flat["customer_name"] = info["customer"]["company"] if info["customer"] else ""
+                flat["admins"] = info["admins"]
+                flat["engineers"] = info["engineers"]
             result.append(flat)
 
         return JsonResponse({
@@ -3387,7 +3452,6 @@ def _devices_impl(request):
     floor_id    = str(body.get("floor_id", "")).strip()
     device_name = str(body.get("device_name", "")).strip()
     status_val  = str(body.get("status", "OFF")).strip().upper()
-    customer_id = str(body.get("customer_id", "")).strip()
     capacity_raw = body.get("capacity_ton", "")
     installation_date = str(body.get("installation_date", "")).strip()
     last_maintenance_date = str(body.get("last_maintenance_date", "")).strip()
@@ -3469,7 +3533,29 @@ def _devices_impl(request):
     floor   = target["floor"]
     context = target["context"]
 
+    # ---- ownership: the AC inherits the customer/admins of the site ----
+    if not ownership.can_manage_branch(request.user, branch):
+        return JsonResponse(
+            {"status": "error", "message": "You do not have access to this site."},
+            status=403,
+        )
+    customer_id = branch.get("customer_id")
+    if not customer_id:
+        return JsonResponse(
+            {"status": "error",
+             "message": "This site is not assigned to a customer yet. "
+                        "Assign a customer and admin to the site first (Sites page)."},
+            status=400,
+        )
+
     old_mapping = device_map.get(ac_id, {})
+    if old_mapping and request.user.role != Role.ORG_SUPER_ADMIN:
+        old_nodes = nodes_for_mapping(old_mapping, ownership.build_branch_index())
+        if old_nodes and not any(ownership.can_manage_branch(request.user, n) for n in old_nodes):
+            return JsonResponse(
+                {"status": "error", "message": "This AC is assigned to a site you cannot manage."},
+                status=403,
+            )
     old_site_id = old_mapping.get("site_id") or ac_id
     remove_site_from_tree(tree, old_site_id)
     if old_site_id != ac_id:
@@ -3512,7 +3598,7 @@ def _devices_impl(request):
         "location_type":  location_type,
         "hierarchy_type": hierarchy,
 
-        "customer_id":    customer_id,            # ← from step earlier
+        "customer_id":    customer_id,            # ← resolved from the site
 
         "created_by_id":    created_by_id,        # ← new
         "created_by_name":  created_by_name,
@@ -3533,11 +3619,17 @@ def _devices_impl(request):
     device_map[ac_id] = mapping
     save_device_location_map(device_map)
 
+    info = ownership.OwnerLookup.for_nodes([branch]).describe(branch)
+    response_data = dict(mapping)
+    response_data["customer_name"] = info["customer"]["company"] if info["customer"] else ""
+    response_data["admins"] = info["admins"]
+    response_data["engineers"] = info["engineers"]
+
     return JsonResponse(
         {
             "status":  "success",
             "message": f"{ac_id} assigned successfully",
-            "data":    mapping,
+            "data":    response_data,
         },
         status=201,
     )
@@ -3561,16 +3653,21 @@ def make_code_id(existing_ids, name, prefix=""):
 
     return candidate
 
-@api_view(["GET", "POST"])
-@permission_classes([ReadOnlyOrAuthenticated])
-def locations(request):
+def _scoped_tree(location_file, user):
+    """Location tree limited to what `user` may see, with owner details attached."""
+    tree = load_location_tree(location_file)
+    tree = ownership.filter_tree_for_user(tree, user)
+    return ownership.attach_owner_details(tree)
+
+
+def _locations_impl(request):
     if request.method == "GET":
 
         hierarchy = request.GET.get("hierarchy", "").strip().upper()
 
         try:
             if hierarchy == "GEOGRAPHICAL":
-                data = load_location_tree(GEOGRAPHICAL_LOCATION_FILE)
+                data = _scoped_tree(GEOGRAPHICAL_LOCATION_FILE, request.user)
                 return JsonResponse(
                     {
                         "success": True,
@@ -3581,7 +3678,7 @@ def locations(request):
                 )
 
             if hierarchy == "ZONAL":
-                data = load_location_tree(ZONAL_LOCATION_FILE)
+                data = _scoped_tree(ZONAL_LOCATION_FILE, request.user)
                 return JsonResponse(
                     {
                         "success": True,
@@ -3591,8 +3688,8 @@ def locations(request):
                     safe=True,
                 )
 
-            geographical_data = load_location_tree(GEOGRAPHICAL_LOCATION_FILE)
-            zonal_data = load_location_tree(ZONAL_LOCATION_FILE)
+            geographical_data = _scoped_tree(GEOGRAPHICAL_LOCATION_FILE, request.user)
+            zonal_data = _scoped_tree(ZONAL_LOCATION_FILE, request.user)
 
             return JsonResponse(
                 {
@@ -4249,12 +4346,12 @@ def attach_location(record, device_map):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def ac_data_with_location(request):
     try:
         from . import telemetry
         data = telemetry.get_records()
 
+        data = scope_ac_records(data, request.user)
         data = filter_by_location(data, request)
 
         device_map = build_device_location_map()
@@ -4279,12 +4376,12 @@ def ac_data_with_location(request):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def ac_data(request):
     try:
         from . import telemetry
         data = telemetry.get_records()
 
+        data = scope_ac_records(data, request.user)
         data = filter_by_location(data, request)
 
         device_map = build_device_location_map()
@@ -4319,7 +4416,7 @@ def telemetry_status(request):
 def latest_ac_data(request):
     try:
         from . import telemetry
-        data = telemetry.get_records()
+        data = scope_ac_records(telemetry.get_records(), request.user)
 
         if not data:
             return JsonResponse({"status": "success", "data": None})
@@ -5171,91 +5268,278 @@ def _serialize_user_short(u):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def branch_assignments(request):
+    """
+    Customer / admins / engineers that a site (branch) is assigned to.
+
+    GET /branches/assignments/?branch_id=<tree branch id>[&hierarchy_type=GEOGRAPHICAL|ZONAL]
+    The ownership stored on the location-tree branch is the source of truth.
+    """
     branch_id = (request.GET.get("branch_id") or "").strip()
+    hierarchy = (request.GET.get("hierarchy_type") or "").strip().upper()
 
     if not branch_id:
-        return JsonResponse(
-            {"status": "error", "message": "branch_id is required"},
-            status=400,
-        )
+        return JsonResponse({"status": "error", "message": "branch_id is required"}, status=400)
 
-    branch = None
+    idx = ownership.build_branch_index()
+    candidates = [
+        (h, n) for (h, bid), n in idx.items()
+        if bid == branch_id and (not hierarchy or h == hierarchy)
+    ]
+    if not candidates:
+        return JsonResponse({
+            "status": "success",
+            "message": "Site not found in the location tree.",
+            "data": {"customer": None, "admins": [], "engineers": [], "assigned": False},
+        })
+
+    h, node = candidates[0]
+    if not ownership.can_see_branch(request.user, node):
+        return JsonResponse({"status": "error", "message": "You do not have access to this site."}, status=403)
+
+    info = ownership.OwnerLookup.for_nodes([node]).describe(node)
+    return JsonResponse({
+        "status": "success",
+        "data": {
+            "branch": {"id": node.get("branch_id"), "name": node.get("branch_name", ""), "hierarchy_type": h},
+            "customer": info["customer"],
+            "admins": info["admins"],
+            "engineers": info["engineers"],
+            "assigned": bool(info["customer"]),
+        },
+    })
+
+
+@api_view(["POST"])
+def branch_ownership(request):
+    """
+    Assign a site (tree branch) to a customer + its admins / engineers.
+
+    POST /branches/ownership/
+      { "hierarchy_type": "GEOGRAPHICAL"|"ZONAL", "branch_id": "AP-B01",
+        "customer_id": 1, "admin_ids": ["<uuid>"], "engineer_ids": ["<uuid>"] }
+
+    Super Admin: any customer in the org.  Customer: only their own customer.
+    Every AC placed in this site (now or later) follows these owners.
+    """
+    body = request.data
+    hierarchy = str(body.get("hierarchy_type", "")).strip().upper()
+    branch_id = str(body.get("branch_id", "")).strip()
+    if hierarchy not in ("GEOGRAPHICAL", "ZONAL") or not branch_id:
+        return JsonResponse(
+            {"status": "error", "message": "hierarchy_type and branch_id are required"}, status=400)
+
+    location_file = ownership.tree_file(hierarchy)
+    tree = load_location_tree(location_file)
+    node = next((n for n, _ in iter_branches(tree, hierarchy) if n.get("branch_id") == branch_id), None)
+    if node is None:
+        return JsonResponse({"status": "error", "message": "Site not found."}, status=404)
 
     try:
-        branch = (
-            Branch.objects
-            .select_related("customer")
-            .filter(pk=branch_id)
-            .first()
+        customer, admin_ids, engineer_ids = ownership.validate_ownership(
+            request.user, hierarchy, node,
+            body.get("customer_id"), body.get("admin_ids"), body.get("engineer_ids"),
         )
-    except (ValueError, DjangoValidationError):
-        branch = None
+    except ownership.OwnershipError as exc:
+        return JsonResponse({"status": "error", "message": str(exc)}, status=exc.status)
 
-    if branch is None:
-        for code_field in ("branch_code", "code"):
-            if hasattr(Branch, code_field):
-                branch = (
-                    Branch.objects
-                    .select_related("customer")
-                    .filter(**{code_field: branch_id})
-                    .first()
-                )
-                if branch:
-                    break
+    ownership.set_node_owner(node, customer.pk, admin_ids, engineer_ids)
+    save_location_tree(tree, location_file)
 
-    if branch is None:
-        return JsonResponse(
-            {
-                "status":  "success",
-                "message": "No matching branch in the database.",
-                "data": {
-                    "customer":  None,
-                    "admins":    [],
-                    "engineers": [],
-                },
-            },
-        )
+    info = ownership.OwnerLookup.for_nodes([node]).describe(node)
+    return JsonResponse({"status": "success", "data": {"branch_id": branch_id, **info}})
 
-    customer = getattr(branch, "customer", None)
 
-    admins = (
-        User.objects
-        .filter(role=Role.BR_ADMIN, branch=branch)
-        .order_by("name")
-    )
-    engineers = (
-        User.objects
-        .filter(role=Role.ENGINEER, branch=branch)
-        .order_by("name")
-    )
+@api_view(["GET"])
+def unassigned_devices(request):
+    """AC devices created by 3TP that have not been placed in a site yet."""
+    if request.user.role not in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER, Role.BR_ADMIN):
+        return JsonResponse({"status": "success", "count": 0, "data": []})
+    from . import telemetry
+    try:
+        known = telemetry._devices()
+    except Exception:
+        known = []
+    assigned = set(build_device_location_map().keys())
+    data = [
+        {"ac_id": d.get("ac_id"), "device_name": d.get("device_name") or d.get("ac_id")}
+        for d in known if d.get("ac_id") and d.get("ac_id") not in assigned
+    ]
+    return JsonResponse({"status": "success", "count": len(data), "data": data})
 
-    is_active = request.GET.get("is_active", "true").lower() in ("1", "true", "yes")
-    if is_active:
-        admins    = admins.filter(is_active=True)
-        engineers = engineers.filter(is_active=True)
-
-    return JsonResponse(
-        {
-            "status": "success",
-            "data": {
-                "branch": {
-                    "id":   str(branch.pk),
-                    "name": getattr(branch, "name", ""),
-                },
-                "customer": {
-                    "id":      customer.pk if customer else None,
-                    "company": getattr(customer, "company", "") if customer else "",
-                    "code":    getattr(customer, "code", "")    if customer else "",
-                    "email":   getattr(customer, "company_email", "") if customer else "",
-                    "phone":   getattr(customer, "phone", "")   if customer else "",
-                } if customer else None,
-                "admins":    [_serialize_user_short(u) for u in admins],
-                "engineers": [_serialize_user_short(u) for u in engineers],
-            },
-        },
-    )
 
 def treands(request):
     return Response("Treands page")
+
+
+@api_view(["GET", "POST"])
+def locations(request):
+    """
+    GET  -> the location tree, limited to the sites the logged-in user may see.
+    POST -> create locations; a new/updated branch is stamped with its owners:
+              CUSTOMER   -> their own customer
+              SUPER ADMIN-> body.customer_id / admin_ids / engineer_ids (optional)
+    """
+    user = request.user
+
+    if request.method == "POST":
+        if user.role not in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER):
+            return JsonResponse(
+                {"success": False, "message": "You are not allowed to create locations."}, status=403)
+
+        try:
+            body = json.loads(request.body or "{}")
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "message": "Invalid JSON body"}, status=400)
+        hierarchy = str(body.get("hierarchy_type", "")).strip().upper()
+
+        if user.role == Role.CUSTOMER:
+            if not user.customer_id:
+                return JsonResponse({"success": False, "message": "Your account has no customer."}, status=403)
+            ctype = getattr(user.customer, "hierarchy_type", None)
+            if ctype and hierarchy and ctype != hierarchy:
+                return JsonResponse(
+                    {"success": False,
+                     "message": f"Your account uses the {ctype.title()} hierarchy."}, status=403)
+            if hierarchy in ("GEOGRAPHICAL", "ZONAL"):
+                existing = ownership.find_branch_by_path(
+                    load_location_tree(ownership.tree_file(hierarchy)), hierarchy, body)
+                if existing is not None and not ownership.can_see_branch(user, existing) \
+                        and existing.get("customer_id") not in (None, user.customer_id):
+                    return JsonResponse(
+                        {"success": False, "message": "This site belongs to another customer."}, status=403)
+
+    response = _locations_impl(request)
+
+    if request.method == "POST" and response.status_code == 201:
+        try:
+            _stamp_new_branch(user, body, response)
+        except Exception:
+            pass        # never fail a created location because of owner stamping
+    return response
+
+
+def _stamp_new_branch(user, body, response):
+    hierarchy = str(body.get("hierarchy_type", "")).strip().upper()
+    branch_id = (json.loads(response.content).get("data") or {}).get("branch_id")
+    if not branch_id:
+        return
+
+    location_file = ownership.tree_file(hierarchy)
+    tree = load_location_tree(location_file)
+    node = next((n for n, _ in iter_branches(tree, hierarchy) if n.get("branch_id") == branch_id), None)
+    if node is None:
+        return
+
+    if user.role == Role.CUSTOMER:
+        if node.get("customer_id") in (None, user.customer_id):
+            ownership.set_node_owner(
+                node, user.customer_id,
+                ownership.node_owner(node)["admin_ids"], ownership.node_owner(node)["engineer_ids"])
+    elif body.get("customer_id"):
+        try:
+            customer, admin_ids, engineer_ids = ownership.validate_ownership(
+                user, hierarchy, node, body.get("customer_id"),
+                body.get("admin_ids"), body.get("engineer_ids"))
+        except ownership.OwnershipError:
+            return
+        ownership.set_node_owner(node, customer.pk, admin_ids, engineer_ids)
+    else:
+        return
+    save_location_tree(tree, location_file)
+
+
+# ============================================================
+# SAVED DASHBOARD PREFERENCES
+# ============================================================
+
+@api_view(["GET", "POST"])
+@permission_classes([permissions.IsAuthenticated])
+def dashboard_preferences(request):
+    """
+    GET  -> return dashboards belonging to the logged-in user.
+    POST -> create a saved dashboard for the logged-in user.
+
+    Only dashboard state is stored. Live AC/3TP telemetry continues to use
+    the existing APIs and polling flow.
+    """
+    user = request.user
+
+    if request.method == "GET":
+        queryset = DashboardPreference.objects.filter(user=user)
+        return Response(
+            DashboardPreferenceSerializer(queryset, many=True).data,
+            status=status.HTTP_200_OK,
+        )
+
+    serializer = DashboardPreferenceSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    name = serializer.validated_data.get("name") or "My Dashboard"
+
+    # Customer users are automatically tied to their customer.
+    # Organisation admins may save an organisation-level dashboard.
+    customer = user.customer if user.customer_id else None
+
+    if serializer.validated_data.get("is_default"):
+        DashboardPreference.objects.filter(
+            user=user, is_default=True
+        ).update(is_default=False)
+
+    dashboard = DashboardPreference.objects.create(
+        user=user,
+        customer=customer,
+        name=name,
+        main_filters=serializer.validated_data.get("main_filters", {}),
+        card_filters=serializer.validated_data.get("card_filters", {}),
+        visible_widgets=serializer.validated_data.get("visible_widgets", {}),
+        is_default=serializer.validated_data.get("is_default", False),
+    )
+
+    return Response(
+        DashboardPreferenceSerializer(dashboard).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
+@permission_classes([permissions.IsAuthenticated])
+def dashboard_preference_detail(request, pk):
+    """Read/update/delete one saved dashboard owned by the current user."""
+    try:
+        dashboard = DashboardPreference.objects.get(
+            pk=pk, user=request.user
+        )
+    except DashboardPreference.DoesNotExist:
+        return Response(
+            {"detail": "Dashboard not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == "GET":
+        return Response(
+            DashboardPreferenceSerializer(dashboard).data,
+            status=status.HTTP_200_OK,
+        )
+
+    if request.method == "DELETE":
+        dashboard.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = DashboardPreferenceSerializer(
+        dashboard, data=request.data, partial=True
+    )
+    serializer.is_valid(raise_exception=True)
+
+    if serializer.validated_data.get("is_default") is True:
+        DashboardPreference.objects.filter(
+            user=request.user
+        ).exclude(pk=dashboard.pk).update(is_default=False)
+
+    # Do not allow customer ownership to be changed by the frontend.
+    serializer.save(customer=request.user.customer if request.user.customer_id else None)
+
+    return Response(
+        DashboardPreferenceSerializer(dashboard).data,
+        status=status.HTTP_200_OK,
+    )

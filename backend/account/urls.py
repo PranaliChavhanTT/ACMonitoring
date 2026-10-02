@@ -17,6 +17,10 @@ from .views import (
     ZoneListView, StateListView, DistrictListView,
     ac_data,
     branch_assignments,
+    branch_ownership,
+    dashboard_preference_detail,
+    dashboard_preferences,
+    unassigned_devices,
     dashboard_summary_view,
     device,
     devices,
@@ -37,10 +41,15 @@ urlpatterns = [
     path( "ac-data/status/", telemetry_status),
     path( "ac-data/with-location/", ac_data_with_location ),
 
+    path( "dashboard/summary/", dashboard_summary_view ),
+    path( "dashboard/preferences/", dashboard_preferences ),
+    path( "dashboard/preferences/<uuid:pk>/", dashboard_preference_detail ),
+
     path( "v1/filters/locations/", locations),
     path("v1/filters/locations/<str:location_type>/<int:location_id>/", location_detail),
     
     path( "devices/", devices ),
+    path( "devices/unassigned/", unassigned_devices ),
 
     path( "auth/login/", login_view, name="login" ),
     path( "auth/logout/", logout_view),
@@ -69,6 +78,7 @@ urlpatterns = [
     path( "users/", UserListView.as_view()),
 
     path( "branches/assignments/", branch_assignments),
+    path( "branches/ownership/", branch_ownership),
 
     path( "dashboard/summary/", dashboard_summary_view ),
 

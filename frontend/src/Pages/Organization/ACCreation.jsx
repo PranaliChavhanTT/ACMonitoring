@@ -133,6 +133,18 @@ function ACCreation() {
     }, [locations, selectedHierarchy]);
 
 
+    const [unassigned, setUnassigned] = useState([]);
+
+    const fetchUnassigned = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/devices/unassigned/`, {
+                method: "GET", headers: authHeaders(), cache: "no-store",
+            });
+            const result = await res.json().catch(() => ({}));
+            if (res.ok) setUnassigned(normalizeList(result));
+        } catch { /* suggestions are optional */ }
+    }, []);
+
     const [branchAssignments, setBranchAssignments] = useState(null);
     const [loadingAssignments, setLoadingAssignments] = useState(false);
     const [assignmentsError, setAssignmentsError] = useState("");
@@ -147,7 +159,8 @@ function ACCreation() {
             setLoadingAssignments(true);
             setAssignmentsError("");
 
-            const url = `${API_BASE}/branches/assignments/?branch_id=${encodeURIComponent(branchId)}`;
+            const url = `${API_BASE}/branches/assignments/?branch_id=${encodeURIComponent(branchId)}` +
+                (selectedHierarchy ? `&hierarchy_type=${selectedHierarchy}` : "");
             const res = await fetch(url, {
                 method: "GET", headers: authHeaders(), cache: "no-store",
             });
@@ -161,7 +174,7 @@ function ACCreation() {
         } finally {
             setLoadingAssignments(false);
         }
-    }, []);
+    }, [selectedHierarchy]);
 
     useEffect(() => {
         fetchBranchAssignments(form.branch_id);
@@ -207,7 +220,8 @@ function ACCreation() {
     useEffect(() => {
         fetchDevices();
         fetchLocations();
-    }, [fetchDevices, fetchLocations]);
+        fetchUnassigned();
+    }, [fetchDevices, fetchLocations, fetchUnassigned]);
 
     const filteredBranches = useMemo(() => {
         if (!selectedHierarchy) return [];
@@ -346,6 +360,9 @@ function ACCreation() {
         if (!form.device_name.trim()) return setFormError("Device name is required.");
         if (!selectedHierarchy)       return setFormError("Please select a location type.");
         if (!form.branch_id)          return setFormError("Please select a branch.");
+        if (branchAssignments && !branchAssignments.customer) {
+            return setFormError("This site is not assigned to a customer yet. Assign a customer and admin to the site on the Sites page first.");
+        }
 
         const capacity = Number(form.capacity_ton);
         if (!Number.isFinite(capacity) || capacity <= 0) {
@@ -370,7 +387,6 @@ function ACCreation() {
             capacity_ton:   capacity,
             installation_date: form.installation_date,
             last_maintenance_date: form.last_maintenance_date || "",
-            customer_id:    branchAssignments?.customer?.id ?? "",
         };
 
         const res = await fetch(DEVICES_URL, {
@@ -391,7 +407,7 @@ function ACCreation() {
             throw new Error(message);
         }
 
-        await fetchDevices();
+        await Promise.all([fetchDevices(), fetchUnassigned()]);
         setView("list");
         resetForm();
         } catch (err) {
@@ -513,9 +529,17 @@ function ACCreation() {
 
                                     <td
                                         title={custLabel}
-                                        style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                                        style={{ overflow: "hidden", textOverflow: "ellipsis" }}
                                     >
-                                        {custLabel}
+                                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                            {custLabel}
+                                        </div>
+                                        {(device.admins || []).length > 0 && (
+                                            <div style={{ fontSize: 11, color: "#6b7280" }}
+                                                title={device.admins.map((a) => a.email).join(", ")}>
+                                                Admin: {device.admins.map((a) => a.name).join(", ")}
+                                            </div>
+                                        )}
                                     </td>
 
                                     <td
@@ -596,12 +620,27 @@ function ACCreation() {
                                 AC ID *
                                 <input
                                 value={form.ac_id}
-                                onChange={(e) => setForm((p) => ({ ...p, ac_id: e.target.value }))}
+                                list="unassigned-acs"
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    const match = unassigned.find((d) => d.ac_id === value);
+                                    setForm((p) => ({
+                                        ...p,
+                                        ac_id: value,
+                                        device_name: match && !p.device_name ? (match.device_name || "") : p.device_name,
+                                    }));
+                                }}
                                 placeholder="AC-MH-PUN-001"
                                 required
                                 />
+                                <datalist id="unassigned-acs">
+                                    {unassigned.map((d) => (
+                                        <option key={d.ac_id} value={d.ac_id}>{d.device_name}</option>
+                                    ))}
+                                </datalist>
                                 <small className="field-hint">
-                                    This should match the device ID used by your live AC/ThingsBoard data.
+                                    Pick a device that 3TP has already sent ({unassigned.length} waiting to be assigned),
+                                    or type its ID. It must match the device ID used by your live AC data.
                                 </small>
                             </label>
 
@@ -744,6 +783,12 @@ function ACCreation() {
                                                     : "— not linked to a customer —"}
                                             </span>
                                         </div>
+
+                                        {!branchAssignments.customer && (
+                                            <div className="form-error" style={{ margin: "8px 0" }}>
+                                                This site has no customer yet. Assign one on the Sites page before adding ACs to it.
+                                            </div>
+                                        )}
 
                                         <div className="assign-row">
                                             <span className="assign-label">
@@ -998,7 +1043,8 @@ function ACCreation() {
                         <button
                             type="submit"
                             className="btn-primary"
-                            disabled={saving || !selectedHierarchy || !form.branch_id}
+                            disabled={saving || !selectedHierarchy || !form.branch_id || loadingAssignments ||
+                                (branchAssignments ? !branchAssignments.customer : false)}
                         >
                             <FiCheckCircle />
                             {saving ? "Creating..." : "Create & Assign Device"}

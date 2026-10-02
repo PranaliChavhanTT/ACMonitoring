@@ -123,6 +123,14 @@ export default function App() {
             }
           />
 
+          <Route path="/device"
+            element={
+              <Page roles={[ROLES.CUSTOMER]}>
+                <ACCreation />
+              </Page>
+            }
+          />
+
           <Route path="/admins"
             element={
               <Page roles={[ROLES.CUSTOMER]}>
@@ -166,6 +174,33 @@ export default function App() {
                 ]}
               >
                 <Admin_Dashboard />
+              </Page>
+            }
+          />
+
+          <Route
+            path="/admin/sites"
+            element={
+              <Page roles={[ROLES.BR_ADMIN]}>
+                <Locations />
+              </Page>
+            }
+          />
+
+          <Route
+            path="/admin/device"
+            element={
+              <Page roles={[ROLES.BR_ADMIN]}>
+                <ACCreation />
+              </Page>
+            }
+          />
+
+          <Route
+            path="/engineer/sites"
+            element={
+              <Page roles={[ROLES.ENGINEER]}>
+                <Locations />
               </Page>
             }
           />

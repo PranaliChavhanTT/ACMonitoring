@@ -1225,8 +1225,10 @@
 
 
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import "./Locations.css";
+import { useAuth } from "../Layout/AuthContext";
+import SiteOwnerModal, { SiteActionsContext, authHeaders } from "./SiteOwnerModal";
 
 const API_URL = "http://localhost:8000/api/v1/filters/locations/";
 
@@ -1275,6 +1277,10 @@ const EMPTY_FORM = {
 };
 
 const Locations = () => {
+    const { user } = useAuth();
+    const canAssign = user?.role === "ORG_SUPER_ADMIN" || user?.role === "CUSTOMER";
+    const [assignTarget, setAssignTarget] = useState(null);
+
     const [locations, setLocations] = useState({
         GEOGRAPHICAL: [],
         ZONAL: [],
@@ -1302,6 +1308,7 @@ const Locations = () => {
 
             const response = await fetch(API_URL, {
                 method: "GET",
+                headers: authHeaders(),
                 cache: "no-store",
             });
 
@@ -1870,7 +1877,23 @@ const Locations = () => {
     ========================================================= */
 
     return (
+        <SiteActionsContext.Provider
+            value={{
+                canAssign,
+                openAssign: (branch) => setAssignTarget({ branch, hierarchyType }),
+            }}
+        >
         <div className="locations-page">
+
+            {assignTarget && (
+                <SiteOwnerModal
+                    branch={assignTarget.branch}
+                    hierarchyType={assignTarget.hierarchyType}
+                    role={user?.role}
+                    onClose={() => setAssignTarget(null)}
+                    onSaved={fetchLocations}
+                />
+            )}
 
             {/* =================================================
                 HEADER
@@ -1894,6 +1917,7 @@ const Locations = () => {
                         ↻ Refresh
                     </button>
 
+                    {canAssign && (
                     <button
                         className="add-location-btn"
                         onClick={
@@ -1903,6 +1927,7 @@ const Locations = () => {
                         <span>+</span>
                         Add Location
                     </button>
+                    )}
                 </div>
             </div>
 
@@ -4077,6 +4102,7 @@ const Locations = () => {
                 </div>
             )}
         </div>
+        </SiteActionsContext.Provider>
     );
 };
 
@@ -4161,11 +4187,20 @@ const BranchTree = ({
     const branchExpanded =
         expanded[branchKey];
 
+    const { canAssign, openAssign } = useContext(SiteActionsContext);
+
     const floorCount =
         branch.floors?.length || 0;
 
-    const directACCount =
-        branch.ac_devices?.length || 0;
+    // ACs placed straight under the branch: new `sites` list + legacy `ac_devices`
+    const directACs = [
+        ...(branch.sites || []),
+        ...(branch.ac_devices || []),
+    ];
+    const directACCount = directACs.length;
+
+    const customerLabel = branch.customer?.company;
+    const adminLabel = (branch.admins || []).map((a) => a.name).join(", ");
 
     return (
         <div>
@@ -4200,6 +4235,17 @@ const BranchTree = ({
                             branch.branch_id
                         }
                     </span>
+
+                    <span style={{ display: "block", fontSize: 12, marginTop: 2 }}>
+                        {customerLabel ? (
+                            <>
+                                <b>{customerLabel}</b>
+                                {adminLabel ? ` · Admin: ${adminLabel}` : " · no admin assigned"}
+                            </>
+                        ) : (
+                            <em style={{ color: "#b45309" }}>Not assigned to a customer</em>
+                        )}
+                    </span>
                 </div>
 
                 <div className="location-count">
@@ -4207,6 +4253,20 @@ const BranchTree = ({
                     {directACCount > 0 &&
                         ` • ${directACCount} Direct ACs`}
                 </div>
+
+                {canAssign && (
+                    <button
+                        type="button"
+                        className="refresh-btn"
+                        style={{ marginLeft: 12, whiteSpace: "nowrap" }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openAssign(branch);
+                        }}
+                    >
+                        {customerLabel ? "Edit owners" : "Assign"}
+                    </button>
+                )}
             </div>
 
             {/* BRANCH CONTENT */}
@@ -4216,10 +4276,10 @@ const BranchTree = ({
 
                     {/* DIRECT ACs */}
 
-                    {branch.ac_devices
-                        ?.length > 0 && (
+                    {directACs
+                        .length > 0 && (
                         <div className="ac-list">
-                            {branch.ac_devices.map(
+                            {directACs.map(
                                 (
                                     ac,
                                     index
@@ -4227,7 +4287,7 @@ const BranchTree = ({
                                     <div
                                         className="ac-item"
                                         key={
-                                            ac.ac_id ||
+                                            ac.ac_id || ac.site_id ||
                                             index
                                         }
                                     >
@@ -4236,7 +4296,7 @@ const BranchTree = ({
                                         <div className="ac-info">
                                             <strong>
                                                 {
-                                                    ac.ac_id
+                                                    ac.ac_id || ac.site_id
                                                 }
                                             </strong>
 
@@ -4319,12 +4379,9 @@ const BranchTree = ({
                                         </div>
 
                                         <div className="location-count">
-                                            {
-                                                floor.rooms
-                                                    ?.length ||
-                                                0
-                                            }{" "}
-                                            Rooms
+                                            {(floor.rooms?.length || 0) > 0
+                                                ? `${floor.rooms.length} Rooms`
+                                                : `${floor.sites?.length || 0} ACs`}
                                         </div>
                                     </div>
 
@@ -4332,6 +4389,22 @@ const BranchTree = ({
 
                                     {floorExpanded && (
                                         <div className="nested-level">
+                                            {floor.sites?.length > 0 && (
+                                                <div className="ac-list">
+                                                    {floor.sites.map((ac, acIndex) => (
+                                                        <div className="ac-item" key={ac.site_id || ac.ac_id || acIndex}>
+                                                            <div className="ac-dot"></div>
+                                                            <div className="ac-info">
+                                                                <strong>{ac.site_id || ac.ac_id}</strong>
+                                                                <span>{ac.device_name}</span>
+                                                            </div>
+                                                            <span className={ac.status === "ON" ? "ac-status on" : "ac-status off"}>
+                                                                {ac.status}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                             {floor.rooms?.map(
                                                 (
                                                     room,
