@@ -7,10 +7,10 @@ from django.apps import AppConfig
 class AccountsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "account"
+    label = "account"
 
     def ready(self):
         import account.signals  # noqa: F401
-
         self._start_telemetry()
 
     @staticmethod

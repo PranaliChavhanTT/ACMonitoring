@@ -1851,5 +1851,28 @@
         "region_name": "Pune Region",
         "division_id": "MH-C01-R01-D01",
         "division_name": "Pune Division"
+    },
+    {
+        "ac_id": "AC001",
+        "site_id": "a66126d9-b440-4967-a359-2147e23d63fe",
+        "site_name": "SITE-9001",
+        "site_code": "SITE-9001",
+        "device_name": "-",
+        "status": "ON",
+        "location_type": "SITE",
+        "hierarchy_type": "ZONAL",
+        "customer_id": "1",
+        "customer_name": "TowerLink Infra",
+        "branch_id": "4b9e7d88-9dc2-47af-80c3-86c873b195c0",
+        "branch_name": "Karol Bagh Branch",
+        "floor_id": "",
+        "floor_name": "",
+        "capacity_ton": 2.0,
+        "installation_date": "1025-10-20",
+        "last_maintenance_date": "2026-10-20",
+        "created_by_id": "2f1a4cb6-b6f2-43cb-a496-ff1ab7b7e536",
+        "created_by_name": "Ravi Menon",
+        "created_by_email": "superadmin@org.com",
+        "created_by_role": "ORG_SUPER_ADMIN"
     }
 ]

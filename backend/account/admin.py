@@ -9,7 +9,19 @@ from .models import (
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display  = ("email", "name", "role", "scope_name", "is_active", "is_staff")
+    # list_display  = ("email", "name", "role", "scope_name", "is_active", "is_staff")
+    list_display = (
+        "email",
+        "name",
+        "role",
+        "scope_name",
+        "is_active",
+    )
+
+    @admin.display(description="Scope", ordering="role")
+    def scope_name(self, obj):
+        return obj.scope_name
+    
     list_filter   = ("role", "is_active", "is_staff")
     search_fields = ("email", "name")
     ordering      = ("name",)

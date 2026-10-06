@@ -234,4 +234,3 @@ def seed_demo_data(sender, **kwargs):
     except Exception as exc:
         import logging
         logging.getLogger(__name__).warning("seed_demo_data skipped: %s", exc)
-    

@@ -21,7 +21,7 @@ Visibility rules
 """
 import copy
 
-from .models import Customer, Role, User
+from .models import Customer, Role, User, State, Zone
 
 CHILD_KEYS = (
     "districts", "talukas", "cities",      # geographical
@@ -105,23 +105,74 @@ def _legacy_branch_match(user, node):
 
 
 def can_see_branch(user, node):
+    """
+    Visibility is based on the customer's hierarchy and the user's scope.
+
+    Customer:
+        sees all branches belonging to that customer's hierarchy.
+
+    Branch Admin:
+        geographical -> sees every branch below assigned State
+        zonal       -> sees every branch below assigned Zone
+
+    The location JSON is treated as a display tree; ownership is resolved
+    from the Django location tables so selecting a hierarchy on Customer
+    actually controls the user's scope.
+    """
     if not user or not user.is_authenticated:
         return False
+
     role = user.role
-    owner = node_owner(node)
+    hierarchy = "GEOGRAPHICAL" if node.get("state_name") else "ZONAL" if node.get("zone_name") else ""
 
     if role == Role.ORG_SUPER_ADMIN:
         return True
+
+    if role not in (Role.CUSTOMER, Role.BR_ADMIN, Role.ENGINEER):
+        return False
+
+    customer = getattr(user, "customer", None)
+    if not customer:
+        return False
+
+    customer_hierarchy = customer.hierarchy_type
+    if customer_hierarchy != hierarchy:
+        return False
+
     if role == Role.CUSTOMER:
-        return bool(user.customer_id) and owner["customer_id"] == user.customer_id
+        if hierarchy == "GEOGRAPHICAL":
+            return State.objects.filter(
+                customer_id=user.customer_id,
+                name=node.get("state_name"),
+            ).exists()
+        return Zone.objects.filter(
+            customer_id=user.customer_id,
+            name=node.get("zone_name"),
+        ).exists()
+
     if role == Role.BR_ADMIN:
-        if str(user.id) in owner["admin_ids"]:
-            return True
-        return _legacy_branch_match(user, node) and owner["customer_id"] in (None, user.customer_id)
+        if hierarchy == "GEOGRAPHICAL" and user.state_id:
+            return (
+                State.objects.filter(
+                    pk=user.state_id,
+                    customer_id=user.customer_id,
+                    name=node.get("state_name"),
+                ).exists()
+            )
+        if hierarchy == "ZONAL" and user.zone_id:
+            return (
+                Zone.objects.filter(
+                    pk=user.zone_id,
+                    customer_id=user.customer_id,
+                    name=node.get("zone_name"),
+                ).exists()
+            )
+        # Legacy branch-scoped admins remain supported.
+        return _legacy_branch_match(user, node)
+
     if role == Role.ENGINEER:
-        if str(user.id) in owner["engineer_ids"]:
-            return True
-        return _legacy_branch_match(user, node) and owner["customer_id"] in (None, user.customer_id)
+        return _legacy_branch_match(user, node)
+
     return False
 
 

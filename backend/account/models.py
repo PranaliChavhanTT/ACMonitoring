@@ -78,6 +78,11 @@ class Customer(models.Model):
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
+    # 3TP synchronization fields
+    tpt_customer_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
+    tpt_sync_status = models.CharField(max_length=20, default="PENDING")
+    tpt_sync_error = models.TextField(null=True, blank=True)
+
     class Meta:
         unique_together = ("organization", "code")
         ordering = ["company"]
@@ -313,6 +318,11 @@ class Site(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # 3TP synchronization fields
+    tpt_site_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
+    tpt_sync_status = models.CharField(max_length=20, default="PENDING")
+    tpt_sync_error = models.TextField(null=True, blank=True)
+
     class Meta:
         db_table = "sites"
         unique_together = ("branch", "name")
@@ -350,91 +360,289 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
-class User(AbstractBaseUser, PermissionsMixin):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(unique=True, db_index=True)
-    name = models.CharField(max_length=255)
-    phone = models.CharField(max_length=20, blank=True)
+# class User(AbstractBaseUser, PermissionsMixin):
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     email = models.EmailField(unique=True, db_index=True)
+#     name = models.CharField(max_length=255)
+#     phone = models.CharField(max_length=20, blank=True)
 
-    role = models.CharField(max_length=30, choices=Role.choices, db_index=True)
+#     role = models.CharField(max_length=30, choices=Role.choices, db_index=True)
+
+#     organization = models.ForeignKey(
+#         Organization, null=True, blank=True,
+#         on_delete=models.SET_NULL, related_name="users"
+#     )
+#     customer = models.ForeignKey(
+#         Customer, null=True, blank=True,
+#         on_delete=models.SET_NULL, related_name="users"
+#     )
+#     zone = models.ForeignKey(
+#         Zone, null=True, blank=True,
+#         on_delete=models.SET_NULL, related_name="users"
+#     )
+#     circle = models.ForeignKey(
+#         Circle, null=True, blank=True,
+#         on_delete=models.SET_NULL, related_name="users"
+#     )
+#     state = models.ForeignKey(
+#         State, null=True, blank=True,
+#         on_delete=models.SET_NULL, related_name="users"
+#     )
+#     district = models.ForeignKey(
+#         District, null=True, blank=True,
+#         on_delete=models.SET_NULL, related_name="users"
+#     )
+#     branch = models.ForeignKey(
+#         Branch, null=True, blank=True,
+#         on_delete=models.SET_NULL, related_name="users"
+#     )
+#     site = models.ForeignKey(
+#         Site, null=True, blank=True,
+#         on_delete=models.SET_NULL, related_name="users"
+#     )
+
+#     zone     = models.ForeignKey(Zone,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+#     circle   = models.ForeignKey(Circle,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+#     region   = models.ForeignKey(Region,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+#     division = models.ForeignKey(Division, null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+
+#     state    = models.ForeignKey(State,    null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+#     district = models.ForeignKey(District, null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+#     taluka   = models.ForeignKey(Taluka,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+#     city     = models.ForeignKey(City,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+
+#     branch   = models.ForeignKey(Branch,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+#     site     = models.ForeignKey(Site,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
+
+#     is_active = models.BooleanField(default=True)
+#     is_staff = models.BooleanField(default=False)
+#     date_joined = models.DateTimeField(default=timezone.now)
+#     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
+
+#     # 3TP synchronization fields
+#     tpt_user_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
+#     tpt_sync_status = models.CharField(max_length=20, default="PENDING")
+#     tpt_sync_error = models.TextField(null=True, blank=True)
+
+#     objects = UserManager()
+
+#     USERNAME_FIELD = "email"
+#     REQUIRED_FIELDS = ["name", "role"]
+
+#     class Meta:
+#         db_table = "users"
+#         ordering = ["name"]
+
+#     def __str__(self):
+#         return f"{self.name} <{self.email}> [{self.role}]"
+
+#     def get_scope(self):
+#         """Return the highest-level scope that controls this user's visibility."""
+#         if self.role == Role.ORG_SUPER_ADMIN:
+#             return "ORGANIZATION", self.organization_id
+#         if self.role == Role.CUSTOMER:
+#             return "CUSTOMER", self.customer_id
+
+#         if self.role == Role.BR_ADMIN:
+#             # Branch admins are assigned to the customer's top-level
+#             # hierarchy node: State for geographical customers or Zone for
+#             # zonal customers. Keep the old branch scope as a legacy fallback.
+#             hierarchy = getattr(self.customer, "hierarchy_type", None) if self.customer_id else None
+#             if hierarchy == HierarchyType.GEOGRAPHICAL and self.state_id:
+#                 return "STATE", self.state_id
+#             if hierarchy == HierarchyType.ZONAL and self.zone_id:
+#                 return "ZONE", self.zone_id
+#             if self.branch_id:
+#                 return "BRANCH", self.branch_id
+#             return None, None
+
+#         if self.role == Role.ENGINEER:
+#             return "SITE", self.site_id
+#         return None, None
+
+#     @property
+#     def scope_name(self):
+#         if self.role == Role.ORG_SUPER_ADMIN:
+#             return self.organization.name if self.organization else ""
+
+#         if self.role == Role.CUSTOMER:
+#             return self.customer.company if self.customer else ""     # ← was .name
+
+#         if self.role == Role.BR_ADMIN:
+#             return self.branch.name if self.branch else ""
+
+#         if self.role == Role.ENGINEER:
+#             return self.site.name if self.site else ""
+
+#         return ""
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+
+    email = models.EmailField(
+        unique=True,
+        db_index=True
+    )
+
+    name = models.CharField(
+        max_length=255
+    )
+
+    phone = models.CharField(
+        max_length=20,
+        blank=True
+    )
+
+    role = models.CharField(
+        max_length=30,
+        choices=Role.choices,
+        db_index=True
+    )
 
     organization = models.ForeignKey(
-        Organization, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="users"
+        Organization,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
     )
+
     customer = models.ForeignKey(
-        Customer, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="users"
+        Customer,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
     )
+
+    # Zonal hierarchy
     zone = models.ForeignKey(
-        Zone, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="users"
+        Zone,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
     )
+
     circle = models.ForeignKey(
-        Circle, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="users"
+        Circle,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
     )
+
+    region = models.ForeignKey(
+        Region,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
+    )
+
+    division = models.ForeignKey(
+        Division,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
+    )
+
+    # Geographical hierarchy
     state = models.ForeignKey(
-        State, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="users"
+        State,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
     )
+
     district = models.ForeignKey(
-        District, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="users"
+        District,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
     )
+
+    taluka = models.ForeignKey(
+        Taluka,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
+    )
+
+    city = models.ForeignKey(
+        City,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
+    )
+
     branch = models.ForeignKey(
-        Branch, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="users"
+        Branch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
     )
+
     site = models.ForeignKey(
-        Site, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="users"
+        Site,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users"
     )
-
-    zone     = models.ForeignKey(Zone,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-    circle   = models.ForeignKey(Circle,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-    region   = models.ForeignKey(Region,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-    division = models.ForeignKey(Division, null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-
-    state    = models.ForeignKey(State,    null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-    district = models.ForeignKey(District, null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-    taluka   = models.ForeignKey(Taluka,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-    city     = models.ForeignKey(City,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-
-    branch   = models.ForeignKey(Branch,   null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
-    site     = models.ForeignKey(Site,     null=True, blank=True, on_delete=models.SET_NULL, related_name="users")
 
     is_active = models.BooleanField(default=True)
+
     is_staff = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=timezone.now)
-    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
 
-    objects = UserManager()
+    date_joined = models.DateTimeField(
+        default=timezone.now
+    )
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["name", "role"]
-
-    class Meta:
-        db_table = "users"
-        ordering = ["name"]
-
-    def __str__(self):
-        return f"{self.name} <{self.email}> [{self.role}]"
+    last_login_ip = models.GenericIPAddressField(
+        null=True,
+        blank=True
+    )
 
     def get_scope(self):
-        """Returns (level, object_id) for the current user's scope."""
+        """
+        Return the highest-level scope controlling this user's visibility.
+        """
         if self.role == Role.ORG_SUPER_ADMIN:
             return "ORGANIZATION", self.organization_id
+
         if self.role == Role.CUSTOMER:
             return "CUSTOMER", self.customer_id
-        # if self.role == Role.ZONAL_ADMIN:
-        #     return "ZONE", self.zone_id
-        # if self.role == Role.CIRCLE_ADMIN:
-        #     return "CIRCLE", self.circle_id
+
         if self.role == Role.BR_ADMIN:
-            return "BRANCH", self.branch_id
+            hierarchy = (
+                getattr(self.customer, "hierarchy_type", None)
+                if self.customer_id
+                else None
+            )
+            if hierarchy == HierarchyType.GEOGRAPHICAL and self.state_id:
+                return "STATE", self.state_id
+            if hierarchy == HierarchyType.ZONAL and self.zone_id:
+                return "ZONE", self.zone_id
+            if self.branch_id:
+                return "BRANCH", self.branch_id
+            return None, None
+
         if self.role == Role.ENGINEER:
             return "SITE", self.site_id
+
         return None, None
 
     @property
@@ -443,9 +651,18 @@ class User(AbstractBaseUser, PermissionsMixin):
             return self.organization.name if self.organization else ""
 
         if self.role == Role.CUSTOMER:
-            return self.customer.company if self.customer else ""     # ← was .name
+            return self.customer.company if self.customer else ""
 
         if self.role == Role.BR_ADMIN:
+            hierarchy = (
+                getattr(self.customer, "hierarchy_type", None)
+                if self.customer_id
+                else None
+            )
+            if hierarchy == HierarchyType.GEOGRAPHICAL and self.state_id:
+                return self.state.name if self.state else ""
+            if hierarchy == HierarchyType.ZONAL and self.zone_id:
+                return self.zone.name if self.zone else ""
             return self.branch.name if self.branch else ""
 
         if self.role == Role.ENGINEER:
@@ -453,6 +670,42 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return ""
 
+    # -------------------------
+    # 3TP synchronization
+    # -------------------------
+
+    tpt_user_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        unique=True
+    )
+
+    tpt_sync_status = models.CharField(
+        max_length=20,
+        default="PENDING"
+    )
+
+    tpt_sync_error = models.TextField(
+        null=True,
+        blank=True
+    )
+
+    objects = UserManager()
+
+    USERNAME_FIELD = "email"
+
+    REQUIRED_FIELDS = [
+        "name",
+        "role",
+    ]
+
+    class Meta:
+        db_table = "users"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} <{self.email}> [{self.role}]"
 
 class LoginAudit(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -639,6 +892,11 @@ class ACDevice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # 3TP synchronization fields
+    tpt_device_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
+    tpt_sync_status = models.CharField(max_length=20, default="PENDING")
+    tpt_sync_error = models.TextField(null=True, blank=True)
+
     class Meta:
         db_table = "ac_devices"
         ordering = ["ac_id"]
@@ -713,3 +971,40 @@ class DashboardPreference(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.name}"
+
+
+# def get_scope(self):
+#     """
+#     Return the highest-level scope controlling this user's visibility.
+#     """
+#     if self.role == Role.ORG_SUPER_ADMIN:
+#         return "ORGANIZATION", self.organization_id
+
+#     if self.role == Role.CUSTOMER:
+#         return "CUSTOMER", self.customer_id
+
+#     if self.role == Role.BR_ADMIN:
+#         # Geographical customer -> state scope
+#         # Zonal customer -> zone scope
+#         hierarchy = (
+#             getattr(self.customer, "hierarchy_type", None)
+#             if self.customer_id
+#             else None
+#         )
+
+#         if hierarchy == HierarchyType.GEOGRAPHICAL and self.state_id:
+#             return "STATE", self.state_id
+
+#         if hierarchy == HierarchyType.ZONAL and self.zone_id:
+#             return "ZONE", self.zone_id
+
+#         # Legacy fallback
+#         if self.branch_id:
+#             return "BRANCH", self.branch_id
+
+#         return None, None
+
+#     if self.role == Role.ENGINEER:
+#         return "SITE", self.site_id
+
+#     return None, None

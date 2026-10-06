@@ -12,6 +12,7 @@ from .views import (
     FloorListView,
     OrganizationListView,
     SiteListView,
+    site_assignment,
     TalukaListView,
     UserListView,
     ZoneListView, StateListView, DistrictListView,
@@ -29,6 +30,7 @@ from .views import (
     locations,
     login_view,
     logout_view,
+    me_view,
     ac_data_with_location,
     telemetry_status,
     LocationListView,
@@ -53,6 +55,7 @@ urlpatterns = [
 
     path( "auth/login/", login_view, name="login" ),
     path( "auth/logout/", logout_view),
+    path( "auth/me/", me_view),
 
     path( "organizations/", OrganizationListView.as_view() ),
     path( "customers/", CustomerListView.as_view()),
@@ -68,6 +71,7 @@ urlpatterns = [
     path( "zones/", ZoneListView.as_view()),
     path( "circles/", CircleListView.as_view()),
     path( "sites/", SiteListView.as_view()),
+    path( "sites/<uuid:pk>/assignment/", site_assignment),
 
     path( "states/", StateListView.as_view()),
     path( "districts/", DistrictListView.as_view()),
@@ -79,8 +83,6 @@ urlpatterns = [
 
     path( "branches/assignments/", branch_assignments),
     path( "branches/ownership/", branch_ownership),
-
-    path( "dashboard/summary/", dashboard_summary_view ),
 
     # path( "dashboard/"),
     # path( "locations/"),
