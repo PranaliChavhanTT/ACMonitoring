@@ -673,6 +673,42 @@
                         ]
                     }
                 ]
+            },
+            {
+                "zone_id": "DELHI-352144",
+                "zone_name": "Delhi",
+                "circles": [
+                    {
+                        "circle_id": "MUMBAI-364449",
+                        "circle_name": "Mumbai",
+                        "regions": [
+                            {
+                                "region_id": "BANDRA-375962",
+                                "region_name": "Bandra",
+                                "branches": [
+                                    {
+                                        "branch_id": "BW01",
+                                        "branch_name": "West Bandra",
+                                        "address": "Ground and Mezzanine Floor, Shop No. G-01, 893, Notan Chambers, Turner Road, Bandra (W), Mumbai.",
+                                        "pincode": "400050",
+                                        "floors": [],
+                                        "sites": [],
+                                        "hierarchy_type": "ZONAL",
+                                        "zone_id": "DELHI-352144",
+                                        "zone_name": "Delhi",
+                                        "circle_id": "MUMBAI-364449",
+                                        "circle_name": "Mumbai",
+                                        "region_id": "BANDRA-375962",
+                                        "region_name": "Bandra",
+                                        "customer_id": 17,
+                                        "admin_ids": [],
+                                        "engineer_ids": []
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
             }
         ]
     }

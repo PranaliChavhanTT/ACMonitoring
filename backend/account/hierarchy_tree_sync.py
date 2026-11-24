@@ -18,7 +18,7 @@ removed, so nothing that already works is changed.
 """
 import threading
 
-from .models import HierarchyType
+from .models import HierarchyType, get_branch_zone_id
 
 _lock = threading.RLock()
 
@@ -46,36 +46,57 @@ def _views():
 
 
 def _path_objects(branch):
-    """Return hierarchy, parent-chain keys, and ordered path to a branch parent."""
+    """Return the customer's configured visible path to a branch parent."""
     if getattr(branch, "taluka_id", None):
         taluka = branch.taluka
         district = taluka.district
         state = district.state
-        chain = (
-            ("state", "districts"),
-            ("district", "talukas"),
-            ("taluka", "branches"),
-        )
-        return HierarchyType.GEOGRAPHICAL, chain, [
-            ("state", state), ("district", district), ("taluka", taluka),
-        ]
+        chain = (("state", "districts"), ("district", "talukas"), ("taluka", "branches"))
+        return HierarchyType.GEOGRAPHICAL, chain, [("state", state), ("district", district), ("taluka", taluka)]
     if branch.city_id:
         city = branch.city
         taluka = city.taluka
         district = taluka.district
         state = district.state
         return HierarchyType.GEOGRAPHICAL, GEO_CHAIN, [
-            ("state", state), ("district", district),
-            ("taluka", taluka), ("city", city),
+            ("state", state), ("district", district), ("taluka", taluka), ("city", city),
         ]
+
+    customer = branch.customer
+    levels = (customer.zonal_hierarchy_config or {}).get("levels", ["zone", "circle", "branch", "floor"])
+    zone_id = get_branch_zone_id(branch)
+    if not zone_id:
+        return None, None, None
+    from .models import Zone
+    zone = Zone.objects.get(pk=zone_id)
+    include_circle = "circle" in levels
+
+    if branch.zone_id:
+        return HierarchyType.ZONAL, (("zone", "branches"),), [("zone", zone)]
+
+    if branch.circle_id:
+        circle = branch.circle
+        return HierarchyType.ZONAL, (("zone", "circles"), ("circle", "branches")), [("zone", zone), ("circle", circle)]
+
+    if branch.region_id:
+        region = branch.region
+        if include_circle and region.circle_id:
+            circle = region.circle
+            return HierarchyType.ZONAL, (("zone", "circles"), ("circle", "regions"), ("region", "branches")), [
+                ("zone", zone), ("circle", circle), ("region", region),
+            ]
+        return HierarchyType.ZONAL, (("zone", "regions"), ("region", "branches")), [("zone", zone), ("region", region)]
+
     if branch.division_id:
         division = branch.division
         region = division.region
-        circle = region.circle
-        zone = circle.zone
-        return HierarchyType.ZONAL, ZONAL_CHAIN, [
-            ("zone", zone), ("circle", circle),
-            ("region", region), ("division", division),
+        if include_circle and region.circle_id:
+            circle = region.circle
+            return HierarchyType.ZONAL, ZONAL_CHAIN, [
+                ("zone", zone), ("circle", circle), ("region", region), ("division", division),
+            ]
+        return HierarchyType.ZONAL, (("zone", "regions"), ("region", "divisions"), ("division", "branches")), [
+            ("zone", zone), ("region", region), ("division", division),
         ]
     return None, None, None
 
@@ -214,6 +235,12 @@ def _sync_branch_to_tree(branch):
                 branch_node["floors"].append({
                     "floor_id": floor.code,
                     "floor_name": floor.name,
+                    "building_id": floor.building.code if getattr(floor, "building_id", None) else None,
+                    "building_name": floor.building.name if getattr(floor, "building_id", None) else None,
+                    "rooms": [
+                        {"room_id": room.code, "room_name": room.name}
+                        for room in floor.rooms.filter(is_active=True).order_by("name")
+                    ],
                     "sites": [],
                 })
                 changed = True
@@ -250,8 +277,22 @@ def _branch_node(branch):
         "address": getattr(branch, "address", "") or "",
         "pincode": getattr(branch, "pincode", "") or "",
         "floors": [
-            {"floor_id": f.code, "floor_name": f.name, "sites": []}
-            for f in branch.floors.all().order_by("name")
+            {
+                "floor_id": f.code,
+                "floor_name": f.name,
+                "building_id": f.building.code if f.building_id else None,
+                "building_name": f.building.name if f.building_id else None,
+                "rooms": [
+                    {"room_id": room.code, "room_name": room.name}
+                    for room in f.rooms.filter(is_active=True).order_by("name")
+                ],
+                "sites": [],
+            }
+            for f in branch.floors.all().select_related("building").order_by("name")
+        ],
+        "buildings": [
+            {"building_id": b.code, "building_name": b.name}
+            for b in branch.buildings.filter(is_active=True).order_by("name")
         ],
         "sites": [],
     }
@@ -264,53 +305,159 @@ def tree_is_empty(tree):
 
 def db_location_tree(hierarchy, customer):
     """
-    The customer's hierarchy straight from the database, in the same shape as
-    the location JSON (ids are the DB `code`s the create APIs accept).  Used by
-    the picker whenever the JSON catalogue is missing or empty, so the
-    picker can never come back empty just because a file is.
+    Build the branch-creation picker from this customer's database records.
+
+    The tree mirrors the master JSON envelope, but every selectable location
+    ID is the real database primary key. This is important because Zone/Circle
+    creation endpoints use Django foreign-key primary keys, while branch
+    creation resolves UUIDs or codes.
     """
     from .models import State, Zone
 
-    out = []
     if hierarchy == HierarchyType.GEOGRAPHICAL:
-        states = State.objects.filter(customer=customer, is_active=True).order_by("name")
+        states = State.objects.filter(
+            customer=customer, is_active=True
+        ).select_related("country").order_by("name")
+        state_nodes = []
         for st in states:
-            st_node = {"state_id": st.code, "state_name": st.name, "districts": []}
+            st_node = {
+                "state_id": str(st.pk),
+                "state_name": st.name,
+                "districts": [],
+            }
             for d in st.districts.filter(is_active=True).order_by("name"):
-                d_node = {"district_id": d.code, "district_name": d.name, "talukas": []}
+                d_node = {
+                    "district_id": str(d.pk),
+                    "district_name": d.name,
+                    "talukas": [],
+                }
                 for t in d.talukas.filter(is_active=True).order_by("name"):
                     t_node = {
-                        "taluka_id": t.code, "taluka_name": t.name,
+                        "taluka_id": str(t.pk),
+                        "taluka_name": t.name,
                         "cities": [],
                         "branches": [
-                            _branch_node(b) for b in t.branches.filter(customer=customer)
+                            _branch_node(b)
+                            for b in t.branches.filter(customer=customer).order_by("name")
                         ],
                     }
                     for c in t.cities.filter(is_active=True).order_by("name"):
                         t_node["cities"].append({
-                            "city_id": c.code, "city_name": c.name,
+                            "city_id": str(c.pk),
+                            "city_name": c.name,
                             "branches": [
-                                _branch_node(b) for b in c.branches.filter(customer=customer)
+                                _branch_node(b)
+                                for b in c.branches.filter(customer=customer).order_by("name")
                             ],
                         })
                     d_node["talukas"].append(t_node)
                 st_node["districts"].append(d_node)
-            out.append(st_node)
-    elif hierarchy == HierarchyType.ZONAL:
-        for z in Zone.objects.filter(customer=customer, is_active=True).order_by("name"):
-            z_node = {"zone_id": z.code, "zone_name": z.name, "circles": []}
-            for c in z.circles.filter(is_active=True).order_by("name"):
-                c_node = {"circle_id": c.code, "circle_name": c.name, "regions": []}
-                for r in c.regions.filter(is_active=True).order_by("name"):
-                    r_node = {"region_id": r.code, "region_name": r.name, "divisions": []}
-                    for dv in r.divisions.filter(is_active=True).order_by("name"):
-                        r_node["divisions"].append({
-                            "division_id": dv.code, "division_name": dv.name,
-                            "branches": [
-                                _branch_node(b) for b in dv.branches.filter(customer=customer)
-                            ],
-                        })
-                    c_node["regions"].append(r_node)
-                z_node["circles"].append(c_node)
-            out.append(z_node)
-    return out
+            state_nodes.append(st_node)
+
+        return [{
+            "country_id": "IND",
+            "country_name": "India",
+            "states": state_nodes,
+        }]
+
+    if hierarchy == HierarchyType.ZONAL:
+        from django.db.models import Q
+        from .models import Circle, Region, Division
+
+        levels = (customer.zonal_hierarchy_config or {}).get(
+            "levels", ["zone", "circle", "branch", "floor"]
+        )
+        include_circle = "circle" in levels
+        include_region = "region" in levels
+        include_division = "division" in levels
+
+        zone_nodes = []
+        for z in Zone.objects.filter(
+            customer=customer, is_active=True
+        ).order_by("name"):
+            z_node = {"zone_id": str(z.pk), "zone_name": z.name}
+            if include_circle:
+                z_node["circles"] = []
+                for c in z.circles.filter(is_active=True).order_by("name"):
+                    c_node = {"circle_id": str(c.pk), "circle_name": c.name}
+                    if include_region:
+                        c_node["regions"] = []
+                        for r in c.regions.filter(is_active=True).order_by("name"):
+                            r_node = {"region_id": str(r.pk), "region_name": r.name}
+                            if include_division:
+                                r_node["divisions"] = [
+                                    {
+                                        "division_id": str(dv.pk),
+                                        "division_name": dv.name,
+                                        "branches": [
+                                            _branch_node(b)
+                                            for b in dv.branches.filter(
+                                                customer=customer
+                                            ).order_by("name")
+                                        ],
+                                    }
+                                    for dv in r.divisions.filter(
+                                        is_active=True
+                                    ).order_by("name")
+                                ]
+                            else:
+                                r_node["branches"] = [
+                                    _branch_node(b)
+                                    for b in r.branches.filter(
+                                        customer=customer
+                                    ).order_by("name")
+                                ]
+                            c_node["regions"].append(r_node)
+                    else:
+                        c_node["branches"] = [
+                            _branch_node(b)
+                            for b in c.branches.filter(
+                                customer=customer
+                            ).order_by("name")
+                        ]
+                    z_node["circles"].append(c_node)
+            elif include_region:
+                z_node["regions"] = []
+                region_qs = Region.objects.filter(
+                    Q(zone=z) | Q(circle__zone=z), is_active=True
+                ).order_by("name")
+                for r in region_qs:
+                    r_node = {"region_id": str(r.pk), "region_name": r.name}
+                    if include_division:
+                        r_node["divisions"] = [
+                            {
+                                "division_id": str(dv.pk),
+                                "division_name": dv.name,
+                                "branches": [
+                                    _branch_node(b)
+                                    for b in dv.branches.filter(
+                                        customer=customer
+                                    ).order_by("name")
+                                ],
+                            }
+                            for dv in r.divisions.filter(
+                                is_active=True
+                            ).order_by("name")
+                        ]
+                    else:
+                        r_node["branches"] = [
+                            _branch_node(b)
+                            for b in r.branches.filter(
+                                customer=customer
+                            ).order_by("name")
+                        ]
+                    z_node["regions"].append(r_node)
+            else:
+                z_node["branches"] = [
+                    _branch_node(b)
+                    for b in z.branches.filter(customer=customer).order_by("name")
+                ]
+            zone_nodes.append(z_node)
+
+        return [{
+            "country_id": "IND",
+            "country_name": "India",
+            "zones": zone_nodes,
+        }]
+
+    return []

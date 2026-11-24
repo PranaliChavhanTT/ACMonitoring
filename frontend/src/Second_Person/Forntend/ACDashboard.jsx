@@ -1,4 +1,2102 @@
 
+// // // // import React, { useEffect, useMemo, useState } from "react";
+// // // // import { useNavigate } from "react-router-dom";
+// // // // import { useRollingAverage } from "./hooks/useRollingAverage";
+
+// // // // import Total_Acs from "./KPI Cards/Total_Acs";
+// // // // import Active_Acs from "./KPI Cards/Active Acs";
+// // // // import Total_Energy from "./KPI Cards/Total_Energy";
+// // // // import Active_Energy from "./KPI Cards/Active_Energy";
+// // // // import Active_Power from "./KPI Cards/Active_Power";
+// // // // import Average_Temperature from "./KPI Cards/Average_Temperature";
+// // // // import Average_Humidity from "./KPI Cards/Average_Humidity";
+// // // // import Alerts from "./KPI Cards/Alerts";
+
+// // // // import TemperatureChart from "./TemperatureChart/TemperatureChart";
+// // // // import HumidityChart from "./HumidityChart/HumidityChart";
+// // // // import PowerConsumptionChart from "./PowerConsumptionChart/PowerConsumptionChart";
+// // // // import EnergyConsumptionChart from "./EnergyConsumptionChart/EnergyConsumptionChart";
+// // // // import ZoneEnergyChart from "./ZoneEnergyChart/ZoneEnergyChart";
+// // // // import ACHealthChart from "./ACHealthChart/ACHealthChart";
+// // // // import CurrentFluctuationChart from "./CurrentFluctuationChart";
+// // // // import ACTable from "./ACTable/ACTable";
+// // // // import ACDeviceTable from "./ACDeviceTable";
+// // // // import EnergyMap from "./EnergyMap/EnergyMap";
+// // // // import EnergyCostCard from "./KPI Cards/EnergyCostCard";
+
+// // // // import AIAssistantPanel from "./AIAssistantPanel";
+// // // // import FaultDetectionPanel from "./FaultDetectionPanel"
+
+// // // // import CurrentHistoryChart from "./Current/CurrentHistoryChart";
+// // // // import VoltageHistoryChart from "./Voltage/VoltageHistoryChart";
+// // // // import Inactive_Acs from "./KPI Cards/InactiveAcs";
+
+// // // // import "./dashboard.css";
+// // // // import "./dashboard-insight.css";
+
+// // // // const numberValue = (value) => {
+// // // //     if (value === null || value === undefined || value === "") {
+// // // //         return 0;
+// // // //     }
+
+// // // //     const number = Number(value);
+// // // //     return Number.isFinite(number) ? number : 0;
+// // // // };
+
+// // // // const getVoltage = (item) => numberValue(item?.voltage ?? item?.Voltage);
+
+// // // // // An AC that is OFF / OFFLINE draws nothing: the backend keeps its last known
+// // // // // readings for display, so force current and power to 0 unless it is running.
+// // // // const isRunning = (item) => ["active", "running", "on", "1"].includes(
+// // // //     String(item?.status ?? item?.ac_status ?? item?.state ?? "").trim().toLowerCase()
+// // // // );
+
+// // // // const getCurrent = (item) => (isRunning(item) ? numberValue(item?.current ?? item?.Current) : 0);
+
+// // // // const getPower = (item) => {
+// // // //     if (!isRunning(item)) return 0;
+
+// // // //     const value =
+// // // //         item?.active_power ??
+// // // //         item?.Active_Power ??
+// // // //         item?.activePower ??
+// // // //         item?.power ??
+// // // //         item?.Power;
+
+// // // //     if (value !== undefined && value !== null && value !== "") {
+// // // //         return numberValue(value);
+// // // //     }
+
+// // // //     return getVoltage(item) * getCurrent(item);
+// // // // };
+
+// // // // const getEnergy = (item) =>
+// // // //     numberValue(
+// // // //         item?.energy_consumption ??
+// // // //         item?.Energy_Consumption ??
+// // // //         item?.energyConsumption ??
+// // // //         item?.energy ??
+// // // //         item?.kwh ??
+// // // //         item?.kWh
+// // // //     );
+
+// // // // const getTemperature = (item) =>
+// // // //     numberValue(
+// // // //         item?.indoor_temperature ??
+// // // //         item?.indoor_temp ??
+// // // //         item?.temperature ??
+// // // //         item?.temp
+// // // //     );
+
+// // // // const getHumidity = (item) => numberValue(item?.indoor_humidity ?? item?.humidity);
+
+// // // // const getStatus = (item) =>
+// // // //     String(item?.status ?? item?.ac_status ?? item?.state ?? "")
+// // // //         .trim()
+// // // //         .toLowerCase();
+
+// // // // const isActive = (item) => ["active", "running", "on", "1"].includes(getStatus(item));
+
+// // // // const getHealthStatus = (item) =>
+// // // //     String(
+// // // //         item?.health_status ??
+// // // //         item?.health ??
+// // // //         item?.alert_status ??
+// // // //         ""
+// // // //     )
+// // // //         .trim()
+// // // //         .toLowerCase();
+
+// // // // const isAlert = (item) =>
+// // // //     Number(item?.alarm_status) === 1 ||
+// // // //     ["attention", "critical", "alert", "warning"].includes(
+// // // //         getHealthStatus(item)
+// // // //     );
+
+// // // // function ACDashboard({
+// // // //     data = [],
+// // // //     filters = {},
+// // // //     cardFilters = {},
+// // // //     visibleWidgets = {},
+// // // //     onCardFilterChange,
+// // // //     isLive,
+// // // //     lastTelemetryText = "--",
+// // // // }) {
+// // // //     const navigate = useNavigate();
+// // // //     const [showAIModule, setShowAIModule] = useState(false);
+
+// // // //     useEffect(() => {
+// // // //         const toggleAIModule = () => setShowAIModule((previous) => !previous);
+// // // //         window.addEventListener("ac-toggle-ai-module", toggleAIModule);
+// // // //         return () => window.removeEventListener("ac-toggle-ai-module", toggleAIModule);
+// // // //     }, []);
+
+// // // //     const [branchWeather, setBranchWeather] = useState([]);
+// // // //     const [historicalClimate, setHistoricalClimate] = useState([]);
+// // // //     const [climateHistoryStatus, setClimateHistoryStatus] = useState("idle");
+// // // //     const [weatherStatus, setWeatherStatus] = useState("idle");
+// // // //     const [weatherError, setWeatherError] = useState("");
+
+// // // //     const [currentHistoryData, setCurrentHistoryData] = useState([]);
+// // // //     const [currentHistoryStatus, setCurrentHistoryStatus] = useState("idle");
+
+// // // //     // const isFloorScope = Boolean(selectedFloor);
+// // // //     const isFloorScope = Boolean(filters?.floor);
+// // // //     const safeData = useMemo(() => {
+// // // //         if (Array.isArray(data)) return data;
+// // // //         if (Array.isArray(data?.data)) return data.data;
+// // // //         return [];
+// // // //     }, [data]);
+
+// // // //     // Apply card-level filters without mutating the source data.
+// // // //     const filteredData = useMemo(() => {
+// // // //         let result = safeData;
+
+// // // //         if (cardFilters?.alerts?.active === true) {
+// // // //             result = result.filter(isAlert);
+// // // //         }
+
+// // // //         if (cardFilters?.status?.value) {
+// // // //             const wanted = String(cardFilters.status.value)
+// // // //                 .trim()
+// // // //                 .toLowerCase();
+
+// // // //             result = result.filter(
+// // // //                 (item) => getStatus(item) === wanted
+// // // //             );
+// // // //         }
+// // // //         return result;
+// // // //     }, [safeData, cardFilters]);
+
+// // // //     // Preserve the existing rolling-average behavior.
+// // // //     const { deviceData, trendHistory } = useRollingAverage(
+// // // //         filteredData,
+// // // //         {
+// // // //             windowMs: 60000,
+// // // //             recalcMs: 30000,
+// // // //             historyLimit: 60,
+// // // //         }
+// // // //     );
+
+// // // //     const metrics = useMemo(() => {
+// // // //         const totalACs = filteredData.length;
+// // // //         const activeRecords = filteredData.filter(isActive);
+// // // //         const totalEnergy = filteredData.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
+// // // //         const activeEnergy = activeRecords.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
+// // // //         const totalPower = filteredData.reduce( (sum, item) => sum + getPower(item), 0 );
+// // // //         const temperatures = filteredData
+// // // //             .map(getTemperature)
+// // // //             .filter((value) => value !== 0);
+
+// // // //         const humidities = filteredData
+// // // //             .map(getHumidity)
+// // // //             .filter((value) => value !== 0);
+
+// // // //         const averageTemperature = temperatures.length
+// // // //             ? temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length
+// // // //             : 0 ;
+
+// // // //         const averageHumidity = humidities.length
+// // // //             ? humidities.reduce((sum, value) => sum + value, 0) / humidities.length
+// // // //             : 0 ;
+
+// // // //         const alertCount = filteredData.filter(isAlert).length;
+
+// // // //         return {
+// // // //             totalACs,
+// // // //             activeACs: activeRecords.length,
+// // // //             totalEnergy,
+// // // //             activeEnergy,
+// // // //             totalPower,
+// // // //             averageTemperature,
+// // // //             averageHumidity,
+// // // //             alertCount,
+// // // //         };
+// // // //     }, [filteredData]);
+
+// // // //     const insightData = useMemo(
+// // // //             () => ({
+// // // //             totalACs: metrics.totalACs,
+// // // //             activeACs: metrics.activeACs,
+// // // //             totalEnergy: Number(metrics.totalEnergy.toFixed(2)),
+// // // //             activeEnergy: Number(metrics.activeEnergy.toFixed(2)),
+// // // //             activePower: Number(metrics.totalPower.toFixed(2)),
+// // // //             averageTemperature: Number(
+// // // //                 metrics.averageTemperature.toFixed(1)
+// // // //             ),
+// // // //             averageHumidity: Number(
+// // // //                 metrics.averageHumidity.toFixed(1)
+// // // //             ),
+// // // //             alerts: metrics.alertCount,
+// // // //             records: filteredData.length,
+// // // //             historyPoints: Array.isArray(trendHistory)
+// // // //                 ? trendHistory.length
+// // // //                 : 0,
+// // // //             }),
+// // // //             [metrics, filteredData.length, trendHistory]
+// // // //     );
+
+// // // //     const dashboardPayload = useMemo(() => {
+// // // //         const acHealth = filteredData.map((item) => ({
+// // // //             ac_id:
+// // // //                 item?.ac_id ??
+// // // //                 item?.device_name ??
+// // // //                 item?.device_id ??
+// // // //                 item?.id ??
+// // // //                 "Unknown",
+// // // //             status:
+// // // //                 item?.status ??
+// // // //                 item?.ac_status ??
+// // // //                 item?.state ??
+// // // //                 "unknown",
+// // // //             health_status:
+// // // //                 item?.health_status ??
+// // // //                 item?.health ??
+// // // //                 item?.alert_status ??
+// // // //                 "unknown",
+// // // //             alarm_status: item?.alarm_status ?? null,
+// // // //         }));
+
+// // // //         return {
+// // // //             dashboard_name: "AC Energy Monitoring",
+// // // //             generated_at: new Date().toISOString(),
+// // // //             filters,
+// // // //             kpis: insightData,
+// // // //             trends: Array.isArray(trendHistory)
+// // // //                 ? trendHistory
+// // // //                 : [],
+// // // //             ac_data: filteredData,
+// // // //             ac_health: acHealth,
+// // // //             alerts: filteredData.filter(isAlert),
+// // // //             additional_data: {
+// // // //                 device_data: Array.isArray(deviceData)
+// // // //                 ? deviceData
+// // // //                 : [],
+// // // //             },
+// // // //         };
+// // // //     }, [
+// // // //         filters,
+// // // //         insightData,
+// // // //         trendHistory,
+// // // //         filteredData,
+// // // //         deviceData,
+// // // //     ]);
+
+// // // //     const handleTrendsClick = () => {
+// // // //         navigate("/org/dashboard/trends");
+// // // //     };
+
+// // // //     const hierarchyLevels =
+// // // //         filters?.hierarchy === "ZONAL"
+// // // //             ? ["zone", "circle", "region", "division", "branch", "device"]
+// // // //             : ["state", "district", "taluka", "city", "branch", "device"];
+
+// // // //     const selectedLevel =
+// // // //         [...hierarchyLevels]
+// // // //             .reverse()
+// // // //             .find((key) => Boolean(filters?.[key])) || "country";
+
+// // // //     const isBranchScope = selectedLevel === "branch";
+// // // //     const isDeviceScope = selectedLevel === "device";
+
+// // // //     const selectedDeviceId = String(
+// // // //         filters?.selectedDeviceId ||
+// // // //         filters?.device_id ||
+// // // //         (typeof filters?.device === "string"
+// // // //             ? filters.device
+// // // //             : filters?.device?.value || "")
+// // // //     ).trim();
+
+// // // //     const filtersKey = JSON.stringify(filters || {});
+
+// // // //     const isSingleDeviceScope =
+// // // //         isDeviceScope || Boolean(filters?.ac_id || selectedDeviceId);
+
+// // // //     const selectedState = filters?.state || "";
+
+// // // //     const showWidget = (key) => visibleWidgets?.[key] !== false;
+
+
+// // // //     useEffect(() => {
+// // // //         if (selectedLevel !== "branch" && selectedLevel !== "device") {
+// // // //             setCurrentHistoryData([]);
+// // // //             setCurrentHistoryStatus("idle");
+// // // //         return undefined;
+// // // //     }
+
+// // // //     const controller = new AbortController();
+
+// // // //     const loadCurrentHistory = async () => {
+// // // //         try {
+// // // //         const end = new Date();
+// // // //         const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+
+// // // //         const params = new URLSearchParams({
+// // // //             period: "today",
+// // // //             from: start.toISOString(),
+// // // //             to: end.toISOString(),
+// // // //         });
+
+// // // //         const deviceId = selectedDeviceId || filters?.ac_id || "";
+// // // //         if (deviceId) params.set("ac_id", String(deviceId));
+
+// // // //         const token = [
+// // // //             "token",
+// // // //             "authToken",
+// // // //             "access_token",
+// // // //             "accessToken",
+// // // //         ]
+// // // //             .map((key) => localStorage.getItem(key))
+// // // //             .find(Boolean);
+
+// // // //         const response = await fetch(
+// // // //             `http://localhost:8000/api/current-history/?${params}`,
+// // // //             {
+// // // //             signal: controller.signal,
+// // // //             headers: token
+// // // //                 ? { Authorization: `Bearer ${token}` }
+// // // //                 : {},
+// // // //             }
+// // // //         );
+
+// // // //         if (!response.ok) {
+// // // //             throw new Error(`Current history API: HTTP ${response.status}`);
+// // // //         }
+
+// // // //         const payload = await response.json();
+// // // //         setCurrentHistoryData(
+// // // //             Array.isArray(payload?.data) ? payload.data : []
+// // // //         );
+// // // //         setCurrentHistoryStatus("loaded");
+// // // //         } catch (error) {
+// // // //         if (error.name === "AbortError") return;
+
+// // // //         console.error("Current history failed:", error);
+// // // //         setCurrentHistoryStatus("error");
+// // // //         }
+// // // //     };
+
+// // // //     loadCurrentHistory();
+
+// // // //     const intervalId = window.setInterval(loadCurrentHistory, 10000);
+
+// // // //     return () => {
+// // // //         controller.abort();
+// // // //         window.clearInterval(intervalId);
+// // // //     };
+// // // //     }, [selectedLevel, selectedDeviceId, filtersKey]);
+
+// // // //     useEffect(() => {
+// // // //         if (selectedLevel !== "branch" && selectedLevel !== "device") {
+// // // //             setHistoricalClimate([]);
+// // // //             setClimateHistoryStatus("idle");
+// // // //             return undefined;
+// // // //         }
+
+// // // //         const controller = new AbortController();
+// // // //         const loadClimateHistory = async () => {
+// // // //         // Only show "loading" the first time; 10 s refreshes update in place.
+// // // //         setClimateHistoryStatus((prev) => (prev === "loaded" || prev === "empty" ? prev : "loading"));
+// // // //         try {
+// // // //             const end = new Date();
+// // // //             const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+// // // //             const params = new URLSearchParams({
+// // // //                 from: start.toISOString(),
+// // // //                 to: end.toISOString(),
+// // // //                 interval_seconds: "300", // 5-minute buckets keep a 24 h, multi-AC response small
+// // // //             });
+
+// // // //             // Preserve the dashboard's active hierarchy scope.
+// // // //             ["state", "district", "taluka", "city", "zone", "circle", "region", "division", "branch", "floor"].forEach((key) => {
+// // // //                 if (filters?.[key] != null && String(filters[key]).trim()) {
+// // // //                     params.set(key, String(filters[key]));
+// // // //                 }
+// // // //             });
+// // // //             const deviceId = selectedDeviceId || filters?.ac_id || "";
+// // // //             if (deviceId) params.set("device_id", String(deviceId));
+
+// // // //             const token = ["token", "authToken", "access_token", "accessToken"]
+// // // //                 .map((key) => localStorage.getItem(key))
+// // // //                 .find(Boolean);
+// // // //             const response = await fetch(
+// // // //                 `http://localhost:8000/api/telemetry-aggregates/?${params.toString()}`,
+// // // //                 {
+// // // //                     signal: controller.signal,
+// // // //                     headers: token ? { Authorization: `Bearer ${token}` } : {},
+// // // //                 }
+// // // //             );
+// // // //             if (!response.ok) {
+// // // //                 throw new Error(`Historical telemetry API returned HTTP ${response.status}`);
+// // // //             }
+// // // //             const payload = await response.json();
+// // // //             const rows = Array.isArray(payload?.data) ? payload.data : [];
+// // // //             setHistoricalClimate(rows.map((row) => ({
+// // // //                 timestamp: row.bucket_start,
+// // // //                 indoor_temperature: row.avg_temperature,
+// // // //                 indoor_humidity: row.avg_humidity,
+// // // //                 device_id: row.device_id,
+// // // //             })));
+// // // //             setClimateHistoryStatus(rows.length ? "loaded" : "empty");
+// // // //         } catch (error) {
+// // // //             if (error.name === "AbortError") return;
+// // // //             console.error("[Climate history] Failed to load:", error);
+// // // //             setHistoricalClimate([]);
+// // // //             setClimateHistoryStatus("error");
+// // // //         }
+// // // //     };
+// // // //     loadClimateHistory();
+// // // //     const intervalId = window.setInterval(loadClimateHistory, 10 * 1000); // refresh historical telemetry every 10 seconds
+// // // //     return () => {
+// // // //         controller.abort();
+// // // //         window.clearInterval(intervalId);
+// // // //     };
+// // // //     }, [selectedLevel, selectedDeviceId, filtersKey]);
+
+// // // //     const branchCoordinates = useMemo(() => {
+// // // //         const candidates = [...safeData, ...filteredData];
+// // // //         const record = candidates.find((item) => {
+// // // //             const lat = Number(item?.latitude ?? item?.lat);
+// // // //             const lon = Number(item?.longitude ?? item?.lon);
+// // // //             return item?.latitude != null && item?.longitude != null &&
+// // // //                 item?.latitude !== "" && item?.longitude !== "" &&
+// // // //                 Number.isFinite(lat) && Number.isFinite(lon) &&
+// // // //                 lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+// // // //         });
+// // // //         if (!record) return null;
+// // // //         return {
+// // // //             latitude: Number(record.latitude ?? record.lat),
+// // // //             longitude: Number(record.longitude ?? record.lon),
+// // // //         };
+// // // //     }, [safeData, filteredData]);
+
+// // // //     useEffect(() => {
+// // // //         const shouldFetchWeather = selectedLevel === "branch" && Boolean(filters?.branch);
+// // // //         if (!shouldFetchWeather) {
+// // // //             setBranchWeather([]);
+// // // //             setWeatherStatus("idle");
+// // // //             setWeatherError("");
+// // // //             return undefined;
+// // // //         }
+
+// // // //         if (!branchCoordinates) {
+// // // //             setBranchWeather([]);
+// // // //             setWeatherStatus("missing-coordinates");
+// // // //             setWeatherError("This branch has no saved latitude/longitude. Add coordinates to the branch record first.");
+// // // //             return undefined;
+// // // //         }
+
+// // // //         const controller = new AbortController();
+// // // //         const loadWeather = async () => {
+// // // //             setWeatherStatus("loading");
+// // // //             setWeatherError("");
+// // // //             try {
+// // // //                 const params = new URLSearchParams({
+// // // //                     latitude: String(branchCoordinates.latitude),
+// // // //                     longitude: String(branchCoordinates.longitude),
+// // // //                     hourly: "temperature_2m,relative_humidity_2m",
+// // // //                     past_days: "1",
+// // // //                     forecast_days: "1",
+// // // //                     timezone: "auto",
+// // // //                 });
+// // // //                 const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
+// // // //                     signal: controller.signal,
+// // // //                 });
+// // // //                 if (!response.ok) throw new Error(`Weather service returned HTTP ${response.status}.`);
+// // // //                 const payload = await response.json();
+// // // //                 const times = payload?.hourly?.time || [];
+// // // //                 const temperatures = payload?.hourly?.temperature_2m || [];
+// // // //                 const humidities = payload?.hourly?.relative_humidity_2m || [];
+// // // //                 const points = times.map((timestamp, index) => ({
+// // // //                     timestamp,
+// // // //                     temperature: temperatures[index] == null ? null : Number(temperatures[index]),
+// // // //                     humidity: humidities[index] == null ? null : Number(humidities[index]),
+// // // //                 })).filter((point) => point.temperature !== null || point.humidity !== null);
+// // // //                 setBranchWeather(points);
+// // // //                 setWeatherStatus(points.length ? "loaded" : "empty");
+// // // //                 if (!points.length) setWeatherError("The weather service returned no hourly readings for these coordinates.");
+// // // //             } catch (error) {
+// // // //                 if (error.name === "AbortError") return;
+// // // //                 setBranchWeather([]);
+// // // //                 setWeatherStatus("error");
+// // // //                 setWeatherError(error.message || "Unable to load local weather data.");
+// // // //             }
+// // // //         };
+// // // //         loadWeather();
+// // // //         return () => controller.abort();
+// // // //     }, [
+// // // //         selectedLevel,
+// // // //         filters?.branch,
+// // // //         branchCoordinates?.latitude,
+// // // //         branchCoordinates?.longitude,
+// // // //     ]);
+
+// // // //     return (
+// // // //         <div className="ac-dashboard">
+// // // //             {filteredData.length === 0 ? (
+// // // //                 <div className="dashboard-no-data">
+// // // //                     <div className="no-data-icon">📊</div>
+// // // //                     <h2>No AC data available</h2>
+// // // //                     <p>There is no data for the selected filters.</p>
+// // // //                 </div>
+// // // //             ) : (
+// // // //                 <>
+// // // //                 {showAIModule && (
+// // // //                     <section id="ai-module-panel" className="ai-module-toggle-section ai-module-panel">
+// // // //                         <AIAssistantPanel dashboardData={dashboardPayload} />
+// // // //                     </section>
+// // // //                 )}
+
+// // // //                 {/* {selectedLevel === "branch" && (
+// // // //                     <section className="dashboard-section">
+// // // //                         <FaultDetectionPanel
+// // // //                             data={filteredData}
+// // // //                             refreshMs={2000}
+// // // //                         />
+// // // //                     </section>
+// // // //                 )} */}
+
+// // // //                 <section className="dashboard-section">
+// // // //                     <div className="section-title dashboard-scope-heading">
+
+// // // //     {/* OVERVIEW TITLE */}
+// // // //     <div className="overview-heading-content">
+// // // //         <h2>
+// // // //             {isSingleDeviceScope
+// // // //                 ? "AC Performance"
+// // // //                 : isFloorScope
+// // // //                     ? "Floor Overview"
+// // // //                     : isBranchScope
+// // // //                         ? "Branch Overview"
+// // // //                         : selectedLevel === "city"
+// // // //                             ? "City Overview"
+// // // //                             : selectedLevel === "country"
+// // // //                                 ? "Organization Overview"
+// // // //                                 : "Regional Overview"}
+// // // //         </h2>
+
+// // // //         <p>
+// // // //             {Object.entries(filters || {})
+// // // //                 .filter(([key, value]) => key !== "hierarchy" && value)
+// // // //                 .map(([, value]) => value)
+// // // //                 .join(" · ") || "All Locations"}
+// // // //         </p>
+// // // //     </div>
+// // // //     {/* LIVE / LAST UPDATED */}
+// // // //     <div className="overview-live-status">
+// // // //         <span
+// // // //             className={`last-updated-dot ${isLive ? "live" : "offline"}`}
+// // // //         />
+
+// // // //         {isLive ? (
+// // // //             <span className="live-text">LIVE</span>
+// // // //         ) : (
+// // // //             <span className="last-updated-text">
+// // // //                 Last Updated: <strong>{lastTelemetryText}</strong>
+// // // //             </span>
+// // // //         )}
+// // // //     </div>
+
+// // // // </div>
+// // // //                     <div className="kpi-grid">
+// // // //                         {showWidget("total_acs") && <Total_Acs value={metrics.totalACs} />}
+// // // //                         <Active_Acs value={metrics.activeACs} />
+// // // //                         <Inactive_Acs value={metrics.totalACs - metrics.activeACs} />
+// // // //                         {showWidget("total_energy") && <Total_Energy value={metrics.totalEnergy} />}
+// // // //                         {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />}
+// // // //                         {selectedLevel === "branch" && showWidget("active_power") && (
+// // // //                             <Active_Power value={metrics.totalPower} />
+// // // //                         )}
+
+// // // //                         {selectedLevel === "branch" && showWidget("temperature") && (
+// // // //                             <Average_Temperature value={metrics.averageTemperature} />
+// // // //                         )}
+
+// // // //                         {selectedLevel === "branch" && showWidget("humidity") && (
+// // // //                             <Average_Humidity value={metrics.averageHumidity} />
+// // // //                         )}
+
+// // // //                         {showWidget("alerts") && 
+// // // //                             <Alerts data={safeData} active={cardFilters?.alerts?.active === true} onClick={() => onCardFilterChange?.({ alerts: { active: !cardFilters?.alerts?.active } })} />
+// // // //                         }
+// // // //                         {selectedState && showWidget("cost_card") && 
+// // // //                             <EnergyCostCard stateName={selectedState} energyKwh={metrics.totalEnergy} />
+// // // //                         }
+// // // //                         </div>
+// // // //                 </section>
+
+// // // //                 <section className="dashboard-grid dashboard-grid--primary">
+// // // //                     {isBranchScope ? (
+// // // //                         showWidget("power_chart") && (
+// // // //                             <EnergyConsumptionChart data={deviceData} />
+// // // //                         )
+// // // //                     ) : (
+// // // //                         showWidget("power_chart") && (
+// // // //                             <PowerConsumptionChart data={deviceData} />
+// // // //                         )
+// // // //                     )}
+
+// // // //                     <ACHealthChart data={deviceData} />
+// // // //                     <ACTable deviceId={selectedDeviceId} scope={filters} />
+// // // //                     <EnergyMap deviceId={selectedDeviceId} scope={filters} />
+
+// // // //                     {selectedLevel === "branch" && showWidget("health_chart") && (
+// // // //                         <>
+// // // //                             <CurrentHistoryChart
+// // // //                                 deviceId={selectedDeviceId}
+// // // //                                 scope={filters}
+// // // //                             />
+// // // //                             <VoltageHistoryChart
+// // // //                                 deviceId={selectedDeviceId}
+// // // //                                 scope={filters}
+// // // //                             />
+// // // //                             <TemperatureChart
+// // // //                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
+// // // //                                 scope={filters}
+// // // //                                 data={branchWeather}
+// // // //                                 locationName={filters?.branch || ""}
+// // // //                                 status={weatherStatus}
+// // // //                                 error={weatherError}
+// // // //                             />
+// // // //                             <HumidityChart
+// // // //                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
+// // // //                                 scope={filters}
+// // // //                                 data={branchWeather}
+// // // //                                 locationName={filters?.branch || ""}
+// // // //                                 status={weatherStatus}
+// // // //                                 error={weatherError}
+// // // //                             />
+// // // //                         </>
+// // // //                     )}
+// // // //                     {showWidget("energy_chart") && 
+// // // //                         <ZoneEnergyChart deviceId={selectedDeviceId} scope={filters} />
+
+// // // //                     }
+// // // //                     <ACDeviceTable data={filteredData} />
+// // // //                         <div className="chart-box dashboard-context-card">
+// // // //                             <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
+// // // //                             <div className="dashboard-context-stats">
+// // // //                                 <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
+// // // //                                 <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
+// // // //                                 <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
+// // // //                                 <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
+// // // //                             </div>
+// // // //                             {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
+// // // //                         </div>
+// // // //                 </section>
+// // // //                 </>
+// // // //             )}
+// // // //         </div>
+// // // //     );
+// // // // }
+
+// // // // export default ACDashboard;
+
+
+
+// // // import React, { useEffect, useMemo, useState } from "react";
+// // // import { useNavigate } from "react-router-dom";
+// // // import { useRollingAverage } from "./hooks/useRollingAverage";
+
+// // // import Total_Acs from "./KPI Cards/Total_Acs";
+// // // import Active_Acs from "./KPI Cards/Active Acs";
+// // // import Total_Energy from "./KPI Cards/Total_Energy";
+// // // import Active_Energy from "./KPI Cards/Active_Energy";
+// // // import Active_Power from "./KPI Cards/Active_Power";
+// // // import Average_Temperature from "./KPI Cards/Average_Temperature";
+// // // import Average_Humidity from "./KPI Cards/Average_Humidity";
+// // // import Alerts from "./KPI Cards/Alerts";
+
+// // // import TemperatureChart from "./TemperatureChart/TemperatureChart";
+// // // import HumidityChart from "./HumidityChart/HumidityChart";
+// // // import PowerConsumptionChart from "./PowerConsumptionChart/PowerConsumptionChart";
+// // // import EnergyConsumptionChart from "./EnergyConsumptionChart/EnergyConsumptionChart";
+// // // import ZoneEnergyChart from "./ZoneEnergyChart/ZoneEnergyChart";
+// // // import TopEnergyBranches from "./ZoneEnergyChart/TopEnergyBranches";
+// // // import ACHealthChart from "./ACHealthChart/ACHealthChart";
+// // // import CurrentFluctuationChart from "./CurrentFluctuationChart";
+// // // import ACTable from "./ACTable/ACTable";
+// // // import ACDeviceTable from "./Tables/ACDeviceTable";
+// // // import EnergyMap from "./EnergyMap/EnergyMap";
+// // // import EnergyCostCard from "./KPI Cards/EnergyCostCard";
+
+// // // import AIAssistantPanel from "./AIModules/AIAssistantPanel";
+// // // import FaultDetectionPanel from "./AIModules/FaultDetectionPanel"
+
+// // // import CurrentHistoryChart from "./Current/CurrentHistoryChart";
+// // // import VoltageHistoryChart from "./Voltage/VoltageHistoryChart";
+// // // import Inactive_Acs from "./KPI Cards/InactiveAcs";
+
+// // // import "./dashboard.css";
+// // // import "./AIModules/dashboard-insight.css";
+
+// // // const numberValue = (value) => {
+// // //     if (value === null || value === undefined || value === "") {
+// // //         return 0;
+// // //     }
+
+// // //     const number = Number(value);
+// // //     return Number.isFinite(number) ? number : 0;
+// // // };
+
+// // // const getVoltage = (item) => numberValue(item?.voltage ?? item?.Voltage);
+
+// // // // An AC that is OFF / OFFLINE draws nothing: the backend keeps its last known
+// // // // readings for display, so force current and power to 0 unless it is running.
+// // // const isRunning = (item) => ["active", "running", "on", "1"].includes(
+// // //     String(item?.status ?? item?.ac_status ?? item?.state ?? "").trim().toLowerCase()
+// // // );
+
+// // // const getCurrent = (item) => (isRunning(item) ? numberValue(item?.current ?? item?.Current) : 0);
+
+// // // const getPower = (item) => {
+// // //     if (!isRunning(item)) return 0;
+
+// // //     const value =
+// // //         item?.active_power ??
+// // //         item?.Active_Power ??
+// // //         item?.activePower ??
+// // //         item?.power ??
+// // //         item?.Power;
+
+// // //     if (value !== undefined && value !== null && value !== "") {
+// // //         return numberValue(value);
+// // //     }
+
+// // //     return getVoltage(item) * getCurrent(item);
+// // // };
+
+// // // const getEnergy = (item) =>
+// // //     numberValue(
+// // //         item?.energy_consumption ??
+// // //         item?.Energy_Consumption ??
+// // //         item?.energyConsumption ??
+// // //         item?.energy ??
+// // //         item?.kwh ??
+// // //         item?.kWh
+// // //     );
+
+// // // const getTemperature = (item) =>
+// // //     numberValue(
+// // //         item?.indoor_temperature ??
+// // //         item?.indoor_temp ??
+// // //         item?.temperature ??
+// // //         item?.temp
+// // //     );
+
+// // // const getHumidity = (item) => numberValue(item?.indoor_humidity ?? item?.humidity);
+
+// // // const getStatus = (item) =>
+// // //     String(item?.status ?? item?.ac_status ?? item?.state ?? "")
+// // //         .trim()
+// // //         .toLowerCase();
+
+// // // const isActive = (item) => ["active", "running", "on", "1"].includes(getStatus(item));
+
+// // // const getHealthStatus = (item) =>
+// // //     String(
+// // //         item?.health_status ??
+// // //         item?.health ??
+// // //         item?.alert_status ??
+// // //         ""
+// // //     )
+// // //         .trim()
+// // //         .toLowerCase();
+
+// // // const isAlert = (item) =>
+// // //     Number(item?.alarm_status) === 1 ||
+// // //     ["attention", "critical", "alert", "warning"].includes(
+// // //         getHealthStatus(item)
+// // //     );
+
+// // // function ACDashboard({
+// // //     data = [],
+// // //     filters = {},
+// // //     cardFilters = {},
+// // //     visibleWidgets = {},
+// // //     onCardFilterChange,
+// // //     isLive,
+// // //     lastTelemetryText = "--",
+// // // }) {
+// // //     const navigate = useNavigate();
+// // //     const [showAIModule, setShowAIModule] = useState(false);
+
+// // //     useEffect(() => {
+// // //         const toggleAIModule = () => setShowAIModule((previous) => !previous);
+// // //         window.addEventListener("ac-toggle-ai-module", toggleAIModule);
+// // //         return () => window.removeEventListener("ac-toggle-ai-module", toggleAIModule);
+// // //     }, []);
+
+// // //     const [branchWeather, setBranchWeather] = useState([]);
+// // //     const [historicalClimate, setHistoricalClimate] = useState([]);
+// // //     const [climateHistoryStatus, setClimateHistoryStatus] = useState("idle");
+// // //     const [weatherStatus, setWeatherStatus] = useState("idle");
+// // //     const [weatherError, setWeatherError] = useState("");
+
+// // //     const [currentHistoryData, setCurrentHistoryData] = useState([]);
+// // //     const [currentHistoryStatus, setCurrentHistoryStatus] = useState("idle");
+
+// // //     // const isFloorScope = Boolean(selectedFloor);
+// // //     const isFloorScope = Boolean(filters?.floor);
+// // //     const safeData = useMemo(() => {
+// // //         if (Array.isArray(data)) return data;
+// // //         if (Array.isArray(data?.data)) return data.data;
+// // //         return [];
+// // //     }, [data]);
+
+// // //     // Apply card-level filters without mutating the source data.
+// // //     const filteredData = useMemo(() => {
+// // //         let result = safeData;
+
+// // //         if (cardFilters?.alerts?.active === true) {
+// // //             result = result.filter(isAlert);
+// // //         }
+
+// // //         if (cardFilters?.status?.value) {
+// // //             const wanted = String(cardFilters.status.value)
+// // //                 .trim()
+// // //                 .toLowerCase();
+
+// // //             result = result.filter(
+// // //                 (item) => getStatus(item) === wanted
+// // //             );
+// // //         }
+// // //         return result;
+// // //     }, [safeData, cardFilters]);
+
+// // //     // Preserve the existing rolling-average behavior.
+// // //     const { deviceData, trendHistory } = useRollingAverage(
+// // //         filteredData,
+// // //         {
+// // //             windowMs: 60000,
+// // //             recalcMs: 30000,
+// // //             historyLimit: 60,
+// // //         }
+// // //     );
+
+// // //     const metrics = useMemo(() => {
+// // //         const totalACs = filteredData.length;
+// // //         const activeRecords = filteredData.filter(isActive);
+// // //         const totalEnergy = filteredData.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
+// // //         const activeEnergy = activeRecords.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
+// // //         const totalPower = filteredData.reduce( (sum, item) => sum + getPower(item), 0 );
+// // //         const temperatures = filteredData
+// // //             .map(getTemperature)
+// // //             .filter((value) => value !== 0);
+
+// // //         const humidities = filteredData
+// // //             .map(getHumidity)
+// // //             .filter((value) => value !== 0);
+
+// // //         const averageTemperature = temperatures.length
+// // //             ? temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length
+// // //             : 0 ;
+
+// // //         const averageHumidity = humidities.length
+// // //             ? humidities.reduce((sum, value) => sum + value, 0) / humidities.length
+// // //             : 0 ;
+
+// // //         const alertCount = filteredData.filter(isAlert).length;
+
+// // //         return {
+// // //             totalACs,
+// // //             activeACs: activeRecords.length,
+// // //             totalEnergy,
+// // //             activeEnergy,
+// // //             totalPower,
+// // //             averageTemperature,
+// // //             averageHumidity,
+// // //             alertCount,
+// // //         };
+// // //     }, [filteredData]);
+
+// // //     const insightData = useMemo(
+// // //             () => ({
+// // //             totalACs: metrics.totalACs,
+// // //             activeACs: metrics.activeACs,
+// // //             totalEnergy: Number(metrics.totalEnergy.toFixed(2)),
+// // //             activeEnergy: Number(metrics.activeEnergy.toFixed(2)),
+// // //             activePower: Number(metrics.totalPower.toFixed(2)),
+// // //             averageTemperature: Number(
+// // //                 metrics.averageTemperature.toFixed(1)
+// // //             ),
+// // //             averageHumidity: Number(
+// // //                 metrics.averageHumidity.toFixed(1)
+// // //             ),
+// // //             alerts: metrics.alertCount,
+// // //             records: filteredData.length,
+// // //             historyPoints: Array.isArray(trendHistory)
+// // //                 ? trendHistory.length
+// // //                 : 0,
+// // //             }),
+// // //             [metrics, filteredData.length, trendHistory]
+// // //     );
+
+// // //     const dashboardPayload = useMemo(() => {
+// // //         const acHealth = filteredData.map((item) => ({
+// // //             ac_id:
+// // //                 item?.ac_id ??
+// // //                 item?.device_name ??
+// // //                 item?.device_id ??
+// // //                 item?.id ??
+// // //                 "Unknown",
+// // //             status:
+// // //                 item?.status ??
+// // //                 item?.ac_status ??
+// // //                 item?.state ??
+// // //                 "unknown",
+// // //             health_status:
+// // //                 item?.health_status ??
+// // //                 item?.health ??
+// // //                 item?.alert_status ??
+// // //                 "unknown",
+// // //             alarm_status: item?.alarm_status ?? null,
+// // //         }));
+
+// // //         return {
+// // //             dashboard_name: "AC Energy Monitoring",
+// // //             generated_at: new Date().toISOString(),
+// // //             filters,
+// // //             kpis: insightData,
+// // //             trends: Array.isArray(trendHistory)
+// // //                 ? trendHistory
+// // //                 : [],
+// // //             ac_data: filteredData,
+// // //             ac_health: acHealth,
+// // //             alerts: filteredData.filter(isAlert),
+// // //             additional_data: {
+// // //                 device_data: Array.isArray(deviceData)
+// // //                 ? deviceData
+// // //                 : [],
+// // //             },
+// // //         };
+// // //     }, [
+// // //         filters,
+// // //         insightData,
+// // //         trendHistory,
+// // //         filteredData,
+// // //         deviceData,
+// // //     ]);
+
+// // //     const handleTrendsClick = () => {
+// // //         navigate("/org/dashboard/trends");
+// // //     };
+
+// // //     const hierarchyLevels =
+// // //         filters?.hierarchy === "ZONAL"
+// // //             ? ["zone", "circle", "region", "division", "branch", "device"]
+// // //             : ["state", "district", "taluka", "city", "branch", "device"];
+
+// // //     const selectedLevel =
+// // //         [...hierarchyLevels]
+// // //             .reverse()
+// // //             .find((key) => Boolean(filters?.[key])) || "country";
+
+// // //     const isBranchScope = selectedLevel === "branch";
+// // //     const isDeviceScope = selectedLevel === "device";
+
+// // //     const selectedDeviceId = String(
+// // //         filters?.selectedDeviceId ||
+// // //         filters?.device_id ||
+// // //         (typeof filters?.device === "string"
+// // //             ? filters.device
+// // //             : filters?.device?.value || "")
+// // //     ).trim();
+
+// // //     const filtersKey = JSON.stringify(filters || {});
+
+// // //     const isSingleDeviceScope =
+// // //         isDeviceScope || Boolean(filters?.ac_id || selectedDeviceId);
+
+// // //     const selectedState = filters?.state || "";
+
+// // //     const showWidget = (key) => visibleWidgets?.[key] !== false;
+
+
+// // //     useEffect(() => {
+// // //         if (selectedLevel !== "branch" && selectedLevel !== "device") {
+// // //             setCurrentHistoryData([]);
+// // //             setCurrentHistoryStatus("idle");
+// // //         return undefined;
+// // //     }
+
+// // //     const controller = new AbortController();
+
+// // //     const loadCurrentHistory = async () => {
+// // //         try {
+// // //         const end = new Date();
+// // //         const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+
+// // //         const params = new URLSearchParams({
+// // //             period: "today",
+// // //             from: start.toISOString(),
+// // //             to: end.toISOString(),
+// // //         });
+
+// // //         const deviceId = selectedDeviceId || filters?.ac_id || "";
+// // //         if (deviceId) params.set("ac_id", String(deviceId));
+
+// // //         const token = [
+// // //             "token",
+// // //             "authToken",
+// // //             "access_token",
+// // //             "accessToken",
+// // //         ]
+// // //             .map((key) => localStorage.getItem(key))
+// // //             .find(Boolean);
+
+// // //         const response = await fetch(
+// // //             `http://localhost:8000/api/current-history/?${params}`,
+// // //             {
+// // //             signal: controller.signal,
+// // //             headers: token
+// // //                 ? { Authorization: `Bearer ${token}` }
+// // //                 : {},
+// // //             }
+// // //         );
+
+// // //         if (!response.ok) {
+// // //             throw new Error(`Current history API: HTTP ${response.status}`);
+// // //         }
+
+// // //         const payload = await response.json();
+// // //         setCurrentHistoryData(
+// // //             Array.isArray(payload?.data) ? payload.data : []
+// // //         );
+// // //         setCurrentHistoryStatus("loaded");
+// // //         } catch (error) {
+// // //         if (error.name === "AbortError") return;
+
+// // //         console.error("Current history failed:", error);
+// // //         setCurrentHistoryStatus("error");
+// // //         }
+// // //     };
+
+// // //     loadCurrentHistory();
+
+// // //     const intervalId = window.setInterval(loadCurrentHistory, 10000);
+
+// // //     return () => {
+// // //         controller.abort();
+// // //         window.clearInterval(intervalId);
+// // //     };
+// // //     }, [selectedLevel, selectedDeviceId, filtersKey]);
+
+// // //     useEffect(() => {
+// // //         if (selectedLevel !== "branch" && selectedLevel !== "device") {
+// // //             setHistoricalClimate([]);
+// // //             setClimateHistoryStatus("idle");
+// // //             return undefined;
+// // //         }
+
+// // //         const controller = new AbortController();
+// // //         const loadClimateHistory = async () => {
+// // //         // Only show "loading" the first time; 10 s refreshes update in place.
+// // //         setClimateHistoryStatus((prev) => (prev === "loaded" || prev === "empty" ? prev : "loading"));
+// // //         try {
+// // //             const end = new Date();
+// // //             const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+// // //             const params = new URLSearchParams({
+// // //                 from: start.toISOString(),
+// // //                 to: end.toISOString(),
+// // //                 interval_seconds: "300", // 5-minute buckets keep a 24 h, multi-AC response small
+// // //             });
+
+// // //             // Preserve the dashboard's active hierarchy scope.
+// // //             ["state", "district", "taluka", "city", "zone", "circle", "region", "division", "branch", "floor"].forEach((key) => {
+// // //                 if (filters?.[key] != null && String(filters[key]).trim()) {
+// // //                     params.set(key, String(filters[key]));
+// // //                 }
+// // //             });
+// // //             const deviceId = selectedDeviceId || filters?.ac_id || "";
+// // //             if (deviceId) params.set("device_id", String(deviceId));
+
+// // //             const token = ["token", "authToken", "access_token", "accessToken"]
+// // //                 .map((key) => localStorage.getItem(key))
+// // //                 .find(Boolean);
+// // //             const response = await fetch(
+// // //                 `http://localhost:8000/api/telemetry-aggregates/?${params.toString()}`,
+// // //                 {
+// // //                     signal: controller.signal,
+// // //                     headers: token ? { Authorization: `Bearer ${token}` } : {},
+// // //                 }
+// // //             );
+// // //             if (!response.ok) {
+// // //                 throw new Error(`Historical telemetry API returned HTTP ${response.status}`);
+// // //             }
+// // //             const payload = await response.json();
+// // //             const rows = Array.isArray(payload?.data) ? payload.data : [];
+// // //             setHistoricalClimate(rows.map((row) => ({
+// // //                 timestamp: row.bucket_start,
+// // //                 indoor_temperature: row.avg_temperature,
+// // //                 indoor_humidity: row.avg_humidity,
+// // //                 device_id: row.device_id,
+// // //             })));
+// // //             setClimateHistoryStatus(rows.length ? "loaded" : "empty");
+// // //         } catch (error) {
+// // //             if (error.name === "AbortError") return;
+// // //             console.error("[Climate history] Failed to load:", error);
+// // //             setHistoricalClimate([]);
+// // //             setClimateHistoryStatus("error");
+// // //         }
+// // //     };
+// // //     loadClimateHistory();
+// // //     const intervalId = window.setInterval(loadClimateHistory, 10 * 1000); // refresh historical telemetry every 10 seconds
+// // //     return () => {
+// // //         controller.abort();
+// // //         window.clearInterval(intervalId);
+// // //     };
+// // //     }, [selectedLevel, selectedDeviceId, filtersKey]);
+
+// // //     const branchCoordinates = useMemo(() => {
+// // //         const candidates = [...safeData, ...filteredData];
+// // //         const record = candidates.find((item) => {
+// // //             const lat = Number(item?.latitude ?? item?.lat);
+// // //             const lon = Number(item?.longitude ?? item?.lon);
+// // //             return item?.latitude != null && item?.longitude != null &&
+// // //                 item?.latitude !== "" && item?.longitude !== "" &&
+// // //                 Number.isFinite(lat) && Number.isFinite(lon) &&
+// // //                 lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+// // //         });
+// // //         if (!record) return null;
+// // //         return {
+// // //             latitude: Number(record.latitude ?? record.lat),
+// // //             longitude: Number(record.longitude ?? record.lon),
+// // //         };
+// // //     }, [safeData, filteredData]);
+
+// // //     useEffect(() => {
+// // //         const shouldFetchWeather = selectedLevel === "branch" && Boolean(filters?.branch);
+// // //         if (!shouldFetchWeather) {
+// // //             setBranchWeather([]);
+// // //             setWeatherStatus("idle");
+// // //             setWeatherError("");
+// // //             return undefined;
+// // //         }
+
+// // //         if (!branchCoordinates) {
+// // //             setBranchWeather([]);
+// // //             setWeatherStatus("missing-coordinates");
+// // //             setWeatherError("This branch has no saved latitude/longitude. Add coordinates to the branch record first.");
+// // //             return undefined;
+// // //         }
+
+// // //         const controller = new AbortController();
+// // //         const loadWeather = async () => {
+// // //             setWeatherStatus("loading");
+// // //             setWeatherError("");
+// // //             try {
+// // //                 const params = new URLSearchParams({
+// // //                     latitude: String(branchCoordinates.latitude),
+// // //                     longitude: String(branchCoordinates.longitude),
+// // //                     hourly: "temperature_2m,relative_humidity_2m",
+// // //                     past_days: "1",
+// // //                     forecast_days: "1",
+// // //                     timezone: "auto",
+// // //                 });
+// // //                 const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
+// // //                     signal: controller.signal,
+// // //                 });
+// // //                 if (!response.ok) throw new Error(`Weather service returned HTTP ${response.status}.`);
+// // //                 const payload = await response.json();
+// // //                 const times = payload?.hourly?.time || [];
+// // //                 const temperatures = payload?.hourly?.temperature_2m || [];
+// // //                 const humidities = payload?.hourly?.relative_humidity_2m || [];
+// // //                 const points = times.map((timestamp, index) => ({
+// // //                     timestamp,
+// // //                     temperature: temperatures[index] == null ? null : Number(temperatures[index]),
+// // //                     humidity: humidities[index] == null ? null : Number(humidities[index]),
+// // //                 })).filter((point) => point.temperature !== null || point.humidity !== null);
+// // //                 setBranchWeather(points);
+// // //                 setWeatherStatus(points.length ? "loaded" : "empty");
+// // //                 if (!points.length) setWeatherError("The weather service returned no hourly readings for these coordinates.");
+// // //             } catch (error) {
+// // //                 if (error.name === "AbortError") return;
+// // //                 setBranchWeather([]);
+// // //                 setWeatherStatus("error");
+// // //                 setWeatherError(error.message || "Unable to load local weather data.");
+// // //             }
+// // //         };
+// // //         loadWeather();
+// // //         return () => controller.abort();
+// // //     }, [
+// // //         selectedLevel,
+// // //         filters?.branch,
+// // //         branchCoordinates?.latitude,
+// // //         branchCoordinates?.longitude,
+// // //     ]);
+
+// // //     return (
+// // //         <div className="ac-dashboard">
+// // //             {filteredData.length === 0 ? (
+// // //                 <div className="dashboard-no-data">
+// // //                     <div className="no-data-icon">📊</div>
+// // //                     <h2>No AC data available</h2>
+// // //                     <p>There is no data for the selected filters.</p>
+// // //                 </div>
+// // //             ) : (
+// // //                 <>
+// // //                 {showAIModule && (
+// // //                     <section id="ai-module-panel" className="ai-module-toggle-section ai-module-panel">
+// // //                         <AIAssistantPanel dashboardData={dashboardPayload} />
+// // //                     </section>
+// // //                 )}
+
+// // //                 {/* {selectedLevel === "branch" && (
+// // //                     <section className="dashboard-section">
+// // //                         <FaultDetectionPanel
+// // //                             data={filteredData}
+// // //                             refreshMs={2000}
+// // //                         />
+// // //                     </section>
+// // //                 )} */}
+
+// // //                 <section className="dashboard-section">
+// // //                     <div className="section-title dashboard-scope-heading">
+
+// // //     {/* OVERVIEW TITLE */}
+// // //     <div className="overview-heading-content">
+// // //         <h2>
+// // //             {isSingleDeviceScope
+// // //                 ? "AC Performance"
+// // //                 : isFloorScope
+// // //                     ? "Floor Overview"
+// // //                     : isBranchScope
+// // //                         ? "Branch Overview"
+// // //                         : selectedLevel === "city"
+// // //                             ? "City Overview"
+// // //                             : selectedLevel === "country"
+// // //                                 ? "Organization Overview"
+// // //                                 : "Regional Overview"}
+// // //         </h2>
+
+// // //         <p>
+// // //             {Object.entries(filters || {})
+// // //                 .filter(([key, value]) => key !== "hierarchy" && value)
+// // //                 .map(([, value]) => value)
+// // //                 .join(" · ") || "All Locations"}
+// // //         </p>
+// // //     </div>
+// // //     {/* LIVE / LAST UPDATED */}
+// // //     <div className="overview-live-status">
+// // //         <span
+// // //             className={`last-updated-dot ${isLive ? "live" : "offline"}`}
+// // //         />
+
+// // //         {isLive ? (
+// // //             <span className="live-text">LIVE</span>
+// // //         ) : (
+// // //             <span className="last-updated-text">
+// // //                 Last Updated: <strong>{lastTelemetryText}</strong>
+// // //             </span>
+// // //         )}
+// // //     </div>
+
+// // // </div>
+// // //                     <div className="kpi-grid">
+// // //                         {showWidget("total_acs") && <Total_Acs value={metrics.totalACs} />}
+// // //                         <Active_Acs value={metrics.activeACs} />
+// // //                         <Inactive_Acs value={metrics.totalACs - metrics.activeACs} />
+// // //                         {showWidget("total_energy") && <Total_Energy value={metrics.totalEnergy} />}
+// // //                         {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />}
+// // //                         {selectedLevel === "branch" && showWidget("active_power") && (
+// // //                             <Active_Power value={metrics.totalPower} />
+// // //                         )}
+
+// // //                         {selectedLevel === "branch" && showWidget("temperature") && (
+// // //                             <Average_Temperature value={metrics.averageTemperature} />
+// // //                         )}
+
+// // //                         {selectedLevel === "branch" && showWidget("humidity") && (
+// // //                             <Average_Humidity value={metrics.averageHumidity} />
+// // //                         )}
+
+// // //                         {showWidget("alerts") && 
+// // //                             <Alerts data={safeData} active={cardFilters?.alerts?.active === true} onClick={() => onCardFilterChange?.({ alerts: { active: !cardFilters?.alerts?.active } })} />
+// // //                         }
+// // //                         {selectedState && showWidget("cost_card") && 
+// // //                             <EnergyCostCard stateName={selectedState} energyKwh={metrics.totalEnergy} />
+// // //                         }
+// // //                         </div>
+// // //                 </section>
+
+// // //                 <section className="dashboard-grid dashboard-grid--primary">
+// // //                     {isBranchScope ? (
+// // //                         showWidget("power_chart") && (
+// // //                             <EnergyConsumptionChart data={deviceData} />
+// // //                         )
+// // //                     ) : (
+// // //                         showWidget("power_chart") && (
+// // //                             <PowerConsumptionChart data={deviceData} />
+// // //                         )
+// // //                     )}
+
+// // //                     <ACHealthChart data={deviceData} />
+// // //                     {/* <ACTable deviceId={selectedDeviceId} scope={filters} /> */}
+// // //                     <EnergyMap data={filteredData} filters={filters} />
+
+// // //                     {selectedLevel === "branch" && showWidget("health_chart") && (
+// // //                         <>
+// // //                             <CurrentHistoryChart
+// // //                                 deviceId={selectedDeviceId}
+// // //                                 scope={filters}
+// // //                             />
+// // //                             <VoltageHistoryChart
+// // //                                 deviceId={selectedDeviceId}
+// // //                                 scope={filters}
+// // //                             />
+// // //                             <TemperatureChart
+// // //                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
+// // //                                 scope={filters}
+// // //                                 data={branchWeather}
+// // //                                 locationName={filters?.branch || ""}
+// // //                                 status={weatherStatus}
+// // //                                 error={weatherError}
+// // //                             />
+// // //                             <HumidityChart
+// // //                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
+// // //                                 scope={filters}
+// // //                                 data={branchWeather}
+// // //                                 locationName={filters?.branch || ""}
+// // //                                 status={weatherStatus}
+// // //                                 error={weatherError}
+// // //                             />
+
+// // //                         </>
+// // //                     )}
+// // //                     {showWidget("energy_chart") && 
+// // //                         <TopEnergyBranches data={filteredData} filters={filters}/>
+// // //                     }
+// // //                     {showWidget("energy_chart") && 
+// // //                         <ZoneEnergyChart data={filteredData} filters={filters} />
+// // //                     }
+                    
+                    
+// // //                     <ACDeviceTable data={filteredData} />
+// // //                         <div className="chart-box dashboard-context-card">
+// // //                             <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
+// // //                             <div className="dashboard-context-stats">
+// // //                                 <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
+// // //                                 <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
+// // //                                 <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
+// // //                                 <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
+// // //                             </div>
+// // //                             {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
+// // //                         </div>
+// // //                 </section>
+// // //                 </>
+// // //             )}
+// // //         </div>
+// // //     );
+// // // }
+
+// // // export default ACDashboard;
+
+
+
+// // import React, { useEffect, useMemo, useState } from "react";
+// // import { useNavigate } from "react-router-dom";
+// // import { useRollingAverage } from "./hooks/useRollingAverage";
+
+// // import Total_Acs from "./KPI Cards/Total_Acs";
+// // import Active_Acs from "./KPI Cards/Active Acs";
+// // import Total_Energy from "./KPI Cards/Total_Energy";
+// // import Active_Energy from "./KPI Cards/Active_Energy";
+// // import Active_Power from "./KPI Cards/Active_Power";
+// // import Average_Temperature from "./KPI Cards/Average_Temperature";
+// // import Average_Humidity from "./KPI Cards/Average_Humidity";
+// // import Alerts from "./KPI Cards/Alerts";
+
+// // import TemperatureChart from "./TemperatureChart/TemperatureChart";
+// // import HumidityChart from "./HumidityChart/HumidityChart";
+// // import PowerConsumptionChart from "./PowerConsumptionChart/PowerConsumptionChart";
+// // import EnergyConsumptionChart from "./EnergyConsumptionChart/EnergyConsumptionChart";
+// // import ZoneEnergyChart from "./ZoneEnergyChart/ZoneEnergyChart";
+// // import TopEnergyBranches from "./ZoneEnergyChart/TopEnergyBranches";
+// // import ACHealthChart from "./ACHealthChart/ACHealthChart";
+// // import CurrentFluctuationChart from "./CurrentFluctuationChart";
+// // import ACTable from "./ACTable/ACTable";
+// // import ACDeviceTable from "./Tables/ACDeviceTable";
+// // import EnergyMap from "./EnergyMap/EnergyMap";
+// // import EnergyCostCard from "./KPI Cards/EnergyCostCard";
+
+// // import AIAssistantPanel from "./AIModules/AIAssistantPanel";
+// // import FaultDetectionPanel from "./AIModules/FaultDetectionPanel"
+
+// // import CurrentHistoryChart from "./Current/CurrentHistoryChart";
+// // import VoltageHistoryChart from "./Voltage/VoltageHistoryChart";
+// // import Inactive_Acs from "./KPI Cards/InactiveAcs";
+
+// // import "./dashboard.css";
+// // import "./AIModules/dashboard-insight.css";
+
+// // const numberValue = (value) => {
+// //     if (value === null || value === undefined || value === "") {
+// //         return 0;
+// //     }
+
+// //     const number = Number(value);
+// //     return Number.isFinite(number) ? number : 0;
+// // };
+
+// // const getVoltage = (item) => numberValue(item?.voltage ?? item?.Voltage);
+
+// // // An AC that is OFF / OFFLINE draws nothing: the backend keeps its last known
+// // // readings for display, so force current and power to 0 unless it is running.
+// // const isRunning = (item) => {
+// //     const deviceOnline = String(item?.status ?? item?.device_status ?? "")
+// //         .trim().toUpperCase() === "ONLINE";
+// //     const relayOn = ["1", "on", "true", "active", "running"].includes(
+// //         String(item?.relay ?? item?.relay_state ?? "").trim().toLowerCase()
+// //     );
+// //     return deviceOnline && relayOn;
+// // };
+
+// // const getCurrent = (item) => (isRunning(item) ? numberValue(item?.current ?? item?.Current) : 0);
+
+// // const getPower = (item) => {
+// //     if (!isRunning(item)) return 0;
+
+// //     const value =
+// //         item?.active_power ??
+// //         item?.Active_Power ??
+// //         item?.activePower ??
+// //         item?.power ??
+// //         item?.Power;
+
+// //     if (value !== undefined && value !== null && value !== "") {
+// //         return numberValue(value);
+// //     }
+
+// //     return getVoltage(item) * getCurrent(item);
+// // };
+
+// // const getEnergy = (item) =>
+// //     numberValue(
+// //         item?.energy_consumption ??
+// //         item?.Energy_Consumption ??
+// //         item?.energyConsumption ??
+// //         item?.energy ??
+// //         item?.kwh ??
+// //         item?.kWh
+// //     );
+
+// // const getTemperature = (item) =>
+// //     numberValue(
+// //         item?.indoor_temperature ??
+// //         item?.indoor_temp ??
+// //         item?.temperature ??
+// //         item?.temp
+// //     );
+
+// // const getHumidity = (item) => numberValue(item?.indoor_humidity ?? item?.humidity);
+
+// // const getStatus = (item) =>
+// //     String(item?.status ?? item?.ac_status ?? item?.state ?? "")
+// //         .trim()
+// //         .toLowerCase();
+
+// // const isActive = (item) => ["active", "running", "on", "1"].includes(getStatus(item));
+
+// // const getHealthStatus = (item) =>
+// //     String(
+// //         item?.health_status ??
+// //         item?.health ??
+// //         item?.alert_status ??
+// //         ""
+// //     )
+// //         .trim()
+// //         .toLowerCase();
+
+// // const isAlert = (item) =>
+// //     Number(item?.alarm_status) === 1 ||
+// //     ["attention", "critical", "alert", "warning"].includes(
+// //         getHealthStatus(item)
+// //     );
+
+// // function ACDashboard({
+// //     data = [],
+// //     filters = {},
+// //     cardFilters = {},
+// //     visibleWidgets = {},
+// //     onCardFilterChange,
+// //     isLive,
+// //     lastTelemetryText = "--",
+// // }) {
+// //     const navigate = useNavigate();
+// //     const [showAIModule, setShowAIModule] = useState(false);
+
+// //     useEffect(() => {
+// //         const toggleAIModule = () => setShowAIModule((previous) => !previous);
+// //         window.addEventListener("ac-toggle-ai-module", toggleAIModule);
+// //         return () => window.removeEventListener("ac-toggle-ai-module", toggleAIModule);
+// //     }, []);
+
+// //     const [branchWeather, setBranchWeather] = useState([]);
+// //     const [historicalClimate, setHistoricalClimate] = useState([]);
+// //     const [climateHistoryStatus, setClimateHistoryStatus] = useState("idle");
+// //     const [weatherStatus, setWeatherStatus] = useState("idle");
+// //     const [weatherError, setWeatherError] = useState("");
+
+// //     const [currentHistoryData, setCurrentHistoryData] = useState([]);
+// //     const [currentHistoryStatus, setCurrentHistoryStatus] = useState("idle");
+
+// //     // const isFloorScope = Boolean(selectedFloor);
+// //     const isFloorScope = Boolean(filters?.floor);
+// //     const safeData = useMemo(() => {
+// //         if (Array.isArray(data)) return data;
+// //         if (Array.isArray(data?.data)) return data.data;
+// //         return [];
+// //     }, [data]);
+
+// //     // Apply card-level filters without mutating the source data.
+// //     const filteredData = useMemo(() => {
+// //         let result = safeData;
+
+// //         if (cardFilters?.alerts?.active === true) {
+// //             result = result.filter(isAlert);
+// //         }
+
+// //         if (cardFilters?.status?.value) {
+// //             const wanted = String(cardFilters.status.value)
+// //                 .trim()
+// //                 .toLowerCase();
+
+// //             result = result.filter(
+// //                 (item) => getStatus(item) === wanted
+// //             );
+// //         }
+// //         return result;
+// //     }, [safeData, cardFilters]);
+
+// //     // Preserve the existing rolling-average behavior.
+// //     const { deviceData, trendHistory } = useRollingAverage(
+// //         filteredData,
+// //         {
+// //             windowMs: 60000,
+// //             recalcMs: 30000,
+// //             historyLimit: 60,
+// //         }
+// //     );
+
+// //     const metrics = useMemo(() => {
+// //         const totalACs = filteredData.length;
+// //         const activeRecords = filteredData.filter(isActive);
+// //         const totalEnergy = filteredData.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
+// //         const activeEnergy = activeRecords.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
+// //         const totalPower = filteredData.reduce( (sum, item) => sum + getPower(item), 0 );
+// //         const temperatures = filteredData
+// //             .map(getTemperature)
+// //             .filter((value) => value !== 0);
+
+// //         const humidities = filteredData
+// //             .map(getHumidity)
+// //             .filter((value) => value !== 0);
+
+// //         const averageTemperature = temperatures.length
+// //             ? temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length
+// //             : 0 ;
+
+// //         const averageHumidity = humidities.length
+// //             ? humidities.reduce((sum, value) => sum + value, 0) / humidities.length
+// //             : 0 ;
+
+// //         const alertCount = filteredData.filter(isAlert).length;
+
+// //         return {
+// //             totalACs,
+// //             activeACs: activeRecords.length,
+// //             totalEnergy,
+// //             activeEnergy,
+// //             totalPower,
+// //             averageTemperature,
+// //             averageHumidity,
+// //             alertCount,
+// //         };
+// //     }, [filteredData]);
+
+// //     const insightData = useMemo(
+// //             () => ({
+// //             totalACs: metrics.totalACs,
+// //             activeACs: metrics.activeACs,
+// //             totalEnergy: Number(metrics.totalEnergy.toFixed(2)),
+// //             activeEnergy: Number(metrics.activeEnergy.toFixed(2)),
+// //             activePower: Number(metrics.totalPower.toFixed(2)),
+// //             averageTemperature: Number(
+// //                 metrics.averageTemperature.toFixed(1)
+// //             ),
+// //             averageHumidity: Number(
+// //                 metrics.averageHumidity.toFixed(1)
+// //             ),
+// //             alerts: metrics.alertCount,
+// //             records: filteredData.length,
+// //             historyPoints: Array.isArray(trendHistory)
+// //                 ? trendHistory.length
+// //                 : 0,
+// //             }),
+// //             [metrics, filteredData.length, trendHistory]
+// //     );
+
+// //     const dashboardPayload = useMemo(() => {
+// //         const acHealth = filteredData.map((item) => ({
+// //             ac_id:
+// //                 item?.ac_id ??
+// //                 item?.device_name ??
+// //                 item?.device_id ??
+// //                 item?.id ??
+// //                 "Unknown",
+// //             status:
+// //                 item?.status ??
+// //                 item?.ac_status ??
+// //                 item?.state ??
+// //                 "unknown",
+// //             health_status:
+// //                 item?.health_status ??
+// //                 item?.health ??
+// //                 item?.alert_status ??
+// //                 "unknown",
+// //             alarm_status: item?.alarm_status ?? null,
+// //         }));
+
+// //         return {
+// //             dashboard_name: "AC Energy Monitoring",
+// //             generated_at: new Date().toISOString(),
+// //             filters,
+// //             kpis: insightData,
+// //             trends: Array.isArray(trendHistory)
+// //                 ? trendHistory
+// //                 : [],
+// //             ac_data: filteredData,
+// //             ac_health: acHealth,
+// //             alerts: filteredData.filter(isAlert),
+// //             additional_data: {
+// //                 device_data: Array.isArray(deviceData)
+// //                 ? deviceData
+// //                 : [],
+// //             },
+// //         };
+// //     }, [
+// //         filters,
+// //         insightData,
+// //         trendHistory,
+// //         filteredData,
+// //         deviceData,
+// //     ]);
+
+// //     const handleTrendsClick = () => {
+// //         navigate("/org/dashboard/trends");
+// //     };
+
+// //     const hierarchyLevels =
+// //         filters?.hierarchy === "ZONAL"
+// //             ? ["zone", "circle", "region", "division", "branch", "device"]
+// //             : ["state", "district", "taluka", "city", "branch", "device"];
+
+// //     const selectedLevel =
+// //         [...hierarchyLevels]
+// //             .reverse()
+// //             .find((key) => Boolean(filters?.[key])) || "country";
+
+// //     const isBranchScope = selectedLevel === "branch";
+// //     const isDeviceScope = selectedLevel === "device";
+
+// //     const selectedDeviceId = String(
+// //         filters?.selectedDeviceId ||
+// //         filters?.device_id ||
+// //         (typeof filters?.device === "string"
+// //             ? filters.device
+// //             : filters?.device?.value || "")
+// //     ).trim();
+
+// //     const filtersKey = JSON.stringify(filters || {});
+
+// //     const isSingleDeviceScope =
+// //         isDeviceScope || Boolean(filters?.ac_id || selectedDeviceId);
+
+// //     const selectedState = filters?.state || "";
+
+// //     const showWidget = (key) => visibleWidgets?.[key] !== false;
+
+
+// //     useEffect(() => {
+// //         if (selectedLevel !== "branch" && selectedLevel !== "device") {
+// //             setCurrentHistoryData([]);
+// //             setCurrentHistoryStatus("idle");
+// //         return undefined;
+// //     }
+
+// //     const controller = new AbortController();
+
+// //     const loadCurrentHistory = async () => {
+// //         try {
+// //         const end = new Date();
+// //         const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+
+// //         const params = new URLSearchParams({
+// //             period: "today",
+// //             from: start.toISOString(),
+// //             to: end.toISOString(),
+// //         });
+
+// //         const deviceId = selectedDeviceId || filters?.ac_id || "";
+// //         if (deviceId) params.set("ac_id", String(deviceId));
+
+// //         const token = [
+// //             "token",
+// //             "authToken",
+// //             "access_token",
+// //             "accessToken",
+// //         ]
+// //             .map((key) => localStorage.getItem(key))
+// //             .find(Boolean);
+
+// //         const response = await fetch(
+// //             `http://localhost:8000/api/current-history/?${params}`,
+// //             {
+// //             signal: controller.signal,
+// //             headers: token
+// //                 ? { Authorization: `Bearer ${token}` }
+// //                 : {},
+// //             }
+// //         );
+
+// //         if (!response.ok) {
+// //             throw new Error(`Current history API: HTTP ${response.status}`);
+// //         }
+
+// //         const payload = await response.json();
+// //         setCurrentHistoryData(
+// //             Array.isArray(payload?.data) ? payload.data : []
+// //         );
+// //         setCurrentHistoryStatus("loaded");
+// //         } catch (error) {
+// //         if (error.name === "AbortError") return;
+
+// //         console.error("Current history failed:", error);
+// //         setCurrentHistoryStatus("error");
+// //         }
+// //     };
+
+// //     loadCurrentHistory();
+
+// //     const intervalId = window.setInterval(loadCurrentHistory, 10000);
+
+// //     return () => {
+// //         controller.abort();
+// //         window.clearInterval(intervalId);
+// //     };
+// //     }, [selectedLevel, selectedDeviceId, filtersKey]);
+
+// //     useEffect(() => {
+// //         if (selectedLevel !== "branch" && selectedLevel !== "device") {
+// //             setHistoricalClimate([]);
+// //             setClimateHistoryStatus("idle");
+// //             return undefined;
+// //         }
+
+// //         const controller = new AbortController();
+// //         const loadClimateHistory = async () => {
+// //         // Only show "loading" the first time; 10 s refreshes update in place.
+// //         setClimateHistoryStatus((prev) => (prev === "loaded" || prev === "empty" ? prev : "loading"));
+// //         try {
+// //             const end = new Date();
+// //             const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+// //             const params = new URLSearchParams({
+// //                 from: start.toISOString(),
+// //                 to: end.toISOString(),
+// //                 interval_seconds: "300", // 5-minute buckets keep a 24 h, multi-AC response small
+// //             });
+
+// //             // Preserve the dashboard's active hierarchy scope.
+// //             ["state", "district", "taluka", "city", "zone", "circle", "region", "division", "branch", "floor"].forEach((key) => {
+// //                 if (filters?.[key] != null && String(filters[key]).trim()) {
+// //                     params.set(key, String(filters[key]));
+// //                 }
+// //             });
+// //             const deviceId = selectedDeviceId || filters?.ac_id || "";
+// //             if (deviceId) params.set("device_id", String(deviceId));
+
+// //             const token = ["token", "authToken", "access_token", "accessToken"]
+// //                 .map((key) => localStorage.getItem(key))
+// //                 .find(Boolean);
+// //             const response = await fetch(
+// //                 `http://localhost:8000/api/telemetry-aggregates/?${params.toString()}`,
+// //                 {
+// //                     signal: controller.signal,
+// //                     headers: token ? { Authorization: `Bearer ${token}` } : {},
+// //                 }
+// //             );
+// //             if (!response.ok) {
+// //                 throw new Error(`Historical telemetry API returned HTTP ${response.status}`);
+// //             }
+// //             const payload = await response.json();
+// //             const rows = Array.isArray(payload?.data) ? payload.data : [];
+// //             setHistoricalClimate(rows.map((row) => ({
+// //                 timestamp: row.bucket_start,
+// //                 indoor_temperature: row.avg_temperature,
+// //                 indoor_humidity: row.avg_humidity,
+// //                 device_id: row.device_id,
+// //             })));
+// //             setClimateHistoryStatus(rows.length ? "loaded" : "empty");
+// //         } catch (error) {
+// //             if (error.name === "AbortError") return;
+// //             console.error("[Climate history] Failed to load:", error);
+// //             setHistoricalClimate([]);
+// //             setClimateHistoryStatus("error");
+// //         }
+// //     };
+// //     loadClimateHistory();
+// //     const intervalId = window.setInterval(loadClimateHistory, 10 * 1000); // refresh historical telemetry every 10 seconds
+// //     return () => {
+// //         controller.abort();
+// //         window.clearInterval(intervalId);
+// //     };
+// //     }, [selectedLevel, selectedDeviceId, filtersKey]);
+
+// //     const branchCoordinates = useMemo(() => {
+// //         const candidates = [...safeData, ...filteredData];
+// //         const record = candidates.find((item) => {
+// //             const lat = Number(item?.latitude ?? item?.lat);
+// //             const lon = Number(item?.longitude ?? item?.lon);
+// //             return item?.latitude != null && item?.longitude != null &&
+// //                 item?.latitude !== "" && item?.longitude !== "" &&
+// //                 Number.isFinite(lat) && Number.isFinite(lon) &&
+// //                 lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+// //         });
+// //         if (!record) return null;
+// //         return {
+// //             latitude: Number(record.latitude ?? record.lat),
+// //             longitude: Number(record.longitude ?? record.lon),
+// //         };
+// //     }, [safeData, filteredData]);
+
+// //     useEffect(() => {
+// //         const shouldFetchWeather = selectedLevel === "branch" && Boolean(filters?.branch);
+// //         if (!shouldFetchWeather) {
+// //             setBranchWeather([]);
+// //             setWeatherStatus("idle");
+// //             setWeatherError("");
+// //             return undefined;
+// //         }
+
+// //         if (!branchCoordinates) {
+// //             setBranchWeather([]);
+// //             setWeatherStatus("missing-coordinates");
+// //             setWeatherError("This branch has no saved latitude/longitude. Add coordinates to the branch record first.");
+// //             return undefined;
+// //         }
+
+// //         const controller = new AbortController();
+// //         const loadWeather = async () => {
+// //             setWeatherStatus("loading");
+// //             setWeatherError("");
+// //             try {
+// //                 const params = new URLSearchParams({
+// //                     latitude: String(branchCoordinates.latitude),
+// //                     longitude: String(branchCoordinates.longitude),
+// //                     hourly: "temperature_2m,relative_humidity_2m",
+// //                     past_days: "1",
+// //                     forecast_days: "1",
+// //                     timezone: "auto",
+// //                 });
+// //                 const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
+// //                     signal: controller.signal,
+// //                 });
+// //                 if (!response.ok) throw new Error(`Weather service returned HTTP ${response.status}.`);
+// //                 const payload = await response.json();
+// //                 const times = payload?.hourly?.time || [];
+// //                 const temperatures = payload?.hourly?.temperature_2m || [];
+// //                 const humidities = payload?.hourly?.relative_humidity_2m || [];
+// //                 const points = times.map((timestamp, index) => ({
+// //                     timestamp,
+// //                     temperature: temperatures[index] == null ? null : Number(temperatures[index]),
+// //                     humidity: humidities[index] == null ? null : Number(humidities[index]),
+// //                 })).filter((point) => point.temperature !== null || point.humidity !== null);
+// //                 setBranchWeather(points);
+// //                 setWeatherStatus(points.length ? "loaded" : "empty");
+// //                 if (!points.length) setWeatherError("The weather service returned no hourly readings for these coordinates.");
+// //             } catch (error) {
+// //                 if (error.name === "AbortError") return;
+// //                 setBranchWeather([]);
+// //                 setWeatherStatus("error");
+// //                 setWeatherError(error.message || "Unable to load local weather data.");
+// //             }
+// //         };
+// //         loadWeather();
+// //         return () => controller.abort();
+// //     }, [
+// //         selectedLevel,
+// //         filters?.branch,
+// //         branchCoordinates?.latitude,
+// //         branchCoordinates?.longitude,
+// //     ]);
+
+// //     return (
+// //         <div className="ac-dashboard">
+// //             {filteredData.length === 0 ? (
+// //                 <div className="dashboard-no-data">
+// //                     <div className="no-data-icon">📊</div>
+// //                     <h2>No AC data available</h2>
+// //                     <p>There is no data for the selected filters.</p>
+// //                 </div>
+// //             ) : (
+// //                 <>
+// //                 {showAIModule && (
+// //                     <section id="ai-module-panel" className="ai-module-toggle-section ai-module-panel">
+// //                         <AIAssistantPanel dashboardData={dashboardPayload} />
+// //                     </section>
+// //                 )}
+
+// //                 {/* {selectedLevel === "branch" && (
+// //                     <section className="dashboard-section">
+// //                         <FaultDetectionPanel
+// //                             data={filteredData}
+// //                             refreshMs={2000}
+// //                         />
+// //                     </section>
+// //                 )} */}
+
+// //                 <section className="dashboard-section">
+// //                     <div className="section-title dashboard-scope-heading">
+
+// //     {/* OVERVIEW TITLE */}
+// //     <div className="overview-heading-content">
+// //         <h2>
+// //             {isSingleDeviceScope
+// //                 ? "AC Performance"
+// //                 : isFloorScope
+// //                     ? "Floor Overview"
+// //                     : isBranchScope
+// //                         ? "Branch Overview"
+// //                         : selectedLevel === "city"
+// //                             ? "City Overview"
+// //                             : selectedLevel === "country"
+// //                                 ? "Organization Overview"
+// //                                 : "Regional Overview"}
+// //         </h2>
+
+// //         <p>
+// //             {Object.entries(filters || {})
+// //                 .filter(([key, value]) => key !== "hierarchy" && value)
+// //                 .map(([, value]) => value)
+// //                 .join(" · ") || "All Locations"}
+// //         </p>
+// //     </div>
+// //     {/* LIVE / LAST UPDATED */}
+// //     <div className="overview-live-status">
+// //         <span
+// //             className={`last-updated-dot ${isLive ? "live" : "offline"}`}
+// //         />
+
+// //         {isLive ? (
+// //             <span className="live-text">LIVE</span>
+// //         ) : (
+// //             <span className="last-updated-text">
+// //                 Last Updated: <strong>{lastTelemetryText}</strong>
+// //             </span>
+// //         )}
+// //     </div>
+
+// // </div>
+// //                     <div className="kpi-grid">
+// //                         {showWidget("total_acs") && <Total_Acs value={metrics.totalACs} />}
+// //                         <Active_Acs value={metrics.activeACs} />
+// //                         <Inactive_Acs value={metrics.totalACs - metrics.activeACs} />
+// //                         {showWidget("total_energy") && <Total_Energy value={metrics.totalEnergy} />}
+// //                         {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />}
+// //                         {selectedLevel === "branch" && showWidget("active_power") && (
+// //                             <Active_Power value={metrics.totalPower} />
+// //                         )}
+
+// //                         {selectedLevel === "branch" && showWidget("temperature") && (
+// //                             <Average_Temperature value={metrics.averageTemperature} />
+// //                         )}
+
+// //                         {selectedLevel === "branch" && showWidget("humidity") && (
+// //                             <Average_Humidity value={metrics.averageHumidity} />
+// //                         )}
+
+// //                         {showWidget("alerts") && 
+// //                             <Alerts data={safeData} active={cardFilters?.alerts?.active === true} onClick={() => onCardFilterChange?.({ alerts: { active: !cardFilters?.alerts?.active } })} />
+// //                         }
+// //                         {selectedState && showWidget("cost_card") && 
+// //                             <EnergyCostCard stateName={selectedState} energyKwh={metrics.totalEnergy} />
+// //                         }
+// //                         </div>
+// //                 </section>
+
+// //                 <section className="dashboard-grid dashboard-grid--primary">
+// //                     {isBranchScope ? (
+// //                         showWidget("power_chart") && (
+// //                             <EnergyConsumptionChart data={deviceData} />
+// //                         )
+// //                     ) : (
+// //                         showWidget("power_chart") && (
+// //                             <PowerConsumptionChart data={deviceData} />
+// //                         )
+// //                     )}
+
+// //                     <ACHealthChart data={deviceData} />
+// //                     {/* <ACTable deviceId={selectedDeviceId} scope={filters} /> */}
+// //                     <EnergyMap data={filteredData} filters={filters} />
+
+// //                     {selectedLevel === "branch" && showWidget("health_chart") && (
+// //                         <>
+// //                             <CurrentHistoryChart
+// //                                 deviceId={selectedDeviceId}
+// //                                 scope={filters}
+// //                             />
+// //                             <VoltageHistoryChart
+// //                                 deviceId={selectedDeviceId}
+// //                                 scope={filters}
+// //                             />
+// //                             <TemperatureChart
+// //                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
+// //                                 scope={filters}
+// //                                 data={branchWeather}
+// //                                 locationName={filters?.branch || ""}
+// //                                 status={weatherStatus}
+// //                                 error={weatherError}
+// //                             />
+// //                             <HumidityChart
+// //                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
+// //                                 scope={filters}
+// //                                 data={branchWeather}
+// //                                 locationName={filters?.branch || ""}
+// //                                 status={weatherStatus}
+// //                                 error={weatherError}
+// //                             />
+
+// //                         </>
+// //                     )}
+// //                     {showWidget("energy_chart") && 
+// //                         <TopEnergyBranches data={filteredData} filters={filters}/>
+// //                     }
+// //                     {showWidget("energy_chart") && 
+// //                         <ZoneEnergyChart data={filteredData} filters={filters} />
+// //                     }
+                    
+                    
+// //                     <ACDeviceTable data={filteredData} />
+// //                         <div className="chart-box dashboard-context-card">
+// //                             <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
+// //                             <div className="dashboard-context-stats">
+// //                                 <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
+// //                                 <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
+// //                                 <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
+// //                                 <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
+// //                             </div>
+// //                             {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
+// //                         </div>
+// //                 </section>
+// //                 </>
+// //             )}
+// //         </div>
+// //     );
+// // }
+
+// // export default ACDashboard;
+
+
 // // // import React, { useEffect, useMemo, useState } from "react";
 // // // import { useNavigate } from "react-router-dom";
 // // // import { useRollingAverage } from "./hooks/useRollingAverage";
@@ -1443,8 +3541,7 @@
 // // An AC that is OFF / OFFLINE draws nothing: the backend keeps its last known
 // // readings for display, so force current and power to 0 unless it is running.
 // const isRunning = (item) => {
-//     const deviceOnline = String(item?.status ?? item?.device_status ?? "")
-//         .trim().toUpperCase() === "ONLINE";
+//     const deviceOnline = getDeviceStatus(item) === "ONLINE";
 //     const relayOn = ["1", "on", "true", "active", "running"].includes(
 //         String(item?.relay ?? item?.relay_state ?? "").trim().toLowerCase()
 //     );
@@ -1490,12 +3587,19 @@
 
 // const getHumidity = (item) => numberValue(item?.indoor_humidity ?? item?.humidity);
 
-// const getStatus = (item) =>
-//     String(item?.status ?? item?.ac_status ?? item?.state ?? "")
-//         .trim()
-//         .toLowerCase();
+// const getDeviceStatus = (item) => {
+//     const status =
+//         item?.connectivity_status ||
+//         item?.device_status ||
+//         item?.status ||
+//         "";
 
-// const isActive = (item) => ["active", "running", "on", "1"].includes(getStatus(item));
+//     return String(status).trim().toUpperCase();
+// };
+
+// const isActive = (item) => {
+//     return getDeviceStatus(item) === "ONLINE";
+// };
 
 // const getHealthStatus = (item) =>
 //     String(
@@ -2002,7 +4106,12 @@
 //                         <Active_Acs value={metrics.activeACs} />
 //                         <Inactive_Acs value={metrics.totalACs - metrics.activeACs} />
 //                         {showWidget("total_energy") && <Total_Energy value={metrics.totalEnergy} />}
-//                         {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />}
+//                         {/* {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />} */}
+                        
+//                         {selectedLevel === "branch" && showWidget("active_power") && (
+//                             <Active_Energy value={metrics.activeEnergy} />
+//                         )}
+
 //                         {selectedLevel === "branch" && showWidget("active_power") && (
 //                             <Active_Power value={metrics.totalPower} />
 //                         )}
@@ -2025,14 +4134,23 @@
 //                 </section>
 
 //                 <section className="dashboard-grid dashboard-grid--primary">
-//                     {isBranchScope ? (
+//                     {/* {isBranchScope ? (
 //                         showWidget("power_chart") && (
-//                             <EnergyConsumptionChart data={deviceData} />
+//                             <EnergyConsumptionChart data={deviceData} />                            
 //                         )
 //                     ) : (
 //                         showWidget("power_chart") && (
 //                             <PowerConsumptionChart data={deviceData} />
+//                             // <ACDeviceTable data={filteredData} />
 //                         )
+//                     )} */}
+
+//                     {/* {showWidget("power_chart") && ( */}
+//                         <ACDeviceTable data={filteredData} />
+//                     {/* )} */}
+
+//                     {showWidget("power_chart") && (
+//                         <EnergyConsumptionChart data={deviceData} />                            
 //                     )}
 
 //                     <ACHealthChart data={deviceData} />
@@ -2076,1410 +4194,17 @@
 //                     }
                     
                     
-//                     <ACDeviceTable data={filteredData} />
-//                         <div className="chart-box dashboard-context-card">
-//                             <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
-//                             <div className="dashboard-context-stats">
-//                                 <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
-//                                 <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
-//                                 <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
-//                                 <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
-//                             </div>
-//                             {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
+//                     {/* <ACDeviceTable data={filteredData} /> */}
+//                     <div className="chart-box dashboard-context-card">
+//                         <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
+//                         <div className="dashboard-context-stats">
+//                             <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
+//                             <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
+//                             <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
+//                             <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
 //                         </div>
-//                 </section>
-//                 </>
-//             )}
-//         </div>
-//     );
-// }
-
-// export default ACDashboard;
-
-
-// // import React, { useEffect, useMemo, useState } from "react";
-// // import { useNavigate } from "react-router-dom";
-// // import { useRollingAverage } from "./hooks/useRollingAverage";
-
-// // import Total_Acs from "./KPI Cards/Total_Acs";
-// // import Active_Acs from "./KPI Cards/Active Acs";
-// // import Total_Energy from "./KPI Cards/Total_Energy";
-// // import Active_Energy from "./KPI Cards/Active_Energy";
-// // import Active_Power from "./KPI Cards/Active_Power";
-// // import Average_Temperature from "./KPI Cards/Average_Temperature";
-// // import Average_Humidity from "./KPI Cards/Average_Humidity";
-// // import Alerts from "./KPI Cards/Alerts";
-
-// // import TemperatureChart from "./TemperatureChart/TemperatureChart";
-// // import HumidityChart from "./HumidityChart/HumidityChart";
-// // import PowerConsumptionChart from "./PowerConsumptionChart/PowerConsumptionChart";
-// // import EnergyConsumptionChart from "./EnergyConsumptionChart/EnergyConsumptionChart";
-// // import ZoneEnergyChart from "./ZoneEnergyChart/ZoneEnergyChart";
-// // import ACHealthChart from "./ACHealthChart/ACHealthChart";
-// // import CurrentFluctuationChart from "./CurrentFluctuationChart";
-// // import ACTable from "./ACTable/ACTable";
-// // import ACDeviceTable from "./ACDeviceTable";
-// // import EnergyMap from "./EnergyMap/EnergyMap";
-// // import EnergyCostCard from "./KPI Cards/EnergyCostCard";
-
-// // import AIAssistantPanel from "./AIAssistantPanel";
-// // import FaultDetectionPanel from "./FaultDetectionPanel"
-
-// // import CurrentHistoryChart from "./Current/CurrentHistoryChart";
-// // import VoltageHistoryChart from "./Voltage/VoltageHistoryChart";
-// // import Inactive_Acs from "./KPI Cards/InactiveAcs";
-
-// // import "./dashboard.css";
-// // import "./dashboard-insight.css";
-
-// // const numberValue = (value) => {
-// //     if (value === null || value === undefined || value === "") {
-// //         return 0;
-// //     }
-
-// //     const number = Number(value);
-// //     return Number.isFinite(number) ? number : 0;
-// // };
-
-// // const getVoltage = (item) => numberValue(item?.voltage ?? item?.Voltage);
-
-// // // An AC that is OFF / OFFLINE draws nothing: the backend keeps its last known
-// // // readings for display, so force current and power to 0 unless it is running.
-// // const isRunning = (item) => ["active", "running", "on", "1"].includes(
-// //     String(item?.status ?? item?.ac_status ?? item?.state ?? "").trim().toLowerCase()
-// // );
-
-// // const getCurrent = (item) => (isRunning(item) ? numberValue(item?.current ?? item?.Current) : 0);
-
-// // const getPower = (item) => {
-// //     if (!isRunning(item)) return 0;
-
-// //     const value =
-// //         item?.active_power ??
-// //         item?.Active_Power ??
-// //         item?.activePower ??
-// //         item?.power ??
-// //         item?.Power;
-
-// //     if (value !== undefined && value !== null && value !== "") {
-// //         return numberValue(value);
-// //     }
-
-// //     return getVoltage(item) * getCurrent(item);
-// // };
-
-// // const getEnergy = (item) =>
-// //     numberValue(
-// //         item?.energy_consumption ??
-// //         item?.Energy_Consumption ??
-// //         item?.energyConsumption ??
-// //         item?.energy ??
-// //         item?.kwh ??
-// //         item?.kWh
-// //     );
-
-// // const getTemperature = (item) =>
-// //     numberValue(
-// //         item?.indoor_temperature ??
-// //         item?.indoor_temp ??
-// //         item?.temperature ??
-// //         item?.temp
-// //     );
-
-// // const getHumidity = (item) => numberValue(item?.indoor_humidity ?? item?.humidity);
-
-// // const getStatus = (item) =>
-// //     String(item?.status ?? item?.ac_status ?? item?.state ?? "")
-// //         .trim()
-// //         .toLowerCase();
-
-// // const isActive = (item) => ["active", "running", "on", "1"].includes(getStatus(item));
-
-// // const getHealthStatus = (item) =>
-// //     String(
-// //         item?.health_status ??
-// //         item?.health ??
-// //         item?.alert_status ??
-// //         ""
-// //     )
-// //         .trim()
-// //         .toLowerCase();
-
-// // const isAlert = (item) =>
-// //     Number(item?.alarm_status) === 1 ||
-// //     ["attention", "critical", "alert", "warning"].includes(
-// //         getHealthStatus(item)
-// //     );
-
-// // function ACDashboard({
-// //     data = [],
-// //     filters = {},
-// //     cardFilters = {},
-// //     visibleWidgets = {},
-// //     onCardFilterChange,
-// //     isLive,
-// //     lastTelemetryText = "--",
-// // }) {
-// //     const navigate = useNavigate();
-// //     const [showAIModule, setShowAIModule] = useState(false);
-
-// //     useEffect(() => {
-// //         const toggleAIModule = () => setShowAIModule((previous) => !previous);
-// //         window.addEventListener("ac-toggle-ai-module", toggleAIModule);
-// //         return () => window.removeEventListener("ac-toggle-ai-module", toggleAIModule);
-// //     }, []);
-
-// //     const [branchWeather, setBranchWeather] = useState([]);
-// //     const [historicalClimate, setHistoricalClimate] = useState([]);
-// //     const [climateHistoryStatus, setClimateHistoryStatus] = useState("idle");
-// //     const [weatherStatus, setWeatherStatus] = useState("idle");
-// //     const [weatherError, setWeatherError] = useState("");
-
-// //     const [currentHistoryData, setCurrentHistoryData] = useState([]);
-// //     const [currentHistoryStatus, setCurrentHistoryStatus] = useState("idle");
-
-// //     // const isFloorScope = Boolean(selectedFloor);
-// //     const isFloorScope = Boolean(filters?.floor);
-// //     const safeData = useMemo(() => {
-// //         if (Array.isArray(data)) return data;
-// //         if (Array.isArray(data?.data)) return data.data;
-// //         return [];
-// //     }, [data]);
-
-// //     // Apply card-level filters without mutating the source data.
-// //     const filteredData = useMemo(() => {
-// //         let result = safeData;
-
-// //         if (cardFilters?.alerts?.active === true) {
-// //             result = result.filter(isAlert);
-// //         }
-
-// //         if (cardFilters?.status?.value) {
-// //             const wanted = String(cardFilters.status.value)
-// //                 .trim()
-// //                 .toLowerCase();
-
-// //             result = result.filter(
-// //                 (item) => getStatus(item) === wanted
-// //             );
-// //         }
-// //         return result;
-// //     }, [safeData, cardFilters]);
-
-// //     // Preserve the existing rolling-average behavior.
-// //     const { deviceData, trendHistory } = useRollingAverage(
-// //         filteredData,
-// //         {
-// //             windowMs: 60000,
-// //             recalcMs: 30000,
-// //             historyLimit: 60,
-// //         }
-// //     );
-
-// //     const metrics = useMemo(() => {
-// //         const totalACs = filteredData.length;
-// //         const activeRecords = filteredData.filter(isActive);
-// //         const totalEnergy = filteredData.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
-// //         const activeEnergy = activeRecords.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
-// //         const totalPower = filteredData.reduce( (sum, item) => sum + getPower(item), 0 );
-// //         const temperatures = filteredData
-// //             .map(getTemperature)
-// //             .filter((value) => value !== 0);
-
-// //         const humidities = filteredData
-// //             .map(getHumidity)
-// //             .filter((value) => value !== 0);
-
-// //         const averageTemperature = temperatures.length
-// //             ? temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length
-// //             : 0 ;
-
-// //         const averageHumidity = humidities.length
-// //             ? humidities.reduce((sum, value) => sum + value, 0) / humidities.length
-// //             : 0 ;
-
-// //         const alertCount = filteredData.filter(isAlert).length;
-
-// //         return {
-// //             totalACs,
-// //             activeACs: activeRecords.length,
-// //             totalEnergy,
-// //             activeEnergy,
-// //             totalPower,
-// //             averageTemperature,
-// //             averageHumidity,
-// //             alertCount,
-// //         };
-// //     }, [filteredData]);
-
-// //     const insightData = useMemo(
-// //             () => ({
-// //             totalACs: metrics.totalACs,
-// //             activeACs: metrics.activeACs,
-// //             totalEnergy: Number(metrics.totalEnergy.toFixed(2)),
-// //             activeEnergy: Number(metrics.activeEnergy.toFixed(2)),
-// //             activePower: Number(metrics.totalPower.toFixed(2)),
-// //             averageTemperature: Number(
-// //                 metrics.averageTemperature.toFixed(1)
-// //             ),
-// //             averageHumidity: Number(
-// //                 metrics.averageHumidity.toFixed(1)
-// //             ),
-// //             alerts: metrics.alertCount,
-// //             records: filteredData.length,
-// //             historyPoints: Array.isArray(trendHistory)
-// //                 ? trendHistory.length
-// //                 : 0,
-// //             }),
-// //             [metrics, filteredData.length, trendHistory]
-// //     );
-
-// //     const dashboardPayload = useMemo(() => {
-// //         const acHealth = filteredData.map((item) => ({
-// //             ac_id:
-// //                 item?.ac_id ??
-// //                 item?.device_name ??
-// //                 item?.device_id ??
-// //                 item?.id ??
-// //                 "Unknown",
-// //             status:
-// //                 item?.status ??
-// //                 item?.ac_status ??
-// //                 item?.state ??
-// //                 "unknown",
-// //             health_status:
-// //                 item?.health_status ??
-// //                 item?.health ??
-// //                 item?.alert_status ??
-// //                 "unknown",
-// //             alarm_status: item?.alarm_status ?? null,
-// //         }));
-
-// //         return {
-// //             dashboard_name: "AC Energy Monitoring",
-// //             generated_at: new Date().toISOString(),
-// //             filters,
-// //             kpis: insightData,
-// //             trends: Array.isArray(trendHistory)
-// //                 ? trendHistory
-// //                 : [],
-// //             ac_data: filteredData,
-// //             ac_health: acHealth,
-// //             alerts: filteredData.filter(isAlert),
-// //             additional_data: {
-// //                 device_data: Array.isArray(deviceData)
-// //                 ? deviceData
-// //                 : [],
-// //             },
-// //         };
-// //     }, [
-// //         filters,
-// //         insightData,
-// //         trendHistory,
-// //         filteredData,
-// //         deviceData,
-// //     ]);
-
-// //     const handleTrendsClick = () => {
-// //         navigate("/org/dashboard/trends");
-// //     };
-
-// //     const hierarchyLevels =
-// //         filters?.hierarchy === "ZONAL"
-// //             ? ["zone", "circle", "region", "division", "branch", "device"]
-// //             : ["state", "district", "taluka", "city", "branch", "device"];
-
-// //     const selectedLevel =
-// //         [...hierarchyLevels]
-// //             .reverse()
-// //             .find((key) => Boolean(filters?.[key])) || "country";
-
-// //     const isBranchScope = selectedLevel === "branch";
-// //     const isDeviceScope = selectedLevel === "device";
-
-// //     const selectedDeviceId = String(
-// //         filters?.selectedDeviceId ||
-// //         filters?.device_id ||
-// //         (typeof filters?.device === "string"
-// //             ? filters.device
-// //             : filters?.device?.value || "")
-// //     ).trim();
-
-// //     const filtersKey = JSON.stringify(filters || {});
-
-// //     const isSingleDeviceScope =
-// //         isDeviceScope || Boolean(filters?.ac_id || selectedDeviceId);
-
-// //     const selectedState = filters?.state || "";
-
-// //     const showWidget = (key) => visibleWidgets?.[key] !== false;
-
-
-// //     useEffect(() => {
-// //         if (selectedLevel !== "branch" && selectedLevel !== "device") {
-// //             setCurrentHistoryData([]);
-// //             setCurrentHistoryStatus("idle");
-// //         return undefined;
-// //     }
-
-// //     const controller = new AbortController();
-
-// //     const loadCurrentHistory = async () => {
-// //         try {
-// //         const end = new Date();
-// //         const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-
-// //         const params = new URLSearchParams({
-// //             period: "today",
-// //             from: start.toISOString(),
-// //             to: end.toISOString(),
-// //         });
-
-// //         const deviceId = selectedDeviceId || filters?.ac_id || "";
-// //         if (deviceId) params.set("ac_id", String(deviceId));
-
-// //         const token = [
-// //             "token",
-// //             "authToken",
-// //             "access_token",
-// //             "accessToken",
-// //         ]
-// //             .map((key) => localStorage.getItem(key))
-// //             .find(Boolean);
-
-// //         const response = await fetch(
-// //             `http://localhost:8000/api/current-history/?${params}`,
-// //             {
-// //             signal: controller.signal,
-// //             headers: token
-// //                 ? { Authorization: `Bearer ${token}` }
-// //                 : {},
-// //             }
-// //         );
-
-// //         if (!response.ok) {
-// //             throw new Error(`Current history API: HTTP ${response.status}`);
-// //         }
-
-// //         const payload = await response.json();
-// //         setCurrentHistoryData(
-// //             Array.isArray(payload?.data) ? payload.data : []
-// //         );
-// //         setCurrentHistoryStatus("loaded");
-// //         } catch (error) {
-// //         if (error.name === "AbortError") return;
-
-// //         console.error("Current history failed:", error);
-// //         setCurrentHistoryStatus("error");
-// //         }
-// //     };
-
-// //     loadCurrentHistory();
-
-// //     const intervalId = window.setInterval(loadCurrentHistory, 10000);
-
-// //     return () => {
-// //         controller.abort();
-// //         window.clearInterval(intervalId);
-// //     };
-// //     }, [selectedLevel, selectedDeviceId, filtersKey]);
-
-// //     useEffect(() => {
-// //         if (selectedLevel !== "branch" && selectedLevel !== "device") {
-// //             setHistoricalClimate([]);
-// //             setClimateHistoryStatus("idle");
-// //             return undefined;
-// //         }
-
-// //         const controller = new AbortController();
-// //         const loadClimateHistory = async () => {
-// //         // Only show "loading" the first time; 10 s refreshes update in place.
-// //         setClimateHistoryStatus((prev) => (prev === "loaded" || prev === "empty" ? prev : "loading"));
-// //         try {
-// //             const end = new Date();
-// //             const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-// //             const params = new URLSearchParams({
-// //                 from: start.toISOString(),
-// //                 to: end.toISOString(),
-// //                 interval_seconds: "300", // 5-minute buckets keep a 24 h, multi-AC response small
-// //             });
-
-// //             // Preserve the dashboard's active hierarchy scope.
-// //             ["state", "district", "taluka", "city", "zone", "circle", "region", "division", "branch", "floor"].forEach((key) => {
-// //                 if (filters?.[key] != null && String(filters[key]).trim()) {
-// //                     params.set(key, String(filters[key]));
-// //                 }
-// //             });
-// //             const deviceId = selectedDeviceId || filters?.ac_id || "";
-// //             if (deviceId) params.set("device_id", String(deviceId));
-
-// //             const token = ["token", "authToken", "access_token", "accessToken"]
-// //                 .map((key) => localStorage.getItem(key))
-// //                 .find(Boolean);
-// //             const response = await fetch(
-// //                 `http://localhost:8000/api/telemetry-aggregates/?${params.toString()}`,
-// //                 {
-// //                     signal: controller.signal,
-// //                     headers: token ? { Authorization: `Bearer ${token}` } : {},
-// //                 }
-// //             );
-// //             if (!response.ok) {
-// //                 throw new Error(`Historical telemetry API returned HTTP ${response.status}`);
-// //             }
-// //             const payload = await response.json();
-// //             const rows = Array.isArray(payload?.data) ? payload.data : [];
-// //             setHistoricalClimate(rows.map((row) => ({
-// //                 timestamp: row.bucket_start,
-// //                 indoor_temperature: row.avg_temperature,
-// //                 indoor_humidity: row.avg_humidity,
-// //                 device_id: row.device_id,
-// //             })));
-// //             setClimateHistoryStatus(rows.length ? "loaded" : "empty");
-// //         } catch (error) {
-// //             if (error.name === "AbortError") return;
-// //             console.error("[Climate history] Failed to load:", error);
-// //             setHistoricalClimate([]);
-// //             setClimateHistoryStatus("error");
-// //         }
-// //     };
-// //     loadClimateHistory();
-// //     const intervalId = window.setInterval(loadClimateHistory, 10 * 1000); // refresh historical telemetry every 10 seconds
-// //     return () => {
-// //         controller.abort();
-// //         window.clearInterval(intervalId);
-// //     };
-// //     }, [selectedLevel, selectedDeviceId, filtersKey]);
-
-// //     const branchCoordinates = useMemo(() => {
-// //         const candidates = [...safeData, ...filteredData];
-// //         const record = candidates.find((item) => {
-// //             const lat = Number(item?.latitude ?? item?.lat);
-// //             const lon = Number(item?.longitude ?? item?.lon);
-// //             return item?.latitude != null && item?.longitude != null &&
-// //                 item?.latitude !== "" && item?.longitude !== "" &&
-// //                 Number.isFinite(lat) && Number.isFinite(lon) &&
-// //                 lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
-// //         });
-// //         if (!record) return null;
-// //         return {
-// //             latitude: Number(record.latitude ?? record.lat),
-// //             longitude: Number(record.longitude ?? record.lon),
-// //         };
-// //     }, [safeData, filteredData]);
-
-// //     useEffect(() => {
-// //         const shouldFetchWeather = selectedLevel === "branch" && Boolean(filters?.branch);
-// //         if (!shouldFetchWeather) {
-// //             setBranchWeather([]);
-// //             setWeatherStatus("idle");
-// //             setWeatherError("");
-// //             return undefined;
-// //         }
-
-// //         if (!branchCoordinates) {
-// //             setBranchWeather([]);
-// //             setWeatherStatus("missing-coordinates");
-// //             setWeatherError("This branch has no saved latitude/longitude. Add coordinates to the branch record first.");
-// //             return undefined;
-// //         }
-
-// //         const controller = new AbortController();
-// //         const loadWeather = async () => {
-// //             setWeatherStatus("loading");
-// //             setWeatherError("");
-// //             try {
-// //                 const params = new URLSearchParams({
-// //                     latitude: String(branchCoordinates.latitude),
-// //                     longitude: String(branchCoordinates.longitude),
-// //                     hourly: "temperature_2m,relative_humidity_2m",
-// //                     past_days: "1",
-// //                     forecast_days: "1",
-// //                     timezone: "auto",
-// //                 });
-// //                 const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
-// //                     signal: controller.signal,
-// //                 });
-// //                 if (!response.ok) throw new Error(`Weather service returned HTTP ${response.status}.`);
-// //                 const payload = await response.json();
-// //                 const times = payload?.hourly?.time || [];
-// //                 const temperatures = payload?.hourly?.temperature_2m || [];
-// //                 const humidities = payload?.hourly?.relative_humidity_2m || [];
-// //                 const points = times.map((timestamp, index) => ({
-// //                     timestamp,
-// //                     temperature: temperatures[index] == null ? null : Number(temperatures[index]),
-// //                     humidity: humidities[index] == null ? null : Number(humidities[index]),
-// //                 })).filter((point) => point.temperature !== null || point.humidity !== null);
-// //                 setBranchWeather(points);
-// //                 setWeatherStatus(points.length ? "loaded" : "empty");
-// //                 if (!points.length) setWeatherError("The weather service returned no hourly readings for these coordinates.");
-// //             } catch (error) {
-// //                 if (error.name === "AbortError") return;
-// //                 setBranchWeather([]);
-// //                 setWeatherStatus("error");
-// //                 setWeatherError(error.message || "Unable to load local weather data.");
-// //             }
-// //         };
-// //         loadWeather();
-// //         return () => controller.abort();
-// //     }, [
-// //         selectedLevel,
-// //         filters?.branch,
-// //         branchCoordinates?.latitude,
-// //         branchCoordinates?.longitude,
-// //     ]);
-
-// //     return (
-// //         <div className="ac-dashboard">
-// //             {filteredData.length === 0 ? (
-// //                 <div className="dashboard-no-data">
-// //                     <div className="no-data-icon">📊</div>
-// //                     <h2>No AC data available</h2>
-// //                     <p>There is no data for the selected filters.</p>
-// //                 </div>
-// //             ) : (
-// //                 <>
-// //                 {showAIModule && (
-// //                     <section id="ai-module-panel" className="ai-module-toggle-section ai-module-panel">
-// //                         <AIAssistantPanel dashboardData={dashboardPayload} />
-// //                     </section>
-// //                 )}
-
-// //                 {/* {selectedLevel === "branch" && (
-// //                     <section className="dashboard-section">
-// //                         <FaultDetectionPanel
-// //                             data={filteredData}
-// //                             refreshMs={2000}
-// //                         />
-// //                     </section>
-// //                 )} */}
-
-// //                 <section className="dashboard-section">
-// //                     <div className="section-title dashboard-scope-heading">
-
-// //     {/* OVERVIEW TITLE */}
-// //     <div className="overview-heading-content">
-// //         <h2>
-// //             {isSingleDeviceScope
-// //                 ? "AC Performance"
-// //                 : isFloorScope
-// //                     ? "Floor Overview"
-// //                     : isBranchScope
-// //                         ? "Branch Overview"
-// //                         : selectedLevel === "city"
-// //                             ? "City Overview"
-// //                             : selectedLevel === "country"
-// //                                 ? "Organization Overview"
-// //                                 : "Regional Overview"}
-// //         </h2>
-
-// //         <p>
-// //             {Object.entries(filters || {})
-// //                 .filter(([key, value]) => key !== "hierarchy" && value)
-// //                 .map(([, value]) => value)
-// //                 .join(" · ") || "All Locations"}
-// //         </p>
-// //     </div>
-// //     {/* LIVE / LAST UPDATED */}
-// //     <div className="overview-live-status">
-// //         <span
-// //             className={`last-updated-dot ${isLive ? "live" : "offline"}`}
-// //         />
-
-// //         {isLive ? (
-// //             <span className="live-text">LIVE</span>
-// //         ) : (
-// //             <span className="last-updated-text">
-// //                 Last Updated: <strong>{lastTelemetryText}</strong>
-// //             </span>
-// //         )}
-// //     </div>
-
-// // </div>
-// //                     <div className="kpi-grid">
-// //                         {showWidget("total_acs") && <Total_Acs value={metrics.totalACs} />}
-// //                         <Active_Acs value={metrics.activeACs} />
-// //                         <Inactive_Acs value={metrics.totalACs - metrics.activeACs} />
-// //                         {showWidget("total_energy") && <Total_Energy value={metrics.totalEnergy} />}
-// //                         {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />}
-// //                         {selectedLevel === "branch" && showWidget("active_power") && (
-// //                             <Active_Power value={metrics.totalPower} />
-// //                         )}
-
-// //                         {selectedLevel === "branch" && showWidget("temperature") && (
-// //                             <Average_Temperature value={metrics.averageTemperature} />
-// //                         )}
-
-// //                         {selectedLevel === "branch" && showWidget("humidity") && (
-// //                             <Average_Humidity value={metrics.averageHumidity} />
-// //                         )}
-
-// //                         {showWidget("alerts") && 
-// //                             <Alerts data={safeData} active={cardFilters?.alerts?.active === true} onClick={() => onCardFilterChange?.({ alerts: { active: !cardFilters?.alerts?.active } })} />
-// //                         }
-// //                         {selectedState && showWidget("cost_card") && 
-// //                             <EnergyCostCard stateName={selectedState} energyKwh={metrics.totalEnergy} />
-// //                         }
-// //                         </div>
-// //                 </section>
-
-// //                 <section className="dashboard-grid dashboard-grid--primary">
-// //                     {isBranchScope ? (
-// //                         showWidget("power_chart") && (
-// //                             <EnergyConsumptionChart data={deviceData} />
-// //                         )
-// //                     ) : (
-// //                         showWidget("power_chart") && (
-// //                             <PowerConsumptionChart data={deviceData} />
-// //                         )
-// //                     )}
-
-// //                     <ACHealthChart data={deviceData} />
-// //                     <ACTable deviceId={selectedDeviceId} scope={filters} />
-// //                     <EnergyMap deviceId={selectedDeviceId} scope={filters} />
-
-// //                     {selectedLevel === "branch" && showWidget("health_chart") && (
-// //                         <>
-// //                             <CurrentHistoryChart
-// //                                 deviceId={selectedDeviceId}
-// //                                 scope={filters}
-// //                             />
-// //                             <VoltageHistoryChart
-// //                                 deviceId={selectedDeviceId}
-// //                                 scope={filters}
-// //                             />
-// //                             <TemperatureChart
-// //                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
-// //                                 scope={filters}
-// //                                 data={branchWeather}
-// //                                 locationName={filters?.branch || ""}
-// //                                 status={weatherStatus}
-// //                                 error={weatherError}
-// //                             />
-// //                             <HumidityChart
-// //                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
-// //                                 scope={filters}
-// //                                 data={branchWeather}
-// //                                 locationName={filters?.branch || ""}
-// //                                 status={weatherStatus}
-// //                                 error={weatherError}
-// //                             />
-// //                         </>
-// //                     )}
-// //                     {showWidget("energy_chart") && 
-// //                         <ZoneEnergyChart deviceId={selectedDeviceId} scope={filters} />
-
-// //                     }
-// //                     <ACDeviceTable data={filteredData} />
-// //                         <div className="chart-box dashboard-context-card">
-// //                             <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
-// //                             <div className="dashboard-context-stats">
-// //                                 <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
-// //                                 <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
-// //                                 <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
-// //                                 <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
-// //                             </div>
-// //                             {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
-// //                         </div>
-// //                 </section>
-// //                 </>
-// //             )}
-// //         </div>
-// //     );
-// // }
-
-// // export default ACDashboard;
-
-
-
-// import React, { useEffect, useMemo, useState } from "react";
-// import { useNavigate } from "react-router-dom";
-// import { useRollingAverage } from "./hooks/useRollingAverage";
-
-// import Total_Acs from "./KPI Cards/Total_Acs";
-// import Active_Acs from "./KPI Cards/Active Acs";
-// import Total_Energy from "./KPI Cards/Total_Energy";
-// import Active_Energy from "./KPI Cards/Active_Energy";
-// import Active_Power from "./KPI Cards/Active_Power";
-// import Average_Temperature from "./KPI Cards/Average_Temperature";
-// import Average_Humidity from "./KPI Cards/Average_Humidity";
-// import Alerts from "./KPI Cards/Alerts";
-
-// import TemperatureChart from "./TemperatureChart/TemperatureChart";
-// import HumidityChart from "./HumidityChart/HumidityChart";
-// import PowerConsumptionChart from "./PowerConsumptionChart/PowerConsumptionChart";
-// import EnergyConsumptionChart from "./EnergyConsumptionChart/EnergyConsumptionChart";
-// import ZoneEnergyChart from "./ZoneEnergyChart/ZoneEnergyChart";
-// import TopEnergyBranches from "./ZoneEnergyChart/TopEnergyBranches";
-// import ACHealthChart from "./ACHealthChart/ACHealthChart";
-// import CurrentFluctuationChart from "./CurrentFluctuationChart";
-// import ACTable from "./ACTable/ACTable";
-// import ACDeviceTable from "./Tables/ACDeviceTable";
-// import EnergyMap from "./EnergyMap/EnergyMap";
-// import EnergyCostCard from "./KPI Cards/EnergyCostCard";
-
-// import AIAssistantPanel from "./AIModules/AIAssistantPanel";
-// import FaultDetectionPanel from "./AIModules/FaultDetectionPanel"
-
-// import CurrentHistoryChart from "./Current/CurrentHistoryChart";
-// import VoltageHistoryChart from "./Voltage/VoltageHistoryChart";
-// import Inactive_Acs from "./KPI Cards/InactiveAcs";
-
-// import "./dashboard.css";
-// import "./AIModules/dashboard-insight.css";
-
-// const numberValue = (value) => {
-//     if (value === null || value === undefined || value === "") {
-//         return 0;
-//     }
-
-//     const number = Number(value);
-//     return Number.isFinite(number) ? number : 0;
-// };
-
-// const getVoltage = (item) => numberValue(item?.voltage ?? item?.Voltage);
-
-// // An AC that is OFF / OFFLINE draws nothing: the backend keeps its last known
-// // readings for display, so force current and power to 0 unless it is running.
-// const isRunning = (item) => ["active", "running", "on", "1"].includes(
-//     String(item?.status ?? item?.ac_status ?? item?.state ?? "").trim().toLowerCase()
-// );
-
-// const getCurrent = (item) => (isRunning(item) ? numberValue(item?.current ?? item?.Current) : 0);
-
-// const getPower = (item) => {
-//     if (!isRunning(item)) return 0;
-
-//     const value =
-//         item?.active_power ??
-//         item?.Active_Power ??
-//         item?.activePower ??
-//         item?.power ??
-//         item?.Power;
-
-//     if (value !== undefined && value !== null && value !== "") {
-//         return numberValue(value);
-//     }
-
-//     return getVoltage(item) * getCurrent(item);
-// };
-
-// const getEnergy = (item) =>
-//     numberValue(
-//         item?.energy_consumption ??
-//         item?.Energy_Consumption ??
-//         item?.energyConsumption ??
-//         item?.energy ??
-//         item?.kwh ??
-//         item?.kWh
-//     );
-
-// const getTemperature = (item) =>
-//     numberValue(
-//         item?.indoor_temperature ??
-//         item?.indoor_temp ??
-//         item?.temperature ??
-//         item?.temp
-//     );
-
-// const getHumidity = (item) => numberValue(item?.indoor_humidity ?? item?.humidity);
-
-// const getStatus = (item) =>
-//     String(item?.status ?? item?.ac_status ?? item?.state ?? "")
-//         .trim()
-//         .toLowerCase();
-
-// const isActive = (item) => ["active", "running", "on", "1"].includes(getStatus(item));
-
-// const getHealthStatus = (item) =>
-//     String(
-//         item?.health_status ??
-//         item?.health ??
-//         item?.alert_status ??
-//         ""
-//     )
-//         .trim()
-//         .toLowerCase();
-
-// const isAlert = (item) =>
-//     Number(item?.alarm_status) === 1 ||
-//     ["attention", "critical", "alert", "warning"].includes(
-//         getHealthStatus(item)
-//     );
-
-// function ACDashboard({
-//     data = [],
-//     filters = {},
-//     cardFilters = {},
-//     visibleWidgets = {},
-//     onCardFilterChange,
-//     isLive,
-//     lastTelemetryText = "--",
-// }) {
-//     const navigate = useNavigate();
-//     const [showAIModule, setShowAIModule] = useState(false);
-
-//     useEffect(() => {
-//         const toggleAIModule = () => setShowAIModule((previous) => !previous);
-//         window.addEventListener("ac-toggle-ai-module", toggleAIModule);
-//         return () => window.removeEventListener("ac-toggle-ai-module", toggleAIModule);
-//     }, []);
-
-//     const [branchWeather, setBranchWeather] = useState([]);
-//     const [historicalClimate, setHistoricalClimate] = useState([]);
-//     const [climateHistoryStatus, setClimateHistoryStatus] = useState("idle");
-//     const [weatherStatus, setWeatherStatus] = useState("idle");
-//     const [weatherError, setWeatherError] = useState("");
-
-//     const [currentHistoryData, setCurrentHistoryData] = useState([]);
-//     const [currentHistoryStatus, setCurrentHistoryStatus] = useState("idle");
-
-//     // const isFloorScope = Boolean(selectedFloor);
-//     const isFloorScope = Boolean(filters?.floor);
-//     const safeData = useMemo(() => {
-//         if (Array.isArray(data)) return data;
-//         if (Array.isArray(data?.data)) return data.data;
-//         return [];
-//     }, [data]);
-
-//     // Apply card-level filters without mutating the source data.
-//     const filteredData = useMemo(() => {
-//         let result = safeData;
-
-//         if (cardFilters?.alerts?.active === true) {
-//             result = result.filter(isAlert);
-//         }
-
-//         if (cardFilters?.status?.value) {
-//             const wanted = String(cardFilters.status.value)
-//                 .trim()
-//                 .toLowerCase();
-
-//             result = result.filter(
-//                 (item) => getStatus(item) === wanted
-//             );
-//         }
-//         return result;
-//     }, [safeData, cardFilters]);
-
-//     // Preserve the existing rolling-average behavior.
-//     const { deviceData, trendHistory } = useRollingAverage(
-//         filteredData,
-//         {
-//             windowMs: 60000,
-//             recalcMs: 30000,
-//             historyLimit: 60,
-//         }
-//     );
-
-//     const metrics = useMemo(() => {
-//         const totalACs = filteredData.length;
-//         const activeRecords = filteredData.filter(isActive);
-//         const totalEnergy = filteredData.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
-//         const activeEnergy = activeRecords.reduce( (sum, item) => sum + getEnergy(item) / 1000, 0 );
-//         const totalPower = filteredData.reduce( (sum, item) => sum + getPower(item), 0 );
-//         const temperatures = filteredData
-//             .map(getTemperature)
-//             .filter((value) => value !== 0);
-
-//         const humidities = filteredData
-//             .map(getHumidity)
-//             .filter((value) => value !== 0);
-
-//         const averageTemperature = temperatures.length
-//             ? temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length
-//             : 0 ;
-
-//         const averageHumidity = humidities.length
-//             ? humidities.reduce((sum, value) => sum + value, 0) / humidities.length
-//             : 0 ;
-
-//         const alertCount = filteredData.filter(isAlert).length;
-
-//         return {
-//             totalACs,
-//             activeACs: activeRecords.length,
-//             totalEnergy,
-//             activeEnergy,
-//             totalPower,
-//             averageTemperature,
-//             averageHumidity,
-//             alertCount,
-//         };
-//     }, [filteredData]);
-
-//     const insightData = useMemo(
-//             () => ({
-//             totalACs: metrics.totalACs,
-//             activeACs: metrics.activeACs,
-//             totalEnergy: Number(metrics.totalEnergy.toFixed(2)),
-//             activeEnergy: Number(metrics.activeEnergy.toFixed(2)),
-//             activePower: Number(metrics.totalPower.toFixed(2)),
-//             averageTemperature: Number(
-//                 metrics.averageTemperature.toFixed(1)
-//             ),
-//             averageHumidity: Number(
-//                 metrics.averageHumidity.toFixed(1)
-//             ),
-//             alerts: metrics.alertCount,
-//             records: filteredData.length,
-//             historyPoints: Array.isArray(trendHistory)
-//                 ? trendHistory.length
-//                 : 0,
-//             }),
-//             [metrics, filteredData.length, trendHistory]
-//     );
-
-//     const dashboardPayload = useMemo(() => {
-//         const acHealth = filteredData.map((item) => ({
-//             ac_id:
-//                 item?.ac_id ??
-//                 item?.device_name ??
-//                 item?.device_id ??
-//                 item?.id ??
-//                 "Unknown",
-//             status:
-//                 item?.status ??
-//                 item?.ac_status ??
-//                 item?.state ??
-//                 "unknown",
-//             health_status:
-//                 item?.health_status ??
-//                 item?.health ??
-//                 item?.alert_status ??
-//                 "unknown",
-//             alarm_status: item?.alarm_status ?? null,
-//         }));
-
-//         return {
-//             dashboard_name: "AC Energy Monitoring",
-//             generated_at: new Date().toISOString(),
-//             filters,
-//             kpis: insightData,
-//             trends: Array.isArray(trendHistory)
-//                 ? trendHistory
-//                 : [],
-//             ac_data: filteredData,
-//             ac_health: acHealth,
-//             alerts: filteredData.filter(isAlert),
-//             additional_data: {
-//                 device_data: Array.isArray(deviceData)
-//                 ? deviceData
-//                 : [],
-//             },
-//         };
-//     }, [
-//         filters,
-//         insightData,
-//         trendHistory,
-//         filteredData,
-//         deviceData,
-//     ]);
-
-//     const handleTrendsClick = () => {
-//         navigate("/org/dashboard/trends");
-//     };
-
-//     const hierarchyLevels =
-//         filters?.hierarchy === "ZONAL"
-//             ? ["zone", "circle", "region", "division", "branch", "device"]
-//             : ["state", "district", "taluka", "city", "branch", "device"];
-
-//     const selectedLevel =
-//         [...hierarchyLevels]
-//             .reverse()
-//             .find((key) => Boolean(filters?.[key])) || "country";
-
-//     const isBranchScope = selectedLevel === "branch";
-//     const isDeviceScope = selectedLevel === "device";
-
-//     const selectedDeviceId = String(
-//         filters?.selectedDeviceId ||
-//         filters?.device_id ||
-//         (typeof filters?.device === "string"
-//             ? filters.device
-//             : filters?.device?.value || "")
-//     ).trim();
-
-//     const filtersKey = JSON.stringify(filters || {});
-
-//     const isSingleDeviceScope =
-//         isDeviceScope || Boolean(filters?.ac_id || selectedDeviceId);
-
-//     const selectedState = filters?.state || "";
-
-//     const showWidget = (key) => visibleWidgets?.[key] !== false;
-
-
-//     useEffect(() => {
-//         if (selectedLevel !== "branch" && selectedLevel !== "device") {
-//             setCurrentHistoryData([]);
-//             setCurrentHistoryStatus("idle");
-//         return undefined;
-//     }
-
-//     const controller = new AbortController();
-
-//     const loadCurrentHistory = async () => {
-//         try {
-//         const end = new Date();
-//         const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-
-//         const params = new URLSearchParams({
-//             period: "today",
-//             from: start.toISOString(),
-//             to: end.toISOString(),
-//         });
-
-//         const deviceId = selectedDeviceId || filters?.ac_id || "";
-//         if (deviceId) params.set("ac_id", String(deviceId));
-
-//         const token = [
-//             "token",
-//             "authToken",
-//             "access_token",
-//             "accessToken",
-//         ]
-//             .map((key) => localStorage.getItem(key))
-//             .find(Boolean);
-
-//         const response = await fetch(
-//             `http://localhost:8000/api/current-history/?${params}`,
-//             {
-//             signal: controller.signal,
-//             headers: token
-//                 ? { Authorization: `Bearer ${token}` }
-//                 : {},
-//             }
-//         );
-
-//         if (!response.ok) {
-//             throw new Error(`Current history API: HTTP ${response.status}`);
-//         }
-
-//         const payload = await response.json();
-//         setCurrentHistoryData(
-//             Array.isArray(payload?.data) ? payload.data : []
-//         );
-//         setCurrentHistoryStatus("loaded");
-//         } catch (error) {
-//         if (error.name === "AbortError") return;
-
-//         console.error("Current history failed:", error);
-//         setCurrentHistoryStatus("error");
-//         }
-//     };
-
-//     loadCurrentHistory();
-
-//     const intervalId = window.setInterval(loadCurrentHistory, 10000);
-
-//     return () => {
-//         controller.abort();
-//         window.clearInterval(intervalId);
-//     };
-//     }, [selectedLevel, selectedDeviceId, filtersKey]);
-
-//     useEffect(() => {
-//         if (selectedLevel !== "branch" && selectedLevel !== "device") {
-//             setHistoricalClimate([]);
-//             setClimateHistoryStatus("idle");
-//             return undefined;
-//         }
-
-//         const controller = new AbortController();
-//         const loadClimateHistory = async () => {
-//         // Only show "loading" the first time; 10 s refreshes update in place.
-//         setClimateHistoryStatus((prev) => (prev === "loaded" || prev === "empty" ? prev : "loading"));
-//         try {
-//             const end = new Date();
-//             const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-//             const params = new URLSearchParams({
-//                 from: start.toISOString(),
-//                 to: end.toISOString(),
-//                 interval_seconds: "300", // 5-minute buckets keep a 24 h, multi-AC response small
-//             });
-
-//             // Preserve the dashboard's active hierarchy scope.
-//             ["state", "district", "taluka", "city", "zone", "circle", "region", "division", "branch", "floor"].forEach((key) => {
-//                 if (filters?.[key] != null && String(filters[key]).trim()) {
-//                     params.set(key, String(filters[key]));
-//                 }
-//             });
-//             const deviceId = selectedDeviceId || filters?.ac_id || "";
-//             if (deviceId) params.set("device_id", String(deviceId));
-
-//             const token = ["token", "authToken", "access_token", "accessToken"]
-//                 .map((key) => localStorage.getItem(key))
-//                 .find(Boolean);
-//             const response = await fetch(
-//                 `http://localhost:8000/api/telemetry-aggregates/?${params.toString()}`,
-//                 {
-//                     signal: controller.signal,
-//                     headers: token ? { Authorization: `Bearer ${token}` } : {},
-//                 }
-//             );
-//             if (!response.ok) {
-//                 throw new Error(`Historical telemetry API returned HTTP ${response.status}`);
-//             }
-//             const payload = await response.json();
-//             const rows = Array.isArray(payload?.data) ? payload.data : [];
-//             setHistoricalClimate(rows.map((row) => ({
-//                 timestamp: row.bucket_start,
-//                 indoor_temperature: row.avg_temperature,
-//                 indoor_humidity: row.avg_humidity,
-//                 device_id: row.device_id,
-//             })));
-//             setClimateHistoryStatus(rows.length ? "loaded" : "empty");
-//         } catch (error) {
-//             if (error.name === "AbortError") return;
-//             console.error("[Climate history] Failed to load:", error);
-//             setHistoricalClimate([]);
-//             setClimateHistoryStatus("error");
-//         }
-//     };
-//     loadClimateHistory();
-//     const intervalId = window.setInterval(loadClimateHistory, 10 * 1000); // refresh historical telemetry every 10 seconds
-//     return () => {
-//         controller.abort();
-//         window.clearInterval(intervalId);
-//     };
-//     }, [selectedLevel, selectedDeviceId, filtersKey]);
-
-//     const branchCoordinates = useMemo(() => {
-//         const candidates = [...safeData, ...filteredData];
-//         const record = candidates.find((item) => {
-//             const lat = Number(item?.latitude ?? item?.lat);
-//             const lon = Number(item?.longitude ?? item?.lon);
-//             return item?.latitude != null && item?.longitude != null &&
-//                 item?.latitude !== "" && item?.longitude !== "" &&
-//                 Number.isFinite(lat) && Number.isFinite(lon) &&
-//                 lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
-//         });
-//         if (!record) return null;
-//         return {
-//             latitude: Number(record.latitude ?? record.lat),
-//             longitude: Number(record.longitude ?? record.lon),
-//         };
-//     }, [safeData, filteredData]);
-
-//     useEffect(() => {
-//         const shouldFetchWeather = selectedLevel === "branch" && Boolean(filters?.branch);
-//         if (!shouldFetchWeather) {
-//             setBranchWeather([]);
-//             setWeatherStatus("idle");
-//             setWeatherError("");
-//             return undefined;
-//         }
-
-//         if (!branchCoordinates) {
-//             setBranchWeather([]);
-//             setWeatherStatus("missing-coordinates");
-//             setWeatherError("This branch has no saved latitude/longitude. Add coordinates to the branch record first.");
-//             return undefined;
-//         }
-
-//         const controller = new AbortController();
-//         const loadWeather = async () => {
-//             setWeatherStatus("loading");
-//             setWeatherError("");
-//             try {
-//                 const params = new URLSearchParams({
-//                     latitude: String(branchCoordinates.latitude),
-//                     longitude: String(branchCoordinates.longitude),
-//                     hourly: "temperature_2m,relative_humidity_2m",
-//                     past_days: "1",
-//                     forecast_days: "1",
-//                     timezone: "auto",
-//                 });
-//                 const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
-//                     signal: controller.signal,
-//                 });
-//                 if (!response.ok) throw new Error(`Weather service returned HTTP ${response.status}.`);
-//                 const payload = await response.json();
-//                 const times = payload?.hourly?.time || [];
-//                 const temperatures = payload?.hourly?.temperature_2m || [];
-//                 const humidities = payload?.hourly?.relative_humidity_2m || [];
-//                 const points = times.map((timestamp, index) => ({
-//                     timestamp,
-//                     temperature: temperatures[index] == null ? null : Number(temperatures[index]),
-//                     humidity: humidities[index] == null ? null : Number(humidities[index]),
-//                 })).filter((point) => point.temperature !== null || point.humidity !== null);
-//                 setBranchWeather(points);
-//                 setWeatherStatus(points.length ? "loaded" : "empty");
-//                 if (!points.length) setWeatherError("The weather service returned no hourly readings for these coordinates.");
-//             } catch (error) {
-//                 if (error.name === "AbortError") return;
-//                 setBranchWeather([]);
-//                 setWeatherStatus("error");
-//                 setWeatherError(error.message || "Unable to load local weather data.");
-//             }
-//         };
-//         loadWeather();
-//         return () => controller.abort();
-//     }, [
-//         selectedLevel,
-//         filters?.branch,
-//         branchCoordinates?.latitude,
-//         branchCoordinates?.longitude,
-//     ]);
-
-//     return (
-//         <div className="ac-dashboard">
-//             {filteredData.length === 0 ? (
-//                 <div className="dashboard-no-data">
-//                     <div className="no-data-icon">📊</div>
-//                     <h2>No AC data available</h2>
-//                     <p>There is no data for the selected filters.</p>
-//                 </div>
-//             ) : (
-//                 <>
-//                 {showAIModule && (
-//                     <section id="ai-module-panel" className="ai-module-toggle-section ai-module-panel">
-//                         <AIAssistantPanel dashboardData={dashboardPayload} />
-//                     </section>
-//                 )}
-
-//                 {/* {selectedLevel === "branch" && (
-//                     <section className="dashboard-section">
-//                         <FaultDetectionPanel
-//                             data={filteredData}
-//                             refreshMs={2000}
-//                         />
-//                     </section>
-//                 )} */}
-
-//                 <section className="dashboard-section">
-//                     <div className="section-title dashboard-scope-heading">
-
-//     {/* OVERVIEW TITLE */}
-//     <div className="overview-heading-content">
-//         <h2>
-//             {isSingleDeviceScope
-//                 ? "AC Performance"
-//                 : isFloorScope
-//                     ? "Floor Overview"
-//                     : isBranchScope
-//                         ? "Branch Overview"
-//                         : selectedLevel === "city"
-//                             ? "City Overview"
-//                             : selectedLevel === "country"
-//                                 ? "Organization Overview"
-//                                 : "Regional Overview"}
-//         </h2>
-
-//         <p>
-//             {Object.entries(filters || {})
-//                 .filter(([key, value]) => key !== "hierarchy" && value)
-//                 .map(([, value]) => value)
-//                 .join(" · ") || "All Locations"}
-//         </p>
-//     </div>
-//     {/* LIVE / LAST UPDATED */}
-//     <div className="overview-live-status">
-//         <span
-//             className={`last-updated-dot ${isLive ? "live" : "offline"}`}
-//         />
-
-//         {isLive ? (
-//             <span className="live-text">LIVE</span>
-//         ) : (
-//             <span className="last-updated-text">
-//                 Last Updated: <strong>{lastTelemetryText}</strong>
-//             </span>
-//         )}
-//     </div>
-
-// </div>
-//                     <div className="kpi-grid">
-//                         {showWidget("total_acs") && <Total_Acs value={metrics.totalACs} />}
-//                         <Active_Acs value={metrics.activeACs} />
-//                         <Inactive_Acs value={metrics.totalACs - metrics.activeACs} />
-//                         {showWidget("total_energy") && <Total_Energy value={metrics.totalEnergy} />}
-//                         {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />}
-//                         {selectedLevel === "branch" && showWidget("active_power") && (
-//                             <Active_Power value={metrics.totalPower} />
-//                         )}
-
-//                         {selectedLevel === "branch" && showWidget("temperature") && (
-//                             <Average_Temperature value={metrics.averageTemperature} />
-//                         )}
-
-//                         {selectedLevel === "branch" && showWidget("humidity") && (
-//                             <Average_Humidity value={metrics.averageHumidity} />
-//                         )}
-
-//                         {showWidget("alerts") && 
-//                             <Alerts data={safeData} active={cardFilters?.alerts?.active === true} onClick={() => onCardFilterChange?.({ alerts: { active: !cardFilters?.alerts?.active } })} />
-//                         }
-//                         {selectedState && showWidget("cost_card") && 
-//                             <EnergyCostCard stateName={selectedState} energyKwh={metrics.totalEnergy} />
-//                         }
-//                         </div>
-//                 </section>
-
-//                 <section className="dashboard-grid dashboard-grid--primary">
-//                     {isBranchScope ? (
-//                         showWidget("power_chart") && (
-//                             <EnergyConsumptionChart data={deviceData} />
-//                         )
-//                     ) : (
-//                         showWidget("power_chart") && (
-//                             <PowerConsumptionChart data={deviceData} />
-//                         )
-//                     )}
-
-//                     <ACHealthChart data={deviceData} />
-//                     {/* <ACTable deviceId={selectedDeviceId} scope={filters} /> */}
-//                     <EnergyMap data={filteredData} filters={filters} />
-
-//                     {selectedLevel === "branch" && showWidget("health_chart") && (
-//                         <>
-//                             <CurrentHistoryChart
-//                                 deviceId={selectedDeviceId}
-//                                 scope={filters}
-//                             />
-//                             <VoltageHistoryChart
-//                                 deviceId={selectedDeviceId}
-//                                 scope={filters}
-//                             />
-//                             <TemperatureChart
-//                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
-//                                 scope={filters}
-//                                 data={branchWeather}
-//                                 locationName={filters?.branch || ""}
-//                                 status={weatherStatus}
-//                                 error={weatherError}
-//                             />
-//                             <HumidityChart
-//                                 deviceId={selectedDeviceId || filters?.ac_id || ""}
-//                                 scope={filters}
-//                                 data={branchWeather}
-//                                 locationName={filters?.branch || ""}
-//                                 status={weatherStatus}
-//                                 error={weatherError}
-//                             />
-
-//                         </>
-//                     )}
-//                     {showWidget("energy_chart") && 
-//                         <TopEnergyBranches data={filteredData} filters={filters}/>
-//                     }
-//                     {showWidget("energy_chart") && 
-//                         <ZoneEnergyChart data={filteredData} filters={filters} />
-//                     }
-                    
-                    
-//                     <ACDeviceTable data={filteredData} />
-//                         <div className="chart-box dashboard-context-card">
-//                             <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
-//                             <div className="dashboard-context-stats">
-//                                 <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
-//                                 <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
-//                                 <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
-//                                 <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
-//                             </div>
-//                             {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
-//                         </div>
+//                         {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
+//                     </div>
 //                 </section>
 //                 </>
 //             )}
@@ -3524,8 +4249,12 @@ import CurrentHistoryChart from "./Current/CurrentHistoryChart";
 import VoltageHistoryChart from "./Voltage/VoltageHistoryChart";
 import Inactive_Acs from "./KPI Cards/InactiveAcs";
 
+import { applyTimeRangeParams, isWindowed, resolveTimeRange, useTimeRange } from "./shared/TimeRangeContext";
+
 import "./dashboard.css";
 import "./AIModules/dashboard-insight.css";
+
+const DEVICE_STALE_DATE_AFTER_MS = 24 * 60 * 60 * 1000;
 
 const numberValue = (value) => {
     if (value === null || value === undefined || value === "") {
@@ -3548,10 +4277,13 @@ const isRunning = (item) => {
     return deviceOnline && relayOn;
 };
 
-const getCurrent = (item) => (isRunning(item) ? numberValue(item?.current ?? item?.Current) : 0);
+// Values computed for a dashboard time window (range_applied) are averages over
+// that window, so the "is it running right now" gate only applies to live data.
+const getCurrent = (item) =>
+    item?.range_applied || isRunning(item) ? numberValue(item?.current ?? item?.Current) : 0;
 
 const getPower = (item) => {
-    if (!isRunning(item)) return 0;
+    if (!item?.range_applied && !isRunning(item)) return 0;
 
     const value =
         item?.active_power ??
@@ -3625,9 +4357,24 @@ function ACDashboard({
     onCardFilterChange,
     isLive,
     lastTelemetryText = "--",
+    lastTelemetryAt = null,
 }) {
+    
     const navigate = useNavigate();
     const [showAIModule, setShowAIModule] = useState(false);
+    const [statusClock, setStatusClock] = useState(Date.now());   // NEW
+
+    useEffect(() => {
+        const id = window.setInterval(() => setStatusClock(Date.now()), 1000);
+        return () => window.clearInterval(id);
+    }, []);
+
+    // Dashboard-wide time filter (shared with every widget).
+    const timeSelection = useTimeRange();
+    const windowed = isWindowed(timeSelection);
+    const timeKey = timeSelection
+        ? `${timeSelection.preset}|${timeSelection.customFrom}|${timeSelection.customTo}`
+        : "";
 
     useEffect(() => {
         const toggleAIModule = () => setShowAIModule((previous) => !previous);
@@ -3717,6 +4464,33 @@ function ACDashboard({
             alertCount,
         };
     }, [filteredData]);
+
+    const lastUpdatedDisplay = useMemo(() => {
+        if (!lastTelemetryAt) return lastTelemetryText;           // fallback
+
+        const date = new Date(lastTelemetryAt);
+        if (Number.isNaN(date.getTime())) return lastTelemetryText;
+
+        const time = date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+        });
+
+        // Use statusClock (ticks every second) so the date appears exactly
+        // when the device has been silent for more than 24 hours.
+        if (statusClock - lastTelemetryAt > DEVICE_STALE_DATE_AFTER_MS) {
+            const day = date.toLocaleDateString([], {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            });
+            return `${day}, ${time}`;
+        }
+
+        return time;
+    }, [lastTelemetryAt, lastTelemetryText, statusClock]);
 
     const insightData = useMemo(
             () => ({
@@ -3840,6 +4614,7 @@ function ACDashboard({
             from: start.toISOString(),
             to: end.toISOString(),
         });
+        applyTimeRangeParams(params, timeSelection, end);
 
         const deviceId = selectedDeviceId || filters?.ac_id || "";
         if (deviceId) params.set("ac_id", String(deviceId));
@@ -3888,7 +4663,7 @@ function ACDashboard({
         controller.abort();
         window.clearInterval(intervalId);
     };
-    }, [selectedLevel, selectedDeviceId, filtersKey]);
+    }, [selectedLevel, selectedDeviceId, filtersKey, timeKey]);
 
     useEffect(() => {
         if (selectedLevel !== "branch" && selectedLevel !== "device") {
@@ -3909,6 +4684,13 @@ function ACDashboard({
                 to: end.toISOString(),
                 interval_seconds: "300", // 5-minute buckets keep a 24 h, multi-AC response small
             });
+            applyTimeRangeParams(params, timeSelection, end);
+            // Long windows would exceed the response size at 5-minute buckets.
+            if (windowed) {
+                const range = resolveTimeRange(timeSelection, end);
+                const hours = (range.to - range.from) / 3600000;
+                params.set("interval_seconds", String(hours > 48 ? 3600 : 300));
+            }
 
             // Preserve the dashboard's active hierarchy scope.
             ["state", "district", "taluka", "city", "zone", "circle", "region", "division", "branch", "floor"].forEach((key) => {
@@ -3954,7 +4736,7 @@ function ACDashboard({
         controller.abort();
         window.clearInterval(intervalId);
     };
-    }, [selectedLevel, selectedDeviceId, filtersKey]);
+    }, [selectedLevel, selectedDeviceId, filtersKey, timeKey]);
 
     const branchCoordinates = useMemo(() => {
         const candidates = [...safeData, ...filteredData];
@@ -4039,7 +4821,7 @@ function ACDashboard({
             {filteredData.length === 0 ? (
                 <div className="dashboard-no-data">
                     <div className="no-data-icon">📊</div>
-                    <h2>No AC data available</h2>
+                    <h2>No Data available</h2>
                     <p>There is no data for the selected filters.</p>
                 </div>
             ) : (
@@ -4061,52 +4843,60 @@ function ACDashboard({
 
                 <section className="dashboard-section">
                     <div className="section-title dashboard-scope-heading">
+                        {/* OVERVIEW TITLE */}
+                        <div className="overview-heading-content">
+                            <h2>
+                                {isSingleDeviceScope
+                                    ? "AC Performance"
+                                    : isFloorScope
+                                        ? "Floor Overview"
+                                        : isBranchScope
+                                            ? "Branch Overview"
+                                            : selectedLevel === "taluka"
+                                                ? "City Overview"
+                                                    : selectedLevel === "district"
+                                                    ? "State Overview"
+                                                        : selectedLevel === "country"
+                                                            ? "Organization Overview"
+                                                                : "Regional Overview"}
+                            </h2>
 
-    {/* OVERVIEW TITLE */}
-    <div className="overview-heading-content">
-        <h2>
-            {isSingleDeviceScope
-                ? "AC Performance"
-                : isFloorScope
-                    ? "Floor Overview"
-                    : isBranchScope
-                        ? "Branch Overview"
-                        : selectedLevel === "city"
-                            ? "City Overview"
-                            : selectedLevel === "country"
-                                ? "Organization Overview"
-                                : "Regional Overview"}
-        </h2>
+                            <p>
+                                {Object.entries(filters || {})
+                                    .filter(([key, value]) => key !== "hierarchy" && value)
+                                    .map(([, value]) => value)
+                                    .join(" · ") || "All Locations"}
+                                {windowed && (() => {
+                                    const range = resolveTimeRange(timeSelection);
+                                    const fmt = (ms) => new Date(ms).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+                                    return range ? ` · ${fmt(range.from)} → ${fmt(range.to)}` : "";
+                                })()}
+                            </p>
+                        </div>
+                        {/* LIVE / LAST UPDATED */}
+                        <div className="overview-live-status">
+                            <span className={`last-updated-dot ${isLive ? "live" : "offline"}`} />
+                            {isLive ? (
+                                <span className="live-text">LIVE</span>
+                            ) : (
+                                <span className="last-updated-text">
+                                    Last Updated: <strong>{lastUpdatedDisplay}</strong>
+                                </span>
+                            )}
+                        </div>
+                    </div>
 
-        <p>
-            {Object.entries(filters || {})
-                .filter(([key, value]) => key !== "hierarchy" && value)
-                .map(([, value]) => value)
-                .join(" · ") || "All Locations"}
-        </p>
-    </div>
-    {/* LIVE / LAST UPDATED */}
-    <div className="overview-live-status">
-        <span
-            className={`last-updated-dot ${isLive ? "live" : "offline"}`}
-        />
-
-        {isLive ? (
-            <span className="live-text">LIVE</span>
-        ) : (
-            <span className="last-updated-text">
-                Last Updated: <strong>{lastTelemetryText}</strong>
-            </span>
-        )}
-    </div>
-
-</div>
                     <div className="kpi-grid">
                         {showWidget("total_acs") && <Total_Acs value={metrics.totalACs} />}
                         <Active_Acs value={metrics.activeACs} />
                         <Inactive_Acs value={metrics.totalACs - metrics.activeACs} />
                         {showWidget("total_energy") && <Total_Energy value={metrics.totalEnergy} />}
-                        {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />}
+                        {/* {showWidget("active_energy") && <Active_Energy value={metrics.activeEnergy} />} */}
+                        
+                        {selectedLevel === "branch" && showWidget("active_power") && (
+                            <Active_Energy value={metrics.activeEnergy} />
+                        )}
+
                         {selectedLevel === "branch" && showWidget("active_power") && (
                             <Active_Power value={metrics.totalPower} />
                         )}
@@ -4129,14 +4919,23 @@ function ACDashboard({
                 </section>
 
                 <section className="dashboard-grid dashboard-grid--primary">
-                    {isBranchScope ? (
+                    {/* {isBranchScope ? (
                         showWidget("power_chart") && (
-                            <EnergyConsumptionChart data={deviceData} />
+                            <EnergyConsumptionChart data={deviceData} />                            
                         )
                     ) : (
                         showWidget("power_chart") && (
                             <PowerConsumptionChart data={deviceData} />
+                            // <ACDeviceTable data={filteredData} />
                         )
+                    )} */}
+
+                    {/* {showWidget("power_chart") && ( */}
+                        <ACDeviceTable data={filteredData} />
+                    {/* )} */}
+
+                    {showWidget("power_chart") && (
+                        <EnergyConsumptionChart data={deviceData} />                            
                     )}
 
                     <ACHealthChart data={deviceData} />
@@ -4180,17 +4979,17 @@ function ACDashboard({
                     }
                     
                     
-                    <ACDeviceTable data={filteredData} />
-                        <div className="chart-box dashboard-context-card">
-                            <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
-                            <div className="dashboard-context-stats">
-                                <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
-                                <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
-                                <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
-                                <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
-                            </div>
-                            {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
+                    {/* <ACDeviceTable data={filteredData} /> */}
+                    <div className="chart-box dashboard-context-card">
+                        <div className="chart-header"><div><h3>{isSingleDeviceScope ? "Selected AC Details" : "Branch Device Summary"}</h3><span>Current filter scope</span></div></div>
+                        <div className="dashboard-context-stats">
+                            <div><span>Installed ACs</span><strong>{metrics.totalACs}</strong></div>
+                            <div><span>Running</span><strong>{metrics.activeACs}</strong></div>
+                            <div><span>Avg. temperature</span><strong>{metrics.averageTemperature.toFixed(1)}°C</strong></div>
+                            <div><span>Avg. humidity</span><strong>{metrics.averageHumidity.toFixed(1)}%</strong></div>
                         </div>
+                        {isSingleDeviceScope && <p className="dashboard-context-note">One telemetry record is currently in scope. Confirm its device ID and timestamp before treating it as a live individual-device view.</p>}
+                    </div>
                 </section>
                 </>
             )}

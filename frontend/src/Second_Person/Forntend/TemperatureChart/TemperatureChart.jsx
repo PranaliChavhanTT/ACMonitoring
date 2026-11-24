@@ -21,6 +21,7 @@ function TemperatureChart({
         unit: "°C",
         yLabel: "Temperature (°C)",
         decimals: 1,
+        
         color: "#3182bd",
         yDomain: ["auto", "auto"],
       }}

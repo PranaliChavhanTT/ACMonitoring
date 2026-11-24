@@ -1,4 +1,1465 @@
 
+// // import React, {
+// //     useCallback,
+// //     useEffect,
+// //     useMemo,
+// //     useState,
+// // } from "react";
+
+// // import {
+// //     Save,
+// //     BrainCircuit,
+// //     ChartNoAxesCombined,
+// // } from "lucide-react";
+
+// // import "./Org_Dashboard.css";
+
+// // import FilterDashboard from "./FilterDashboard";
+// // import ACDashboard from "../../Second_Person/Forntend/ACDashboard";
+// // // ⚠️ Adjust this path to match where your Trends component actually lives:
+// // import Trends from "../../Second_Person/Forntend/Trends";
+// // import { useAuth } from "../Layout/AuthContext";
+// // import { useNavigate } from "react-router-dom";
+
+// // // const API_BASE = "http://192.168.1.9:8000/api";
+// // // const API_URL = `${API_BASE}/ac-data/`;
+// // // const DASHBOARD_URL = `${API_BASE}/dashboard/preferences/`;
+
+// // // const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+// // const API_BASE =
+// //     import.meta.env.VITE_API_BASE_URL ||
+// //     "http://localhost:8000/api";
+
+// // const API_URL = `${API_BASE}/ac-data/`;
+
+// // const DASHBOARD_URL =
+// //     `${API_BASE}/dashboard/preferences/`;
+
+// // const FILTER_LABELS = {
+// //     zone: "Zone",
+// //     state: "State",
+// //     district: "District",
+// //     taluka: "Taluka",
+// //     circle: "Circle",
+// //     region: "Region",
+// //     division: "Division",
+// //     city: "City",
+// //     branch: "Branch",
+// //     floor: "Floor",
+// //     device: "Device",
+// // };
+
+// // const FILTER_KEYS = [
+// //     "zone",
+// //     "state",
+// //     "district",
+// //     "taluka",
+// //     "circle",
+// //     "region",
+// //     "division",
+// //     "city",
+// //     "branch",
+// //     "floor",
+// //     "device",
+// //     "ac_id",
+// // ];
+
+// // const EMPTY_FILTERS = {
+// //     hierarchy: "GEOGRAPHICAL",
+// //     ...Object.fromEntries(FILTER_KEYS.map((key) => [key, ""])),
+// // };
+
+// // const DEFAULT_WIDGETS = {
+// //     total_acs: true, active_acs: true, total_energy: true, active_energy: true,
+// //     active_power: true, temperature: true, humidity: true, alerts: true,
+// //     cost_card: true, energy_chart: true, power_chart: true, temperature_chart: true,
+// //     humidity_chart: true, health_chart: true, zone_chart: true, energy_map: true, ac_table: true,
+// // };
+
+// // const ROLE_WIDGETS = {
+// //     ORG_SUPER_ADMIN: { ...DEFAULT_WIDGETS },
+// //     SUPER_ADMIN: { ...DEFAULT_WIDGETS },
+// //     CUSTOMER: { ...DEFAULT_WIDGETS },
+
+// //     BR_ADMIN: {
+// //         ...DEFAULT_WIDGETS,
+// //         zone_chart: false,
+// //         energy_map: false,
+// //     },
+
+// //     ADMIN: {
+// //         ...DEFAULT_WIDGETS,
+// //         zone_chart: false,
+// //         energy_map: false,
+// //     },
+
+// //     ENGINEER: {
+// //         ...DEFAULT_WIDGETS,
+// //         total_energy: false,
+// //         active_energy: false,
+// //         cost_card: false,
+// //         zone_chart: false,
+// //         energy_map: false,
+// //     },
+// // };
+
+// // const normalizeRole = (role) =>
+// //     String(role || "").trim().toUpperCase();
+
+// // const getRoleWidgets = (role) => {
+// //     const normalizedRole = normalizeRole(role);
+// //     return ROLE_WIDGETS[normalizedRole] || ROLE_WIDGETS.ENGINEER;
+// // };
+
+// // const applyRoleWidgetPermissions = (role, requested = {}) => {
+// //     const allowed = getRoleWidgets(role);
+
+// //     return Object.fromEntries(
+// //         Object.keys(DEFAULT_WIDGETS).map((key) => [
+// //             key,
+// //             allowed[key] === false
+// //                 ? false
+// //                 : (requested[key] ?? allowed[key]),
+// //         ])
+// //     );
+// // };
+
+// // const getToken = () =>
+// //     localStorage.getItem("token") ||
+// //     localStorage.getItem("authToken") ||
+// //     localStorage.getItem("access_token") ||
+// //     localStorage.getItem("accessToken") ||
+// //     "";
+
+// // const authHeaders = () => {
+// //     const token = getToken();
+// //     return {
+// //         "Content-Type": "application/json",
+// //         Accept: "application/json",
+// //         ...(token ? { Authorization: token.startsWith("Token ") ? token : `Token ${token}` } : {}),
+// //     };
+// // };
+
+// // const normalizeResponse = (result) => {
+// //     if (Array.isArray(result)) return result;
+// //     if (result && Array.isArray(result.data)) return result.data;
+// //     if (result && Array.isArray(result.results)) return result.results;
+// //     return [];
+// // };
+
+// // const normalizeFilters = (input = {}) => {
+// //     const normalized = {
+// //         hierarchy: input.hierarchy || "GEOGRAPHICAL",
+// //     };
+
+// //     FILTER_KEYS.forEach((key) => {
+// //         normalized[key] = input[key] || "";
+// //     });
+
+// //     const device =
+// //         typeof input.device === "string"
+// //             ? input.device
+// //             : input.device?.value ||
+// //               input.device?.uuid ||
+// //               input.device?.id ||
+// //               input.device?.tpt_device_id ||
+// //               input.device?.thingsboard_device_id ||
+// //               input.device?.thingsboard_id ||
+// //               input.device?.device_uuid ||
+// //               input.device?.device_id ||
+// //               "";
+
+// //     normalized.device = device;
+// //     normalized.selectedDeviceId = input.selectedDeviceId || input.device_id || device;
+// //     normalized.device_id = normalized.selectedDeviceId;
+// //     normalized.ac_id = input.ac_id || input.selectedAcId || normalized.ac_id || "";
+// //     normalized.selectedAcId = input.selectedAcId || normalized.ac_id;
+
+// //     return normalized;
+// // };
+
+// // const getHeadOfficeDefaults = (user) => {
+// //     const defaults = user?.filter_defaults || {};
+// //     const hierarchy = defaults.hierarchy || user?.customer_hierarchy_type || "GEOGRAPHICAL";
+
+// //     return normalizeFilters({
+// //         ...EMPTY_FILTERS,
+// //         ...defaults,
+// //         hierarchy,
+// //         state: defaults.state || user?.head_office_state || user?.state_name || "",
+// //         district: defaults.district || user?.head_office_district || user?.district_name || "",
+// //         taluka: defaults.taluka || user?.head_office_taluka || "",
+// //         city: defaults.city || user?.head_office_city_name || "",
+// //         zone: defaults.zone || user?.head_office_zone || user?.zone_name || "",
+// //         circle: defaults.circle || "",
+// //         region: defaults.region || "",
+// //         division: defaults.division || "",
+// //         branch: defaults.branch || user?.head_office_branch || "",
+// //         floor: defaults.floor || user?.head_office_floor || "",
+// //     });
+// // };
+
+// // function Org_Dashboard() {
+// //     const { user: currentUser } = useAuth();
+// //     const navigate = useNavigate();
+
+// //     // Shared style for filter-bar action buttons
+// //     const actionButtonStyle = {
+// //         height: "35px",
+// //         display: "inline-flex",
+// //         alignItems: "center",
+// //         justifyContent: "center",
+// //         gap: "7px",
+// //         padding: "0 12px",
+// //         border: "1px solid #2563eb",
+// //         borderRadius: "6px",
+// //         background: "#2563eb",
+// //         color: "#fff",
+// //         fontSize: "12px",
+// //         fontWeight: 600,
+// //         cursor: "pointer",
+// //         whiteSpace: "nowrap",
+// //     };
+
+// //     const filterAccess = useMemo(() => {
+// //         const role = normalizeRole(currentUser?.role);
+
+// //         const hierarchy = String(
+// //             currentUser?.customer_hierarchy_type ||
+// //             currentUser?.customer?.hierarchy_type ||
+// //             "GEOGRAPHICAL"
+// //         ).toUpperCase();
+
+// //         const isSuperAdmin = ["ORG_SUPER_ADMIN", "SUPER_ADMIN"].includes(role);
+// //         const isCustomer = role === "CUSTOMER";
+// //         const isAdmin = ["BR_ADMIN", "ADMIN"].includes(role);
+// //         const isEngineer = role === "ENGINEER";
+
+// //         const allowed = isSuperAdmin
+// //             ? ["GEOGRAPHICAL", "ZONAL"]
+// //             : ["GEOGRAPHICAL", "ZONAL"].includes(hierarchy)
+// //                 ? [hierarchy]
+// //                 : [];
+
+// //         const lockedValues = {};
+
+// //         if (isAdmin) {
+// //             if (hierarchy === "ZONAL") {
+// //                 const zone =
+// //                     currentUser?.zone_name ||
+// //                     currentUser?.zone?.name;
+// //                 if (zone) lockedValues.zone = zone;
+// //             }
+
+// //             if (hierarchy === "GEOGRAPHICAL") {
+// //                 const state =
+// //                     currentUser?.state_name ||
+// //                     currentUser?.state?.name;
+// //                 if (state) lockedValues.state = state;
+// //             }
+// //         }
+
+// //         if (isEngineer) {
+// //             const site =
+// //                 currentUser?.site_name ||
+// //                 currentUser?.site?.name;
+
+// //             const branch =
+// //                 currentUser?.branch_name ||
+// //                 currentUser?.branch?.name;
+
+// //             if (site) lockedValues.site = site;
+// //             if (branch) lockedValues.branch = branch;
+
+// //             if (hierarchy === "ZONAL") {
+// //                 const zone =
+// //                     currentUser?.zone_name ||
+// //                     currentUser?.zone?.name;
+// //                 if (zone) lockedValues.zone = zone;
+// //             }
+
+// //             if (hierarchy === "GEOGRAPHICAL") {
+// //                 const state =
+// //                     currentUser?.state_name ||
+// //                     currentUser?.state?.name;
+// //                 if (state) lockedValues.state = state;
+// //             }
+// //         }
+
+// //         return {
+// //             allowed,
+// //             lockedValues,
+// //             isSuperAdmin,
+// //             isCustomer,
+// //             isAdmin,
+// //             isEngineer,
+// //         };
+// //     }, [currentUser]);
+
+// //     const [apiData, setApiData] = useState([]);
+// //     const [loading, setLoading] = useState(true);
+// //     const [error, setError] = useState("");
+// //     const [lastUpdated, setLastUpdated] = useState(null);
+
+// //     const [filters, setFilters] = useState(EMPTY_FILTERS);
+// //     const [cardFilters, setCardFilters] = useState({});
+// //     const [visibleWidgets, setVisibleWidgets] = useState(
+// //         () => getRoleWidgets(currentUser?.role)
+// //     );
+
+// //     const [savedDashboards, setSavedDashboards] = useState([]);
+// //     const [activeDashboardId, setActiveDashboardId] = useState(null);
+// //     const [dashboardName, setDashboardName] = useState("My Dashboard");
+// //     const [dashboardLoading, setDashboardLoading] = useState(false);
+// //     const [dashboardMessage, setDashboardMessage] = useState("");
+// //     const [restoreVersion, setRestoreVersion] = useState(0);
+// //     const [filtersReady, setFiltersReady] = useState(false);
+// //     const [dashboardFilters, setDashboardFilters] = useState({});
+
+// //     const loadSavedDashboards = useCallback(async () => {
+// //         setDashboardLoading(true);
+// //         try {
+// //             const response = await fetch(DASHBOARD_URL, {
+// //                 method: "GET",
+// //                 headers: authHeaders(),
+// //                 cache: "no-store",
+// //             });
+
+// //             if (response.status === 401) throw new Error("Session expired. Please login again.");
+// //             if (!response.ok) throw new Error(`Dashboard API HTTP ${response.status}`);
+
+// //             const result = await response.json();
+// //             const dashboards = normalizeResponse(result);
+// //             setSavedDashboards(dashboards);
+
+// //             const defaultDashboard = dashboards.find((item) => item.is_default) || dashboards[0];
+// //             let nextFilters;
+
+// //             if (defaultDashboard) {
+// //                 setActiveDashboardId(defaultDashboard.id);
+// //                 setDashboardName(defaultDashboard.name || "My Dashboard");
+// //                 nextFilters = normalizeFilters(defaultDashboard.main_filters);
+// //                 setCardFilters(defaultDashboard.card_filters || {});
+// //                 setVisibleWidgets(applyRoleWidgetPermissions(currentUser?.role, defaultDashboard.visible_widgets || {}));
+// //             } else {
+// //                 setActiveDashboardId(null);
+// //                 setDashboardName("My Dashboard");
+// //                 nextFilters = getHeadOfficeDefaults(currentUser);
+// //                 setCardFilters({});
+// //                 setVisibleWidgets(getRoleWidgets(currentUser?.role));
+// //             }
+
+// //             nextFilters = normalizeFilters({
+// //                 ...nextFilters,
+// //                 ...filterAccess.lockedValues,
+// //                 hierarchy: filterAccess.allowed.length === 1 ? filterAccess.allowed[0] : nextFilters.hierarchy,
+// //             });
+
+// //             setFilters(nextFilters);
+// //             setRestoreVersion((version) => version + 1);
+// //         } catch (err) {
+// //             console.error("DASHBOARD PREFERENCE LOAD ERROR:", err);
+// //             const defaults = getHeadOfficeDefaults(currentUser);
+// //             setActiveDashboardId(null);
+// //             setDashboardName("My Dashboard");
+// //             setFilters(normalizeFilters({
+// //                 ...defaults,
+// //                 ...filterAccess.lockedValues,
+// //                 hierarchy: filterAccess.allowed.length === 1 ? filterAccess.allowed[0] : defaults.hierarchy,
+// //             }));
+// //             setCardFilters({});
+// //             setVisibleWidgets(getRoleWidgets(currentUser?.role));
+// //             setRestoreVersion((version) => version + 1);
+// //         } finally {
+// //             setFiltersReady(true);
+// //             setDashboardLoading(false);
+// //         }
+// //     }, [currentUser, filterAccess]);
+
+// //     useEffect(() => {
+// //         if (!currentUser) {
+// //             setFiltersReady(false);
+// //             return;
+// //         }
+// //         setFiltersReady(false);
+// //         loadSavedDashboards();
+// //     }, [currentUser, loadSavedDashboards]);
+
+// //     useEffect(() => {
+// //         setVisibleWidgets((previous) =>
+// //             applyRoleWidgetPermissions(currentUser?.role, previous)
+// //         );
+// //     }, [currentUser?.role]);
+
+// //     const fetchACData = useCallback(async () => {
+// //         try {
+// //             setLoading(true);
+// //             const params = new URLSearchParams();
+
+// //             if (filters.hierarchy) params.append("hierarchy", filters.hierarchy);
+
+// //             FILTER_KEYS.forEach((key) => {
+// //                 const value = filters[key];
+// //                 if (value) params.append(key, value);
+// //             });
+
+// //             params.append("t", Date.now());
+// //             const url = `${API_URL}?${params.toString()}`;
+
+// //             const response = await fetch(url, {
+// //                 method: "GET",
+// //                 cache: "no-store",
+// //                 headers: authHeaders(),
+// //             });
+
+// //             if (response.status === 401) throw new Error("401 Unauthorized. Please login again.");
+// //             if (!response.ok) throw new Error("Cloud Error");
+
+// //             const result = await response.json();
+// //             const records = normalizeResponse(result);
+
+// //             setApiData(records);
+// //             setLastUpdated(new Date());
+// //             setError("");
+// //         } catch (err) {
+// //             console.error("AC API ERROR:", err);
+// //             setError(err.message || "Unable to fetch AC data.");
+// //         } finally {
+// //             setLoading(false);
+// //         }
+// //     }, [filters]);
+
+// //     useEffect(() => {
+// //         console.log("[Filter permissions]", {
+// //             role: currentUser?.role,
+// //             hierarchy: currentUser?.customer_hierarchy_type,
+// //             user: currentUser,
+// //             allowedHierarchies: filterAccess.allowed,
+// //             lockedValues: filterAccess.lockedValues,
+// //             initialFilters: filters,
+// //         });
+// //     }, [currentUser, filterAccess, filters]);
+
+// //     useEffect(() => {
+// //         if (!filtersReady) return;
+// //         fetchACData();
+// //         const interval = setInterval(fetchACData, 2000);
+// //         return () => clearInterval(interval);
+// //     }, [fetchACData, filtersReady]);
+
+// //     const handleFilterChange = useCallback((newFilters) => {
+// //         const normalized = {
+// //             ...newFilters,
+// //             device: newFilters.device || "",
+// //             device_id: newFilters.device_id || "",
+// //             selectedDeviceId:
+// //                 newFilters.selectedDeviceId ||
+// //                 newFilters.device_id ||
+// //                 newFilters.device ||
+// //                 "",
+// //             ac_id: newFilters.ac_id || newFilters.selectedAcId || "",
+// //             selectedAcId: newFilters.selectedAcId || newFilters.ac_id || "",
+// //         };
+
+// //         // Persist so the trends view (or any external consumer) can read it
+// //         localStorage.setItem(
+// //             "acMonitoringTrendsFilters",
+// //             JSON.stringify(normalized)
+// //         );
+
+// //         // No navigate() here — the render below will swap ACDashboard for Trends
+// //         setFilters(normalized);
+// //     }, []);
+
+// //     const handleResetFilters = useCallback(() => {
+// //         setFilters(getHeadOfficeDefaults(currentUser));
+// //         setCardFilters({});
+// //         setRestoreVersion((value) => value + 1);
+// //     }, [currentUser]);
+
+// //     const handleCardFilterChange = useCallback((nextCardFilters) => {
+// //         setCardFilters((previous) => ({
+// //             ...previous,
+// //             ...nextCardFilters,
+// //         }));
+// //     }, []);
+
+// //     // Clears the AC/device selection so the dashboard comes back
+// //     const clearAcSelection = useCallback(() => {
+// //         setFilters((prev) => ({
+// //             ...prev,
+// //             device: "",
+// //             device_id: "",
+// //             selectedDeviceId: "",
+// //             ac_id: "",
+// //             selectedAcId: "",
+// //         }));
+
+// //         setRestoreVersion((v) => v + 1);
+// //     }, []);
+
+// //     const saveDashboard = useCallback(async () => {
+// //         const name = dashboardName.trim() || "My Dashboard";
+// //         try {
+// //             setDashboardLoading(true);
+// //             setDashboardMessage("");
+// //             const payload = {
+// //                 name,
+// //                 main_filters: filters,
+// //                 card_filters: cardFilters,
+// //                 visible_widgets: visibleWidgets,
+// //                 is_default: true,
+// //             };
+
+// //             const isUpdate = Boolean(activeDashboardId);
+// //             const url = isUpdate ? `${DASHBOARD_URL}${activeDashboardId}/` : DASHBOARD_URL;
+
+// //             const response = await fetch(url, {
+// //                 method: isUpdate ? "PATCH" : "POST",
+// //                 headers: authHeaders(),
+// //                 body: JSON.stringify(payload),
+// //             });
+
+// //             if (response.status === 401) throw new Error("Session expired. Please login again.");
+// //             if (!response.ok) {
+// //                 const text = await response.text();
+// //                 throw new Error(text || `HTTP ${response.status}`);
+// //             }
+
+// //             const saved = await response.json();
+// //             setActiveDashboardId(saved.id);
+// //             setDashboardName(saved.name || name);
+// //             setDashboardMessage("Dashboard saved");
+// //             await loadSavedDashboards();
+// //         } catch (err) {
+// //             console.error("DASHBOARD SAVE ERROR:", err);
+// //             setDashboardMessage(err.message || "Unable to save dashboard");
+// //         } finally {
+// //             setDashboardLoading(false);
+// //             window.setTimeout(() => setDashboardMessage(""), 2500);
+// //         }
+// //     }, [activeDashboardId, cardFilters, dashboardName, filters, loadSavedDashboards, visibleWidgets]);
+
+// //     const filterSummary = useMemo(() => {
+// //         const parts = FILTER_KEYS
+// //             .filter((key) => filters[key])
+// //             .map((key) => `${FILTER_LABELS[key]}: ${filters[key]}`);
+// //         return parts.length ? parts.join("  •  ") : "All Locations";
+// //     }, [filters]);
+
+// //     // Whether an AC / device is currently selected
+// //     const acSelected = useMemo(
+// //         () =>
+// //             Boolean(
+// //                 filters?.device ||
+// //                 filters?.device_id ||
+// //                 filters?.selectedDeviceId ||
+// //                 filters?.ac_id ||
+// //                 filters?.selectedAcId
+// //             ),
+// //         [filters]
+// //     );
+
+// //     // ─── TELEMETRY TIME LOGIC ───
+// //     const { lastTelemetryTime, isLive } = useMemo(() => {
+// //         if (!apiData || apiData.length === 0) {
+// //             return { lastTelemetryTime: null, isLive: false };
+// //         }
+
+// //         let maxTime = 0;
+// //         apiData.forEach((row) => {
+// //             const ts = row.timestamp || row.ts || row.last_updated || row.time || row.created_at;
+// //             if (ts) {
+// //                 const parsed = new Date(ts).getTime();
+// //                 if (!isNaN(parsed) && parsed > maxTime) {
+// //                     maxTime = parsed;
+// //                 }
+// //             }
+// //         });
+
+// //         if (maxTime === 0) {
+// //             return { lastTelemetryTime: null, isLive: false };
+// //         }
+
+// //         const isDataLive = Math.abs(Date.now() - maxTime) < 60000;
+// //         return { lastTelemetryTime: maxTime, isLive: isDataLive };
+// //     }, [apiData]);
+
+// //     const lastTelemetryText = lastTelemetryTime
+// //         ? new Date(lastTelemetryTime).toLocaleTimeString()
+// //         : "--";
+
+// //     return (
+// //         <div className="organization-dashboard">
+// //             <div className="organization-filter-card">
+// //                 <FilterDashboard
+// //                     initialValue={filters}
+// //                     restoreVersion={restoreVersion}
+// //                     allowedHierarchies={filterAccess.allowed}
+// //                     lockedValues={filterAccess.lockedValues}
+// //                     onFilterChange={handleFilterChange}
+// //                     onReset={handleResetFilters}
+// //                     actions={
+// //                         <>
+// //                             <button
+// //                                 type="button"
+// //                                 onClick={saveDashboard}
+// //                                 disabled={dashboardLoading}
+// //                                 title="Save your preference"
+// //                                 style={actionButtonStyle}
+// //                             >
+// //                                 <Save size={16} />
+// //                                 {dashboardLoading ? "Saving..." : "Save Preference"}
+// //                             </button>
+// //                             <button
+// //                                 type="button"
+// //                                 onClick={() => window.dispatchEvent(new CustomEvent("ac-toggle-ai-module"))}
+// //                                 title="Show or hide AI module"
+// //                                 style={actionButtonStyle}
+// //                             >
+// //                                 <BrainCircuit size={16} /> AI Module
+// //                             </button>
+// //                             {dashboardMessage && (
+// //                                 <span style={{ fontSize: "12px", color: "#2563eb" }}>
+// //                                     {dashboardMessage}
+// //                                 </span>
+// //                             )}
+// //                         </>
+// //                     }
+// //                 />
+// //             </div>
+
+// //             {error && (
+// //                 <div className="organization-error">
+// //                     <strong>Data API Error:</strong>
+// //                     <span>{error}</span>
+// //                 </div>
+// //             )}
+
+// //             {loading && apiData.length === 0 ? (
+// //                 <div className="organization-loading">
+// //                     <div className="loading-spinner"></div>
+// //                     <span>Loading AC Energy Data...</span>
+// //                 </div>
+// //             ) : acSelected ? (
+// //                 // ── AC selected → show Trends inline, below the filters ──
+// //                 <div className="organization-ac-dashboard">
+// //                     {/* <div
+// //                         style={{
+// //                             display: "flex",
+// //                             justifyContent: "flex-end",
+// //                             marginBottom: "10px",
+// //                         }}
+// //                     >
+// //                         <button
+// //                             type="button"
+// //                             onClick={clearAcSelection}
+// //                             style={{
+// //                                 border: "1px solid #cbd5e1",
+// //                                 background: "#fff",
+// //                                 color: "#0f172a",
+// //                                 borderRadius: "6px",
+// //                                 padding: "6px 12px",
+// //                                 fontSize: "12px",
+// //                                 fontWeight: 600,
+// //                                 cursor: "pointer",
+// //                             }}
+// //                         >
+// //                             ← Back to Dashboard
+// //                         </button>
+// //                     </div> */}
+
+// //                     <Trends
+// //                         filters={filters}
+// //                         data={apiData}
+// //                         isLive={isLive}
+// //                         lastTelemetryText={lastTelemetryText}
+// //                         onCardFilterChange={handleCardFilterChange}
+// //                         visibleWidgets={visibleWidgets}
+// //                     />
+// //                 </div>
+// //             ) : (
+// //                 // ── No AC selected → show normal dashboard ──
+// //                 <div className="organization-ac-dashboard">
+// //                     <ACDashboard
+// //                         data={apiData}
+// //                         filters={filters}
+// //                         cardFilters={cardFilters}
+// //                         visibleWidgets={visibleWidgets}
+// //                         isLive={isLive}
+// //                         lastTelemetryText={lastTelemetryText}
+// //                         onCardFilterChange={handleCardFilterChange}
+// //                         onWidgetVisibilityChange={(next) =>
+// //                             setVisibleWidgets(
+// //                                 applyRoleWidgetPermissions(currentUser?.role, next)
+// //                             )
+// //                         }
+// //                     />
+// //                 </div>
+// //             )}
+// //         </div>
+// //     );
+// // }
+
+// // export default Org_Dashboard;
+
+
+// import React, {
+//     useCallback,
+//     useEffect,
+//     useMemo,
+//     useState,
+// } from "react";
+
+// import {
+//     Save,
+//     BrainCircuit,
+//     ChartNoAxesCombined,
+// } from "lucide-react";
+
+// import "./Org_Dashboard.css";
+
+// import FilterDashboard from "./FilterDashboard";
+// import ACDashboard from "../../Second_Person/Forntend/ACDashboard";
+// import TimeRangeFilter from "../../Second_Person/Forntend/shared/TimeRangeFilter";
+// import {
+//     DEFAULT_TIME_RANGE,
+//     TimeRangeProvider,
+//     applyTimeRangeParams,
+//     isWindowed,
+//     normalizeTimeRange,
+//     validateTimeRange,
+// } from "../../Second_Person/Forntend/shared/TimeRangeContext";
+// // ⚠️ Adjust this path to match where your Trends component actually lives:
+// import Trends from "../../Second_Person/Forntend/Trends";
+// import { useAuth } from "../Layout/AuthContext";
+// import { useNavigate } from "react-router-dom";
+
+// // const API_BASE = "http://192.168.1.9:8000/api";
+// // const API_URL = `${API_BASE}/ac-data/`;
+// // const DASHBOARD_URL = `${API_BASE}/dashboard/preferences/`;
+
+// // const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+// const API_BASE =
+//     import.meta.env.VITE_API_BASE_URL ||
+//     "http://localhost:8000/api";
+
+// const API_URL = `${API_BASE}/ac-data/`;
+
+// const DASHBOARD_URL =
+//     `${API_BASE}/dashboard/preferences/`;
+
+// const FILTER_LABELS = {
+//     zone: "Zone",
+//     state: "State",
+//     district: "District",
+//     taluka: "Taluka",
+//     circle: "Circle",
+//     region: "Region",
+//     division: "Division",
+//     city: "City",
+//     branch: "Branch",
+//     floor: "Floor",
+//     device: "Device",
+// };
+
+// const FILTER_KEYS = [
+//     "zone",
+//     "state",
+//     "district",
+//     "taluka",
+//     "circle",
+//     "region",
+//     "division",
+//     "city",
+//     "branch",
+//     "floor",
+//     "device",
+//     "ac_id",
+// ];
+
+// const EMPTY_FILTERS = {
+//     hierarchy: "GEOGRAPHICAL",
+//     ...Object.fromEntries(FILTER_KEYS.map((key) => [key, ""])),
+// };
+
+// const DEFAULT_WIDGETS = {
+//     total_acs: true, active_acs: true, total_energy: true, active_energy: true,
+//     active_power: true, temperature: true, humidity: true, alerts: true,
+//     cost_card: true, energy_chart: true, power_chart: true, temperature_chart: true,
+//     humidity_chart: true, health_chart: true, zone_chart: true, energy_map: true, ac_table: true,
+// };
+
+// const ROLE_WIDGETS = {
+//     ORG_SUPER_ADMIN: { ...DEFAULT_WIDGETS },
+//     SUPER_ADMIN: { ...DEFAULT_WIDGETS },
+//     CUSTOMER: { ...DEFAULT_WIDGETS },
+
+//     BR_ADMIN: {
+//         ...DEFAULT_WIDGETS,
+//         zone_chart: false,
+//         energy_map: false,
+//     },
+
+//     ADMIN: {
+//         ...DEFAULT_WIDGETS,
+//         zone_chart: false,
+//         energy_map: false,
+//     },
+
+//     ENGINEER: {
+//         ...DEFAULT_WIDGETS,
+//         total_energy: false,
+//         active_energy: false,
+//         cost_card: false,
+//         zone_chart: false,
+//         energy_map: false,
+//     },
+// };
+
+// const TIME_RANGE_STORAGE_KEY = "acMonitoringTimeRange";
+
+// const readStoredTimeRange = () => {
+//     try {
+//         const raw = localStorage.getItem(TIME_RANGE_STORAGE_KEY);
+//         return raw ? normalizeTimeRange(JSON.parse(raw)) : DEFAULT_TIME_RANGE;
+//     } catch {
+//         return DEFAULT_TIME_RANGE;
+//     }
+// };
+
+// const normalizeRole = (role) =>
+//     String(role || "").trim().toUpperCase();
+
+// const getRoleWidgets = (role) => {
+//     const normalizedRole = normalizeRole(role);
+//     return ROLE_WIDGETS[normalizedRole] || ROLE_WIDGETS.ENGINEER;
+// };
+
+// const applyRoleWidgetPermissions = (role, requested = {}) => {
+//     const allowed = getRoleWidgets(role);
+
+//     return Object.fromEntries(
+//         Object.keys(DEFAULT_WIDGETS).map((key) => [
+//             key,
+//             allowed[key] === false
+//                 ? false
+//                 : (requested[key] ?? allowed[key]),
+//         ])
+//     );
+// };
+
+// const getToken = () =>
+//     localStorage.getItem("token") ||
+//     localStorage.getItem("authToken") ||
+//     localStorage.getItem("access_token") ||
+//     localStorage.getItem("accessToken") ||
+//     "";
+
+// const authHeaders = () => {
+//     const token = getToken();
+//     return {
+//         "Content-Type": "application/json",
+//         Accept: "application/json",
+//         ...(token ? { Authorization: token.startsWith("Token ") ? token : `Token ${token}` } : {}),
+//     };
+// };
+
+// const normalizeResponse = (result) => {
+//     if (Array.isArray(result)) return result;
+//     if (result && Array.isArray(result.data)) return result.data;
+//     if (result && Array.isArray(result.results)) return result.results;
+//     return [];
+// };
+
+// const normalizeFilters = (input = {}) => {
+//     const normalized = {
+//         hierarchy: input.hierarchy || "GEOGRAPHICAL",
+//     };
+
+//     FILTER_KEYS.forEach((key) => {
+//         normalized[key] = input[key] || "";
+//     });
+
+//     const device =
+//         typeof input.device === "string"
+//             ? input.device
+//             : input.device?.value ||
+//               input.device?.uuid ||
+//               input.device?.id ||
+//               input.device?.tpt_device_id ||
+//               input.device?.thingsboard_device_id ||
+//               input.device?.thingsboard_id ||
+//               input.device?.device_uuid ||
+//               input.device?.device_id ||
+//               "";
+
+//     normalized.device = device;
+//     normalized.selectedDeviceId = input.selectedDeviceId || input.device_id || device;
+//     normalized.device_id = normalized.selectedDeviceId;
+//     normalized.ac_id = input.ac_id || input.selectedAcId || normalized.ac_id || "";
+//     normalized.selectedAcId = input.selectedAcId || normalized.ac_id;
+
+//     return normalized;
+// };
+
+// const getHeadOfficeDefaults = (user) => {
+//     const defaults = user?.filter_defaults || {};
+//     const hierarchy = defaults.hierarchy || user?.customer_hierarchy_type || "GEOGRAPHICAL";
+
+//     return normalizeFilters({
+//         ...EMPTY_FILTERS,
+//         ...defaults,
+//         hierarchy,
+//         state: defaults.state || user?.head_office_state || user?.state_name || "",
+//         district: defaults.district || user?.head_office_district || user?.district_name || "",
+//         taluka: defaults.taluka || user?.head_office_taluka || "",
+//         city: defaults.city || user?.head_office_city_name || "",
+//         zone: defaults.zone || user?.head_office_zone || user?.zone_name || "",
+//         circle: defaults.circle || "",
+//         region: defaults.region || "",
+//         division: defaults.division || "",
+//         branch: defaults.branch || user?.head_office_branch || "",
+//         floor: defaults.floor || user?.head_office_floor || "",
+//     });
+// };
+
+// function Org_Dashboard() {
+//     const { user: currentUser } = useAuth();
+//     const navigate = useNavigate();
+
+//     // Shared style for filter-bar action buttons
+//     const actionButtonStyle = {
+//         height: "35px",
+//         display: "inline-flex",
+//         alignItems: "center",
+//         justifyContent: "center",
+//         gap: "7px",
+//         padding: "0 12px",
+//         border: "1px solid #2563eb",
+//         borderRadius: "6px",
+//         background: "#2563eb",
+//         color: "#fff",
+//         fontSize: "12px",
+//         fontWeight: 600,
+//         cursor: "pointer",
+//         whiteSpace: "nowrap",
+//     };
+
+//     const filterAccess = useMemo(() => {
+//         const role = normalizeRole(currentUser?.role);
+
+//         const hierarchy = String(
+//             currentUser?.customer_hierarchy_type ||
+//             currentUser?.customer?.hierarchy_type ||
+//             "GEOGRAPHICAL"
+//         ).toUpperCase();
+
+//         const isSuperAdmin = ["ORG_SUPER_ADMIN", "SUPER_ADMIN"].includes(role);
+//         const isCustomer = role === "CUSTOMER";
+//         const isAdmin = ["BR_ADMIN", "ADMIN"].includes(role);
+//         const isEngineer = role === "ENGINEER";
+
+//         const allowed = isSuperAdmin
+//             ? ["GEOGRAPHICAL", "ZONAL"]
+//             : ["GEOGRAPHICAL", "ZONAL"].includes(hierarchy)
+//                 ? [hierarchy]
+//                 : [];
+
+//         const lockedValues = {};
+
+//         if (isAdmin) {
+//             if (hierarchy === "ZONAL") {
+//                 const zone =
+//                     currentUser?.zone_name ||
+//                     currentUser?.zone?.name;
+//                 if (zone) lockedValues.zone = zone;
+//             }
+
+//             if (hierarchy === "GEOGRAPHICAL") {
+//                 const state =
+//                     currentUser?.state_name ||
+//                     currentUser?.state?.name;
+//                 if (state) lockedValues.state = state;
+//             }
+//         }
+
+//         if (isEngineer) {
+//             const site =
+//                 currentUser?.site_name ||
+//                 currentUser?.site?.name;
+
+//             const branch =
+//                 currentUser?.branch_name ||
+//                 currentUser?.branch?.name;
+
+//             if (site) lockedValues.site = site;
+//             if (branch) lockedValues.branch = branch;
+
+//             if (hierarchy === "ZONAL") {
+//                 const zone =
+//                     currentUser?.zone_name ||
+//                     currentUser?.zone?.name;
+//                 if (zone) lockedValues.zone = zone;
+//             }
+
+//             if (hierarchy === "GEOGRAPHICAL") {
+//                 const state =
+//                     currentUser?.state_name ||
+//                     currentUser?.state?.name;
+//                 if (state) lockedValues.state = state;
+//             }
+//         }
+
+//         return {
+//             allowed,
+//             lockedValues,
+//             isSuperAdmin,
+//             isCustomer,
+//             isAdmin,
+//             isEngineer,
+//         };
+//     }, [currentUser]);
+
+//     const [apiData, setApiData] = useState([]);
+//     const [loading, setLoading] = useState(true);
+//     const [error, setError] = useState("");
+//     const [lastUpdated, setLastUpdated] = useState(null);
+
+//     const [filters, setFilters] = useState(EMPTY_FILTERS);
+//     const [cardFilters, setCardFilters] = useState({});
+//     const [visibleWidgets, setVisibleWidgets] = useState(
+//         () => getRoleWidgets(currentUser?.role)
+//     );
+
+//     const [savedDashboards, setSavedDashboards] = useState([]);
+//     const [activeDashboardId, setActiveDashboardId] = useState(null);
+//     const [dashboardName, setDashboardName] = useState("My Dashboard");
+//     const [dashboardLoading, setDashboardLoading] = useState(false);
+//     const [dashboardMessage, setDashboardMessage] = useState("");
+//     const [restoreVersion, setRestoreVersion] = useState(0);
+//     const [filtersReady, setFiltersReady] = useState(false);
+//     const [dashboardFilters, setDashboardFilters] = useState({});
+
+//     // Single time filter (WHEN) that combines with the geo / zonal filters (WHERE)
+//     // for every widget on the dashboard.
+//     const [timeRange, setTimeRange] = useState(readStoredTimeRange);
+//     const timeRangeError = useMemo(() => validateTimeRange(timeRange), [timeRange]);
+
+//     const handleTimeRangeChange = useCallback((next) => {
+//         const normalized = normalizeTimeRange(next);
+//         setTimeRange(normalized);
+//         try {
+//             localStorage.setItem(TIME_RANGE_STORAGE_KEY, JSON.stringify(normalized));
+//         } catch {
+//             /* storage unavailable: the selection simply isn't remembered */
+//         }
+//     }, []);
+
+//     const loadSavedDashboards = useCallback(async () => {
+//         setDashboardLoading(true);
+//         try {
+//             const response = await fetch(DASHBOARD_URL, {
+//                 method: "GET",
+//                 headers: authHeaders(),
+//                 cache: "no-store",
+//             });
+
+//             if (response.status === 401) throw new Error("Session expired. Please login again.");
+//             if (!response.ok) throw new Error(`Dashboard API HTTP ${response.status}`);
+
+//             const result = await response.json();
+//             const dashboards = normalizeResponse(result);
+//             setSavedDashboards(dashboards);
+
+//             const defaultDashboard = dashboards.find((item) => item.is_default) || dashboards[0];
+//             let nextFilters;
+
+//             if (defaultDashboard) {
+//                 setActiveDashboardId(defaultDashboard.id);
+//                 setDashboardName(defaultDashboard.name || "My Dashboard");
+//                 nextFilters = normalizeFilters(defaultDashboard.main_filters);
+//                 if (defaultDashboard.main_filters?.time_range) {
+//                     handleTimeRangeChange(defaultDashboard.main_filters.time_range);
+//                 }
+//                 setCardFilters(defaultDashboard.card_filters || {});
+//                 setVisibleWidgets(applyRoleWidgetPermissions(currentUser?.role, defaultDashboard.visible_widgets || {}));
+//             } else {
+//                 setActiveDashboardId(null);
+//                 setDashboardName("My Dashboard");
+//                 nextFilters = getHeadOfficeDefaults(currentUser);
+//                 setCardFilters({});
+//                 setVisibleWidgets(getRoleWidgets(currentUser?.role));
+//             }
+
+//             nextFilters = normalizeFilters({
+//                 ...nextFilters,
+//                 ...filterAccess.lockedValues,
+//                 hierarchy: filterAccess.allowed.length === 1 ? filterAccess.allowed[0] : nextFilters.hierarchy,
+//             });
+
+//             setFilters(nextFilters);
+//             setRestoreVersion((version) => version + 1);
+//         } catch (err) {
+//             console.error("DASHBOARD PREFERENCE LOAD ERROR:", err);
+//             const defaults = getHeadOfficeDefaults(currentUser);
+//             setActiveDashboardId(null);
+//             setDashboardName("My Dashboard");
+//             setFilters(normalizeFilters({
+//                 ...defaults,
+//                 ...filterAccess.lockedValues,
+//                 hierarchy: filterAccess.allowed.length === 1 ? filterAccess.allowed[0] : defaults.hierarchy,
+//             }));
+//             setCardFilters({});
+//             setVisibleWidgets(getRoleWidgets(currentUser?.role));
+//             setRestoreVersion((version) => version + 1);
+//         } finally {
+//             setFiltersReady(true);
+//             setDashboardLoading(false);
+//         }
+//     }, [currentUser, filterAccess, handleTimeRangeChange]);
+
+//     useEffect(() => {
+//         if (!currentUser) {
+//             setFiltersReady(false);
+//             return;
+//         }
+//         setFiltersReady(false);
+//         loadSavedDashboards();
+//     }, [currentUser, loadSavedDashboards]);
+
+//     useEffect(() => {
+//         setVisibleWidgets((previous) =>
+//             applyRoleWidgetPermissions(currentUser?.role, previous)
+//         );
+//     }, [currentUser?.role]);
+
+//     const fetchACData = useCallback(async () => {
+//         try {
+//             setLoading(true);
+//             const params = new URLSearchParams();
+
+//             if (filters.hierarchy) params.append("hierarchy", filters.hierarchy);
+
+//             FILTER_KEYS.forEach((key) => {
+//                 const value = filters[key];
+//                 if (value) params.append(key, value);
+//             });
+
+//             // Global time filter: the backend re-computes energy / averages for the window.
+//             if (!timeRangeError) applyTimeRangeParams(params, timeRange);
+
+//             params.append("t", Date.now());
+//             const url = `${API_URL}?${params.toString()}`;
+
+//             const response = await fetch(url, {
+//                 method: "GET",
+//                 cache: "no-store",
+//                 headers: authHeaders(),
+//             });
+
+//             if (response.status === 401) throw new Error("401 Unauthorized. Please login again.");
+//             if (!response.ok) throw new Error("Cloud Error");
+
+//             const result = await response.json();
+//             const records = normalizeResponse(result);
+
+//             setApiData(records);
+//             setLastUpdated(new Date());
+//             setError("");
+//         } catch (err) {
+//             console.error("AC API ERROR:", err);
+//             setError(err.message || "Unable to fetch AC data.");
+//         } finally {
+//             setLoading(false);
+//         }
+//     }, [filters, timeRange, timeRangeError]);
+
+//     useEffect(() => {
+//         console.log("[Filter permissions]", {
+//             role: currentUser?.role,
+//             hierarchy: currentUser?.customer_hierarchy_type,
+//             user: currentUser,
+//             allowedHierarchies: filterAccess.allowed,
+//             lockedValues: filterAccess.lockedValues,
+//             initialFilters: filters,
+//         });
+//     }, [currentUser, filterAccess, filters]);
+
+//     useEffect(() => {
+//         if (!filtersReady) return;
+//         fetchACData();
+//         // Live view refreshes every 2 s; a historical window changes slowly.
+//         const interval = setInterval(fetchACData, isWindowed(timeRange) ? 15000 : 2000);
+//         return () => clearInterval(interval);
+//     }, [fetchACData, filtersReady, timeRange]);
+
+//     const handleFilterChange = useCallback((newFilters) => {
+//         const normalized = {
+//             ...newFilters,
+//             device: newFilters.device || "",
+//             device_id: newFilters.device_id || "",
+//             selectedDeviceId:
+//                 newFilters.selectedDeviceId ||
+//                 newFilters.device_id ||
+//                 newFilters.device ||
+//                 "",
+//             ac_id: newFilters.ac_id || newFilters.selectedAcId || "",
+//             selectedAcId: newFilters.selectedAcId || newFilters.ac_id || "",
+//         };
+
+//         // Persist so the trends view (or any external consumer) can read it
+//         localStorage.setItem(
+//             "acMonitoringTrendsFilters",
+//             JSON.stringify(normalized)
+//         );
+
+//         // No navigate() here — the render below will swap ACDashboard for Trends
+//         setFilters(normalized);
+//     }, []);
+
+//     const handleResetFilters = useCallback(() => {
+//         setFilters(getHeadOfficeDefaults(currentUser));
+//         setCardFilters({});
+//         setRestoreVersion((value) => value + 1);
+//     }, [currentUser]);
+
+//     const handleCardFilterChange = useCallback((nextCardFilters) => {
+//         setCardFilters((previous) => ({
+//             ...previous,
+//             ...nextCardFilters,
+//         }));
+//     }, []);
+
+//     // Clears the AC/device selection so the dashboard comes back
+//     const clearAcSelection = useCallback(() => {
+//         setFilters((prev) => ({
+//             ...prev,
+//             device: "",
+//             device_id: "",
+//             selectedDeviceId: "",
+//             ac_id: "",
+//             selectedAcId: "",
+//         }));
+
+//         setRestoreVersion((v) => v + 1);
+//     }, []);
+
+//     const saveDashboard = useCallback(async () => {
+//         const name = dashboardName.trim() || "My Dashboard";
+//         try {
+//             setDashboardLoading(true);
+//             setDashboardMessage("");
+//             const payload = {
+//                 name,
+//                 main_filters: { ...filters, time_range: timeRange },
+//                 card_filters: cardFilters,
+//                 visible_widgets: visibleWidgets,
+//                 is_default: true,
+//             };
+
+//             const isUpdate = Boolean(activeDashboardId);
+//             const url = isUpdate ? `${DASHBOARD_URL}${activeDashboardId}/` : DASHBOARD_URL;
+
+//             const response = await fetch(url, {
+//                 method: isUpdate ? "PATCH" : "POST",
+//                 headers: authHeaders(),
+//                 body: JSON.stringify(payload),
+//             });
+
+//             if (response.status === 401) throw new Error("Session expired. Please login again.");
+//             if (!response.ok) {
+//                 const text = await response.text();
+//                 throw new Error(text || `HTTP ${response.status}`);
+//             }
+
+//             const saved = await response.json();
+//             setActiveDashboardId(saved.id);
+//             setDashboardName(saved.name || name);
+//             setDashboardMessage("Dashboard saved");
+//             await loadSavedDashboards();
+//         } catch (err) {
+//             console.error("DASHBOARD SAVE ERROR:", err);
+//             setDashboardMessage(err.message || "Unable to save dashboard");
+//         } finally {
+//             setDashboardLoading(false);
+//             window.setTimeout(() => setDashboardMessage(""), 2500);
+//         }
+//     }, [activeDashboardId, cardFilters, dashboardName, filters, timeRange, loadSavedDashboards, visibleWidgets]);
+
+//     const filterSummary = useMemo(() => {
+//         const parts = FILTER_KEYS
+//             .filter((key) => filters[key])
+//             .map((key) => `${FILTER_LABELS[key]}: ${filters[key]}`);
+//         return parts.length ? parts.join("  •  ") : "All Locations";
+//     }, [filters]);
+
+//     // Whether an AC / device is currently selected
+//     const acSelected = useMemo(
+//         () =>
+//             Boolean(
+//                 filters?.device ||
+//                 filters?.device_id ||
+//                 filters?.selectedDeviceId ||
+//                 filters?.ac_id ||
+//                 filters?.selectedAcId
+//             ),
+//         [filters]
+//     );
+
+//     // ─── TELEMETRY TIME LOGIC ───
+//     const { lastTelemetryTime, isLive } = useMemo(() => {
+//         if (!apiData || apiData.length === 0) {
+//             return { lastTelemetryTime: null, isLive: false };
+//         }
+
+//         let maxTime = 0;
+//         apiData.forEach((row) => {
+//             const ts = row.timestamp || row.ts || row.last_updated || row.time || row.created_at;
+//             if (ts) {
+//                 const parsed = new Date(ts).getTime();
+//                 if (!isNaN(parsed) && parsed > maxTime) {
+//                     maxTime = parsed;
+//                 }
+//             }
+//         });
+
+//         if (maxTime === 0) {
+//             return { lastTelemetryTime: null, isLive: false };
+//         }
+
+//         const isDataLive = Math.abs(Date.now() - maxTime) < 60000;
+//         return { lastTelemetryTime: maxTime, isLive: isDataLive };
+//     }, [apiData]);
+
+//     const lastTelemetryText = lastTelemetryTime
+//         ? new Date(lastTelemetryTime).toLocaleTimeString()
+//         : "--";
+
+//     return (
+//         <TimeRangeProvider value={timeRange}>
+//         <div className="organization-dashboard">
+//             <div className="organization-filter-card">
+//                 <FilterDashboard
+//                     initialValue={filters}
+//                     restoreVersion={restoreVersion}
+//                     allowedHierarchies={filterAccess.allowed}
+//                     zonalHierarchyConfig={currentUser?.customer_hierarchy_config || currentUser?.zonal_hierarchy_config || currentUser?.customer?.zonal_hierarchy_config || null}
+//                     lockedValues={filterAccess.lockedValues}
+//                     onFilterChange={handleFilterChange}
+//                     onReset={handleResetFilters}
+//                     actions={
+//                         <>
+//                             <button
+//                                 type="button"
+//                                 onClick={saveDashboard}
+//                                 disabled={dashboardLoading}
+//                                 title="Save your preference"
+//                                 style={actionButtonStyle}
+//                             >
+//                                 <Save size={16} />
+//                                 {dashboardLoading ? "Saving..." : "Save Preference"}
+//                             </button>
+//                             <button
+//                                 type="button"
+//                                 onClick={() => window.dispatchEvent(new CustomEvent("ac-toggle-ai-module"))}
+//                                 title="Show or hide AI module"
+//                                 style={actionButtonStyle}
+//                             >
+//                                 <BrainCircuit size={16} /> AI Module
+//                             </button>
+//                             {dashboardMessage && (
+//                                 <span style={{ fontSize: "12px", color: "#2563eb" }}>
+//                                     {dashboardMessage}
+//                                 </span>
+//                             )}
+//                             <TimeRangeFilter value={timeRange} onChange={handleTimeRangeChange} />
+//                         </>
+//                     }
+//                 />
+//                 {/* <TimeRangeFilter value={timeRange} onChange={handleTimeRangeChange} /> */}
+//             </div>
+
+//             {error && (
+//                 <div className="organization-error">
+//                     <strong>Data API Error:</strong>
+//                     <span>{error}</span>
+//                 </div>
+//             )}
+
+//             {loading && apiData.length === 0 ? (
+//                 <div className="organization-loading">
+//                     <div className="loading-spinner"></div>
+//                     <span>Loading AC Energy Data...</span>
+//                 </div>
+//             ) : acSelected ? (
+//                 // ── AC selected → show Trends inline, below the filters ──
+//                 <div className="organization-ac-dashboard">
+//                     {/* <div
+//                         style={{
+//                             display: "flex",
+//                             justifyContent: "flex-end",
+//                             marginBottom: "10px",
+//                         }}
+//                     >
+//                         <button
+//                             type="button"
+//                             onClick={clearAcSelection}
+//                             style={{
+//                                 border: "1px solid #cbd5e1",
+//                                 background: "#fff",
+//                                 color: "#0f172a",
+//                                 borderRadius: "6px",
+//                                 padding: "6px 12px",
+//                                 fontSize: "12px",
+//                                 fontWeight: 600,
+//                                 cursor: "pointer",
+//                             }}
+//                         >
+//                             ← Back to Dashboard
+//                         </button>
+//                     </div> */}
+
+//                     <Trends
+//                         filters={filters}
+//                         data={apiData}
+//                         isLive={isLive}
+//                         lastTelemetryText={lastTelemetryText}
+//                         onCardFilterChange={handleCardFilterChange}
+//                         visibleWidgets={visibleWidgets}
+//                     />
+//                 </div>
+//             ) : (
+//                 // ── No AC selected → show normal dashboard ──
+//                 <div className="organization-ac-dashboard">
+//                     <ACDashboard
+//                         data={apiData}
+//                         filters={filters}
+//                         cardFilters={cardFilters}
+//                         visibleWidgets={visibleWidgets}
+//                         isLive={isLive}
+//                         lastTelemetryText={lastTelemetryText}
+//                         lastTelemetryAt={lastTelemetryTime}
+//                         onCardFilterChange={handleCardFilterChange}
+//                         onWidgetVisibilityChange={(next) =>
+//                             setVisibleWidgets(
+//                                 applyRoleWidgetPermissions(currentUser?.role, next)
+//                             )
+//                         }
+//                     />
+//                 </div>
+//             )}
+//         </div>
+//         </TimeRangeProvider>
+//     );
+// }
+
+// export default Org_Dashboard;
+
+
+
 import React, {
     useCallback,
     useEffect,
@@ -16,14 +1477,34 @@ import "./Org_Dashboard.css";
 
 import FilterDashboard from "./FilterDashboard";
 import ACDashboard from "../../Second_Person/Forntend/ACDashboard";
+import TimeRangeFilter from "../../Second_Person/Forntend/shared/TimeRangeFilter";
+import {
+    DEFAULT_TIME_RANGE,
+    TimeRangeProvider,
+    applyTimeRangeParams,
+    isWindowed,
+    normalizeTimeRange,
+    validateTimeRange,
+} from "../../Second_Person/Forntend/shared/TimeRangeContext";
 // ⚠️ Adjust this path to match where your Trends component actually lives:
 import Trends from "../../Second_Person/Forntend/Trends";
 import { useAuth } from "../Layout/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = "http://192.168.1.9:8000/api";
+// const API_BASE = "http://192.168.1.9:8000/api";
+// const API_URL = `${API_BASE}/ac-data/`;
+// const DASHBOARD_URL = `${API_BASE}/dashboard/preferences/`;
+
+// const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL ||
+    "http://localhost:8000/api";
+
 const API_URL = `${API_BASE}/ac-data/`;
-const DASHBOARD_URL = `${API_BASE}/dashboard/preferences/`;
+
+const DASHBOARD_URL =
+    `${API_BASE}/dashboard/preferences/`;
 
 const FILTER_LABELS = {
     zone: "Zone",
@@ -91,6 +1572,17 @@ const ROLE_WIDGETS = {
         zone_chart: false,
         energy_map: false,
     },
+};
+
+const TIME_RANGE_STORAGE_KEY = "acMonitoringTimeRange";
+
+const readStoredTimeRange = () => {
+    try {
+        const raw = localStorage.getItem(TIME_RANGE_STORAGE_KEY);
+        return raw ? normalizeTimeRange(JSON.parse(raw)) : DEFAULT_TIME_RANGE;
+    } catch {
+        return DEFAULT_TIME_RANGE;
+    }
 };
 
 const normalizeRole = (role) =>
@@ -306,6 +1798,100 @@ function Org_Dashboard() {
     const [filtersReady, setFiltersReady] = useState(false);
     const [dashboardFilters, setDashboardFilters] = useState({});
 
+    // Keep dashboard filter definitions in sync with the customer's latest
+    // saved Zonal hierarchy configuration.
+    const [activeCustomerHierarchyConfig, setActiveCustomerHierarchyConfig] = useState(
+        currentUser?.customer_hierarchy_config ||
+        currentUser?.zonal_hierarchy_config ||
+        currentUser?.customer?.zonal_hierarchy_config ||
+        null
+    );
+
+    useEffect(() => {
+        const rawCustomer = currentUser?.customer;
+        const customerId =
+            rawCustomer && typeof rawCustomer === "object"
+                ? rawCustomer.id
+                : rawCustomer;
+
+        if (!customerId) {
+            setActiveCustomerHierarchyConfig(
+                currentUser?.customer_hierarchy_config ||
+                currentUser?.zonal_hierarchy_config ||
+                currentUser?.customer?.zonal_hierarchy_config ||
+                null
+            );
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        const refreshCustomerHierarchy = async () => {
+            try {
+                const response = await fetch(
+                    `${API_BASE}/customers/${encodeURIComponent(customerId)}/`,
+                    {
+                        method: "GET",
+                        headers: authHeaders(),
+                        cache: "no-store",
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Customer hierarchy request failed (${response.status}).`);
+                }
+
+                const customer = await response.json();
+
+                if (!cancelled) {
+                    setActiveCustomerHierarchyConfig(
+                        customer?.zonal_hierarchy_config ||
+                        currentUser?.customer_hierarchy_config ||
+                        currentUser?.zonal_hierarchy_config ||
+                        currentUser?.customer?.zonal_hierarchy_config ||
+                        null
+                    );
+                }
+            } catch (error) {
+                console.warn("Unable to refresh customer hierarchy configuration:", error);
+
+                if (!cancelled) {
+                    setActiveCustomerHierarchyConfig(
+                        currentUser?.customer_hierarchy_config ||
+                        currentUser?.zonal_hierarchy_config ||
+                        currentUser?.customer?.zonal_hierarchy_config ||
+                        null
+                    );
+                }
+            }
+        };
+
+        refreshCustomerHierarchy();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        currentUser?.customer,
+        currentUser?.customer_hierarchy_config,
+        currentUser?.zonal_hierarchy_config,
+    ]);
+
+    // Single time filter (WHEN) that combines with the geo / zonal filters (WHERE)
+    // for every widget on the dashboard.
+    const [timeRange, setTimeRange] = useState(readStoredTimeRange);
+    const timeRangeError = useMemo(() => validateTimeRange(timeRange), [timeRange]);
+
+    const handleTimeRangeChange = useCallback((next) => {
+        const normalized = normalizeTimeRange(next);
+        setTimeRange(normalized);
+        try {
+            localStorage.setItem(TIME_RANGE_STORAGE_KEY, JSON.stringify(normalized));
+        } catch {
+            /* storage unavailable: the selection simply isn't remembered */
+        }
+    }, []);
+
     const loadSavedDashboards = useCallback(async () => {
         setDashboardLoading(true);
         try {
@@ -329,6 +1915,9 @@ function Org_Dashboard() {
                 setActiveDashboardId(defaultDashboard.id);
                 setDashboardName(defaultDashboard.name || "My Dashboard");
                 nextFilters = normalizeFilters(defaultDashboard.main_filters);
+                if (defaultDashboard.main_filters?.time_range) {
+                    handleTimeRangeChange(defaultDashboard.main_filters.time_range);
+                }
                 setCardFilters(defaultDashboard.card_filters || {});
                 setVisibleWidgets(applyRoleWidgetPermissions(currentUser?.role, defaultDashboard.visible_widgets || {}));
             } else {
@@ -364,7 +1953,7 @@ function Org_Dashboard() {
             setFiltersReady(true);
             setDashboardLoading(false);
         }
-    }, [currentUser, filterAccess]);
+    }, [currentUser, filterAccess, handleTimeRangeChange]);
 
     useEffect(() => {
         if (!currentUser) {
@@ -393,6 +1982,9 @@ function Org_Dashboard() {
                 if (value) params.append(key, value);
             });
 
+            // Global time filter: the backend re-computes energy / averages for the window.
+            if (!timeRangeError) applyTimeRangeParams(params, timeRange);
+
             params.append("t", Date.now());
             const url = `${API_URL}?${params.toString()}`;
 
@@ -417,7 +2009,7 @@ function Org_Dashboard() {
         } finally {
             setLoading(false);
         }
-    }, [filters]);
+    }, [filters, timeRange, timeRangeError]);
 
     useEffect(() => {
         console.log("[Filter permissions]", {
@@ -433,9 +2025,10 @@ function Org_Dashboard() {
     useEffect(() => {
         if (!filtersReady) return;
         fetchACData();
-        const interval = setInterval(fetchACData, 2000);
+        // Live view refreshes every 2 s; a historical window changes slowly.
+        const interval = setInterval(fetchACData, isWindowed(timeRange) ? 15000 : 2000);
         return () => clearInterval(interval);
-    }, [fetchACData, filtersReady]);
+    }, [fetchACData, filtersReady, timeRange]);
 
     const handleFilterChange = useCallback((newFilters) => {
         const normalized = {
@@ -495,7 +2088,7 @@ function Org_Dashboard() {
             setDashboardMessage("");
             const payload = {
                 name,
-                main_filters: filters,
+                main_filters: { ...filters, time_range: timeRange },
                 card_filters: cardFilters,
                 visible_widgets: visibleWidgets,
                 is_default: true,
@@ -528,7 +2121,7 @@ function Org_Dashboard() {
             setDashboardLoading(false);
             window.setTimeout(() => setDashboardMessage(""), 2500);
         }
-    }, [activeDashboardId, cardFilters, dashboardName, filters, loadSavedDashboards, visibleWidgets]);
+    }, [activeDashboardId, cardFilters, dashboardName, filters, timeRange, loadSavedDashboards, visibleWidgets]);
 
     const filterSummary = useMemo(() => {
         const parts = FILTER_KEYS
@@ -580,12 +2173,14 @@ function Org_Dashboard() {
         : "--";
 
     return (
+        <TimeRangeProvider value={timeRange}>
         <div className="organization-dashboard">
             <div className="organization-filter-card">
                 <FilterDashboard
                     initialValue={filters}
                     restoreVersion={restoreVersion}
                     allowedHierarchies={filterAccess.allowed}
+                    zonalHierarchyConfig={activeCustomerHierarchyConfig}
                     lockedValues={filterAccess.lockedValues}
                     onFilterChange={handleFilterChange}
                     onReset={handleResetFilters}
@@ -614,9 +2209,11 @@ function Org_Dashboard() {
                                     {dashboardMessage}
                                 </span>
                             )}
+                            <TimeRangeFilter value={timeRange} onChange={handleTimeRangeChange} />
                         </>
                     }
                 />
+                {/* <TimeRangeFilter value={timeRange} onChange={handleTimeRangeChange} /> */}
             </div>
 
             {error && (
@@ -660,7 +2257,10 @@ function Org_Dashboard() {
                     </div> */}
 
                     <Trends
+                        embedded
                         filters={filters}
+                        dashboardFilters={filters}
+                        zonalHierarchyConfig={activeCustomerHierarchyConfig}
                         data={apiData}
                         isLive={isLive}
                         lastTelemetryText={lastTelemetryText}
@@ -678,6 +2278,7 @@ function Org_Dashboard() {
                         visibleWidgets={visibleWidgets}
                         isLive={isLive}
                         lastTelemetryText={lastTelemetryText}
+                        lastTelemetryAt={lastTelemetryTime}
                         onCardFilterChange={handleCardFilterChange}
                         onWidgetVisibilityChange={(next) =>
                             setVisibleWidgets(
@@ -688,6 +2289,7 @@ function Org_Dashboard() {
                 </div>
             )}
         </div>
+        </TimeRangeProvider>
     );
 }
 

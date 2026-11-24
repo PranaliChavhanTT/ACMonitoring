@@ -10,18 +10,17 @@ from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 
 
-# $env:TEST_AC_01_USERNAME="TEST-AC-01"
-# $env:TEST_AC_01_PASSWORD="TEST-AC-01"
-# $env:TEST_AC_02_USERNAME="TEST-AC-02"
-# $env:TEST_AC_02_PASSWORD="TEST-AC-02"
-# $env:TEST_AC_03_USERNAME="TEST-AC-03"
-# $env:TEST_AC_03_PASSWORD="TEST-AC-03"
-# $env:TEST_AC_04_USERNAME="TEST-AC-04"
-# $env:TEST_AC_04_PASSWORD="TEST-AC-04"
-
-# ==========================================================
+"""
+$env:TEST_AC_01_USERNAME="TEST-AC-01"
+$env:TEST_AC_01_PASSWORD="TEST-AC-01"
+$env:TEST_AC_02_USERNAME="TEST-AC-02"
+$env:TEST_AC_02_PASSWORD="TEST-AC-02"
+$env:TEST_AC_03_USERNAME="TEST-AC-03"
+$env:TEST_AC_03_PASSWORD="TEST-AC-03"
+$env:TEST_AC_04_USERNAME="TEST-AC-04"
+$env:TEST_AC_04_PASSWORD="TEST-AC-04"
+"""
 # MQTT BROKER CONFIGURATION
-# ==========================================================
 
 MQTT_HOST = "3tp.tapasyatech.in"
 MQTT_PORT = 1883
@@ -59,10 +58,10 @@ DEVICES = [
         "password": os.getenv("TEST_AC_02_PASSWORD", ""),
     },
     {
-            "ac_id": "TEST-AC-03",
-            "client_id": "TEST-AC-03",
-            "username": os.getenv("TEST_AC_03_USERNAME", ""),
-            "password": os.getenv("TEST_AC_03_PASSWORD", ""),
+        "ac_id": "TEST-AC-03",
+        "client_id": "TEST-AC-03",
+        "username": os.getenv("TEST_AC_03_USERNAME", ""),
+        "password": os.getenv("TEST_AC_03_PASSWORD", ""),
     },
     {
         "ac_id": "TEST-AC-04",
@@ -77,11 +76,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
-
-
-# ==========================================================
-# DEVICE SIMULATION STATE
-# ==========================================================
 
 device_states = {}
 

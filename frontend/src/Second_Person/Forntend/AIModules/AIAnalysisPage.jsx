@@ -23,7 +23,8 @@ function AIAnalysisPage() {
             setError("");
             try {
                 const response = await fetch(
-                    "http://localhost:9000/api/analyze-dashboard",
+                    // "http://localhost:9000/api/analyze-dashboard",
+                    `${API_BASE}/api/analyze-dashboard`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },

@@ -158,8 +158,6 @@ function Analytics() {
         return Array.from({ length: Math.max(5, currentYear - 2020 + 1) }, (_, index) => currentYear - index);
     }, []);
 
-    // const parameter = parameters[0]; // primary one – rest of your code keeps using this
-
     const toggleParameter = useCallback((value) => {
         setParameters((prev) => {
             if (!MULTI_PARAMETER) return [value];
@@ -221,8 +219,7 @@ function Analytics() {
         }
     
     }, [globalFilters, parameters, parameter, granularity, year, month, comparePrevious, tariff]);
-    // }, [globalFilters, parameter, granularity, year, month, comparePrevious, tariff]);
-
+   
     useEffect(() => {
         if (!hasGenerated) return;
         generateComparison();
@@ -260,297 +257,298 @@ function Analytics() {
             <FilterDashboard
                 initialValue={globalFilters}
                 allowedHierarchies={allowedHierarchies}
+                zonalHierarchyConfig={user?.customer_hierarchy_config || user?.zonal_hierarchy_config || user?.customer?.zonal_hierarchy_config || null}
                 lockedValues={lockedValues}
                 onFilterChange={handleFilterChange}
             />
 
             {activeModule === "comparison" && (
                 <>
-                <section className="analytics-builder">
-                    <div className="analytics-section-heading">
-                        <h2><BarChart3 size={18} /> Comparison configuration</h2>
-                        <span>Select one metric and a period. The charts below update using this configuration.</span>
-                    </div>
-                    <div className="analytics-builder-grid">
-                        <div className="analytics-field analytics-field-wide">
-                            <span>Parameter{MULTI_PARAMETER ? "s" : ""}</span>
-                            <div className="analytics-chips" role="group" aria-label="Parameters to compare">
-                                {PARAMETER_OPTIONS.map((item) => {
-                                    const on = parameters.includes(item.value);
-                                    return (
-                                        <button
-                                            key={item.value}
-                                            type="button"
-                                            className={`analytics-chip${on ? " active" : ""}`}
-                                            aria-pressed={on}
-                                            onClick={() => toggleParameter(item.value)}
-                                        >
-                                            {item.label}
-                                            {item.unit && <small>{item.unit}</small>}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                    <section className="analytics-builder">
+                        <div className="analytics-section-heading">
+                            <h2><BarChart3 size={18} /> Comparison configuration</h2>
+                            <span>Select one metric and a period. The charts below update using this configuration.</span>
                         </div>
-
-                        <div className="analytics-field analytics-field-wide">
-                            <span>Time period</span>
-
-                            <div className="analytics-period-row">
-                                {/* Monthly / Yearly */}
-                                <div className="analytics-chips" role="group" aria-label="Period type">
-                                    {PERIOD_OPTIONS.map((item) => (
-                                        <button
-                                            key={item.value}
-                                            type="button"
-                                            className={`analytics-chip${granularity === item.value ? " active" : ""}`}
-                                            aria-pressed={granularity === item.value}
-                                            onClick={() => setGranularity(item.value)}
-                                        >
-                                            {item.label}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Year */}
-                                {/* <select
-                                    className="analytics-year-select"
-                                    value={year}
-                                    onChange={(event) => setYear(Number(event.target.value))}
-                                    aria-label="Year"
-                                >
-                                    {yearOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                                </select> */}
-                            </div>
-
-                            {/* Month chips – only for Monthly */}
-                            {/* {granularity === "MONTHLY" && (
-                                <div className="analytics-month-grid" role="group" aria-label="Month">
-                                    {MONTHS.map((name, index) => {
-                                        const value = index + 1;
-                                        const now = new Date();
-                                        const isFuture = year === now.getFullYear() && value > now.getMonth() + 1;
+                        <div className="analytics-builder-grid">
+                            <div className="analytics-field analytics-field-wide">
+                                <span>Parameter{MULTI_PARAMETER ? "s" : ""}</span>
+                                <div className="analytics-chips" role="group" aria-label="Parameters to compare">
+                                    {PARAMETER_OPTIONS.map((item) => {
+                                        const on = parameters.includes(item.value);
                                         return (
                                             <button
-                                                key={name}
+                                                key={item.value}
                                                 type="button"
-                                                title={name}
-                                                disabled={isFuture}
-                                                className={`analytics-chip${month === value ? " active" : ""}`}
-                                                aria-pressed={month === value}
-                                                onClick={() => setMonth(value)}
+                                                className={`analytics-chip${on ? " active" : ""}`}
+                                                aria-pressed={on}
+                                                onClick={() => toggleParameter(item.value)}
                                             >
-                                                {name.slice(0, 3)}
+                                                {item.label}
+                                                {item.unit && <small>{item.unit}</small>}
                                             </button>
                                         );
                                     })}
                                 </div>
-                            )} */}
-                        </div>
+                            </div>
 
-                        <label className="analytics-field">
-                            <span>Year</span>
-                            <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
-                                {yearOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                            </select>
-                        </label>
-                        {granularity === "MONTHLY" && (
+                            <div className="analytics-field analytics-field-wide">
+                                <span>Time period</span>
+
+                                <div className="analytics-period-row">
+                                    {/* Monthly / Yearly */}
+                                    <div className="analytics-chips" role="group" aria-label="Period type">
+                                        {PERIOD_OPTIONS.map((item) => (
+                                            <button
+                                                key={item.value}
+                                                type="button"
+                                                className={`analytics-chip${granularity === item.value ? " active" : ""}`}
+                                                aria-pressed={granularity === item.value}
+                                                onClick={() => setGranularity(item.value)}
+                                            >
+                                                {item.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Year */}
+                                    {/* <select
+                                        className="analytics-year-select"
+                                        value={year}
+                                        onChange={(event) => setYear(Number(event.target.value))}
+                                        aria-label="Year"
+                                    >
+                                        {yearOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                                    </select> */}
+                                </div>
+
+                                {/* Month chips – only for Monthly */}
+                                {/* {granularity === "MONTHLY" && (
+                                    <div className="analytics-month-grid" role="group" aria-label="Month">
+                                        {MONTHS.map((name, index) => {
+                                            const value = index + 1;
+                                            const now = new Date();
+                                            const isFuture = year === now.getFullYear() && value > now.getMonth() + 1;
+                                            return (
+                                                <button
+                                                    key={name}
+                                                    type="button"
+                                                    title={name}
+                                                    disabled={isFuture}
+                                                    className={`analytics-chip${month === value ? " active" : ""}`}
+                                                    aria-pressed={month === value}
+                                                    onClick={() => setMonth(value)}
+                                                >
+                                                    {name.slice(0, 3)}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )} */}
+                            </div>
+
                             <label className="analytics-field">
-                                <span>Month</span>
-                                <select value={month} onChange={(event) => setMonth(Number(event.target.value))}>
-                                    {MONTHS.map((item, index) => <option key={item} value={index + 1}>{item}</option>)}
+                                <span>Year</span>
+                                <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
+                                    {yearOptions.map((item) => <option key={item} value={item}>{item}</option>)}
                                 </select>
                             </label>
-                        )}
-                        {parameter === "energy_cost" && (
-                            <label className="analytics-field">
-                                <span>Tariff (₹ / kWh)</span>
-                                <input type="number" min="0.01" step="0.01" value={tariff.trim()} onChange={(event) => setTariff(event.target.value)} placeholder="e.g. 7.50" />
+                            {granularity === "MONTHLY" && (
+                                <label className="analytics-field">
+                                    <span>Month</span>
+                                    <select value={month} onChange={(event) => setMonth(Number(event.target.value))}>
+                                        {MONTHS.map((item, index) => <option key={item} value={index + 1}>{item}</option>)}
+                                    </select>
+                                </label>
+                            )}
+                            {parameter === "energy_cost" && (
+                                <label className="analytics-field">
+                                    <span>Tariff (₹ / kWh)</span>
+                                    <input type="number" min="0.01" step="0.01" value={tariff.trim()} onChange={(event) => setTariff(event.target.value)} placeholder="e.g. 7.50" />
+                                </label>
+                            )}
+                            <label className="analytics-compare-toggle">
+                                <input type="checkbox" checked={comparePrevious} onChange={(event) => setComparePrevious(event.target.checked)} />
+                                <span>Compare with previous {granularity === "MONTHLY" ? "month" : "year"}</span>
                             </label>
-                        )}
-                        <label className="analytics-compare-toggle">
-                            <input type="checkbox" checked={comparePrevious} onChange={(event) => setComparePrevious(event.target.checked)} />
-                            <span>Compare with previous {granularity === "MONTHLY" ? "month" : "year"}</span>
-                        </label>
-                        <button className="analytics-generate-button" onClick={generateComparison} disabled={loading}>
-                            {loading ? "Generating..." : "Generate Comparison"}
-                        </button>
-                    </div>
-                    <div className="analytics-period-caption">
-                        Selected: <strong>{periodLabel}</strong>
-                        {comparePrevious && <> <span>vs</span> Previous: <strong>{comparisonLabel}</strong></>}
-                    </div>
-                </section>
-
-                {error && <div className="analytics-error" role="alert">{error}</div>}
-                {loading && <div className="analytics-loading">Loading comparison data...</div>}
-
-                {!loading && analyticsData && (
-                    <>
-                    <section className="analytics-kpi-grid">
-                        <MetricCard label="Selected period" 
-                            value={summary.current_value} 
-                            unit={selectedParameter.unit} 
-                            detail={periodLabel} 
-                        />
-                        <MetricCard label="Previous period" 
-                            value={comparePrevious ? summary.previous_value : null} 
-                            unit={selectedParameter.unit} 
-                            detail={comparePrevious ? comparisonLabel : "Comparison disabled"} 
-                        />
-                        <MetricCard 
-                            label="Difference" 
-                            value={comparePrevious ? summary.difference : null} 
-                            unit={selectedParameter.unit} 
-                            detail="Selected minus previous" 
-                        />
-                        <MetricCard 
-                            label="Percentage change" 
-                            value={comparePrevious ? summary.percentage_change : null} 
-                            unit="%" detail="Compared with previous period" 
-                            tone={Number(summary.percentage_change) > 0 ? "warning" : "positive"} 
-                        />
+                            <button className="analytics-generate-button" onClick={generateComparison} disabled={loading}>
+                                {loading ? "Generating..." : "Generate Comparison"}
+                            </button>
+                        </div>
+                        <div className="analytics-period-caption">
+                            Selected: <strong>{periodLabel}</strong>
+                            {comparePrevious && <> <span>vs</span> Previous: <strong>{comparisonLabel}</strong></>}
+                        </div>
                     </section>
 
-                    <div className="analytics-chart-grid">
-                        <ChartCard title="Period Comparison" subtitle="Selected period vs previous period by location" icon={BarChart3}>
-                            {periodComparison.length ? (
-                                <ResponsiveContainer width="100%" height={310}>
-                                    <BarChart data={periodComparison} margin={{ top: 12, right: 12, left: 4, bottom: 10 }}>
-                                        <CartesianGrid 
-                                            strokeDasharray="3 3" 
-                                            vertical={false} 
-                                        />
-                                        <XAxis 
-                                            dataKey="label" 
-                                            angle={-25} 
-                                            textAnchor="end" 
-                                            interval={0} 
-                                            height={45} 
-                                        />
-                                        <YAxis />
-                                        {/* <YAxis
-                                            domain={[0, (dataMax) => getYAxisDomain(dataMax, 100)]}
-                                            allowDataOverflow={false}
-                                        /> */}
-                                        <Tooltip
-                                            shared={true}
-                                            formatter={(value, name) => [
-                                                `${Number(value).toLocaleString("en-IN")} ${selectedParameter.unit}`,
-                                                name
-                                            ]}
-                                        />
-                                        <Legend />
-                                        <Bar
-                                            dataKey="current"
-                                            name={periodLabel}
-                                            fill="#3182BD"
-                                            barSize={comparePrevious ? 30 : 48}
-                                            radius={[5, 5, 0, 0]}
-                                        />
+                    {error && <div className="analytics-error" role="alert">{error}</div>}
+                    {loading && <div className="analytics-loading">Loading comparison data...</div>}
 
-                                        {comparePrevious && (
+                    {!loading && analyticsData && (
+                        <>
+                        <section className="analytics-kpi-grid">
+                            <MetricCard label="Selected period" 
+                                value={summary.current_value} 
+                                unit={selectedParameter.unit} 
+                                detail={periodLabel} 
+                            />
+                            <MetricCard label="Previous period" 
+                                value={comparePrevious ? summary.previous_value : null} 
+                                unit={selectedParameter.unit} 
+                                detail={comparePrevious ? comparisonLabel : "Comparison disabled"} 
+                            />
+                            <MetricCard 
+                                label="Difference" 
+                                value={comparePrevious ? summary.difference : null} 
+                                unit={selectedParameter.unit} 
+                                detail="Selected minus previous" 
+                            />
+                            <MetricCard 
+                                label="Percentage change" 
+                                value={comparePrevious ? summary.percentage_change : null} 
+                                unit="%" detail="Compared with previous period" 
+                                tone={Number(summary.percentage_change) > 0 ? "warning" : "positive"} 
+                            />
+                        </section>
+
+                        <div className="analytics-chart-grid">
+                            <ChartCard title="Period Comparison" subtitle="Selected period vs previous period by location" icon={BarChart3}>
+                                {periodComparison.length ? (
+                                    <ResponsiveContainer width="100%" height={310}>
+                                        <BarChart data={periodComparison} margin={{ top: 12, right: 12, left: 4, bottom: 10 }}>
+                                            <CartesianGrid 
+                                                strokeDasharray="3 3" 
+                                                vertical={false} 
+                                            />
+                                            <XAxis 
+                                                dataKey="label" 
+                                                angle={-25} 
+                                                textAnchor="end" 
+                                                interval={0} 
+                                                height={45} 
+                                            />
+                                            <YAxis />
+                                            {/* <YAxis
+                                                domain={[0, (dataMax) => getYAxisDomain(dataMax, 100)]}
+                                                allowDataOverflow={false}
+                                            /> */}
+                                            <Tooltip
+                                                shared={true}
+                                                formatter={(value, name) => [
+                                                    `${Number(value).toLocaleString("en-IN")} ${selectedParameter.unit}`,
+                                                    name
+                                                ]}
+                                            />
+                                            <Legend />
                                             <Bar
-                                                dataKey="previous"
-                                                name={comparisonLabel}
-                                                fill="#94a3b8"
-                                                barSize={30}
+                                                dataKey="current"
+                                                name={periodLabel}
+                                                fill="#3182BD"
+                                                barSize={comparePrevious ? 30 : 48}
                                                 radius={[5, 5, 0, 0]}
                                             />
-                                        )}
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            ) : <p className="analytics-empty">No location comparison data for this selection.</p>}
-                        </ChartCard>
 
-                        <ChartCard title="Period Trend" subtitle={granularity === "MONTHLY" ? "Daily values across both months" : "Monthly values across both years"} icon={TrendingUp}>
-                            {trend.length ? (
-                                <ResponsiveContainer width="100%" height={310}>
-                                    <LineChart data={trend} margin={{ top: 12, right: 12, left: 4, bottom: 10 }}>
-                                        <CartesianGrid 
-                                            strokeDasharray="3 3" 
-                                            vertical={false} 
-                                        />
-                                        <XAxis dataKey="label" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Line 
-                                            type="monotone" 
-                                            dataKey="current" 
-                                            name={periodLabel} 
-                                            stroke="#3182BD" 
-                                            strokeWidth={2.5} 
-                                            dot={false} 
-                                            connectNulls={false} 
-                                        />
-                                        {comparePrevious && 
+                                            {comparePrevious && (
+                                                <Bar
+                                                    dataKey="previous"
+                                                    name={comparisonLabel}
+                                                    fill="#94a3b8"
+                                                    barSize={30}
+                                                    radius={[5, 5, 0, 0]}
+                                                />
+                                            )}
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : <p className="analytics-empty">No location comparison data for this selection.</p>}
+                            </ChartCard>
+
+                            {/* <ChartCard title="Period Trend" subtitle={granularity === "MONTHLY" ? "Daily values across both months" : "Monthly values across both years"} icon={TrendingUp}>
+                                {trend.length ? (
+                                    <ResponsiveContainer width="100%" height={310}>
+                                        <LineChart data={trend} margin={{ top: 12, right: 12, left: 4, bottom: 10 }}>
+                                            <CartesianGrid 
+                                                strokeDasharray="3 3" 
+                                                vertical={false} 
+                                            />
+                                            <XAxis dataKey="label" />
+                                            <YAxis />
+                                            <Tooltip />
+                                            <Legend />
                                             <Line 
                                                 type="monotone" 
-                                                dataKey="previous" 
-                                                name={comparisonLabel} 
-                                                stroke="#94a3b8" 
+                                                dataKey="current" 
+                                                name={periodLabel} 
+                                                stroke="#3182BD" 
                                                 strokeWidth={2.5} 
                                                 dot={false} 
                                                 connectNulls={false} 
                                             />
-                                        }
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            ) : <p className="analytics-empty">No trend data for this selection.</p>}
-                        </ChartCard>
+                                            {comparePrevious && 
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="previous" 
+                                                    name={comparisonLabel} 
+                                                    stroke="#94a3b8" 
+                                                    strokeWidth={2.5} 
+                                                    dot={false} 
+                                                    connectNulls={false} 
+                                                />
+                                            }
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                ) : <p className="analytics-empty">No trend data for this selection.</p>}
+                            </ChartCard> */}
 
-                        <ChartCard title="Location-wise Comparison" subtitle="Breakdown for the selected period" icon={MapPin}>
-                            {locationComparison.length ? (
-                                <ResponsiveContainer width="100%" height={310}>
-                                    <BarChart data={locationComparison} margin={{ top: 12, right: 12, left: 4, bottom: 10 }}>
-                                        <CartesianGrid 
-                                            strokeDasharray="3 3" 
-                                            vertical={false} 
-                                        />
-                                        <XAxis 
-                                            dataKey="label" 
-                                            angle={-25} 
-                                            textAnchor="end" 
-                                            interval={0} 
-                                            height={45} 
-                                        />
-                                        <YAxis />
-                                        <Tooltip 
-                                            formatter={(value) => [`${Number(value).toLocaleString("en-IN")} ${selectedParameter.unit}`, 
-                                            selectedParameter.label]} 
-                                        />
-                                        <Bar
-                                            dataKey="value"
-                                            name={selectedParameter.label}
-                                            fill="#0f989f"
-                                            barSize={48}
-                                            radius={[5, 5, 0, 0]}
-                                        />
-                                        <Legend />
+                            <ChartCard title="Location-wise Comparison" subtitle="Breakdown for the selected period" icon={MapPin}>
+                                {locationComparison.length ? (
+                                    <ResponsiveContainer width="100%" height={310}>
+                                        <BarChart data={locationComparison} margin={{ top: 12, right: 12, left: 4, bottom: 10 }}>
+                                            <CartesianGrid 
+                                                strokeDasharray="3 3" 
+                                                vertical={false} 
+                                            />
+                                            <XAxis 
+                                                dataKey="label" 
+                                                angle={-25} 
+                                                textAnchor="end" 
+                                                interval={0} 
+                                                height={45} 
+                                            />
+                                            <YAxis />
+                                            <Tooltip 
+                                                formatter={(value) => [`${Number(value).toLocaleString("en-IN")} ${selectedParameter.unit}`, 
+                                                selectedParameter.label]} 
+                                            />
+                                            <Bar
+                                                dataKey="value"
+                                                name={selectedParameter.label}
+                                                fill="#0f989f"
+                                                barSize={48}
+                                                radius={[5, 5, 0, 0]}
+                                            />
+                                            <Legend />
 
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            ) : <p className="analytics-empty">No location breakdown available.</p>}
-                        </ChartCard>
-                    </div>
-                    {analyticsData.meta?.note && <p className="analytics-data-note">{analyticsData.meta.note}</p>}
-                    </>
-                )}
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : <p className="analytics-empty">No location breakdown available.</p>}
+                            </ChartCard>
+                        </div>
+                        {analyticsData.meta?.note && <p className="analytics-data-note">{analyticsData.meta.note}</p>}
+                        </>
+                    )}
 
-                {!hasGenerated && !loading && (
-                    <div className="analytics-empty-state">
-                        <BarChart3 size={34} />
-                        <h3>Build your comparison</h3>
-                        <p>Choose a parameter and month or year, then generate charts using the filters above.</p>
-                    </div>
-                )}
-                {hasGenerated && !loading && !error && analyticsData && analyticsData.meta?.has_data === false && (
-                    <div className="analytics-empty-state compact">
-                        <h3>No telemetry data found</h3>
-                        <p>Try another date range or broaden the selected location filters.</p>
-                    </div>
-                )}
+                    {!hasGenerated && !loading && (
+                        <div className="analytics-empty-state">
+                            <BarChart3 size={34} />
+                            <h3>Build your comparison</h3>
+                            <p>Choose a parameter and month or year, then generate charts using the filters above.</p>
+                        </div>
+                    )}
+                    {hasGenerated && !loading && !error && analyticsData && analyticsData.meta?.has_data === false && (
+                        <div className="analytics-empty-state compact">
+                            <h3>No telemetry data found</h3>
+                            <p>Try another date range or broaden the selected location filters.</p>
+                        </div>
+                    )}
                 </>
             )}
 

@@ -5,12 +5,13 @@ from uuid import uuid4
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 
 from .models import (
     Customer,
     State, District, Taluka, City,
     Zone, Circle, Region, Division,
-    Branch, Floor, HierarchyType,
+    Branch, Building, Floor, Room, HierarchyType, zonal_branch_parent_level,
 )
 
 
@@ -96,60 +97,71 @@ def persist_customer_branch_floor(customer, body, hierarchy, location_type):
 
     elif hierarchy == HierarchyType.ZONAL:
         zone_name = str(body.get("zone_name") or "").strip()
-        circle_name = str(body.get("circle_name") or "").strip()
-        region_name = str(body.get("region_name") or "").strip()
-        division_name = str(body.get("division_name") or "").strip()
+        branch_name = str(body.get("branch_name") or "").strip()
+        if not zone_name or not branch_name:
+            raise ValidationError("Zone and branch name are required.")
 
-        if not all([zone_name, circle_name, region_name, division_name]):
-            raise ValidationError(
-                "Zone, circle, region and division are required."
-            )
-
+        levels = (customer.zonal_hierarchy_config or {}).get("levels", ["zone", "circle", "branch", "floor"])
         zone, _ = Zone.objects.get_or_create(
-            customer=customer,
-            name=zone_name,
+            customer=customer, name=zone_name,
             defaults={"code": _code("ZN")},
         )
-        circle, _ = Circle.objects.get_or_create(
-            zone=zone,
-            name=circle_name,
-            defaults={"code": _code("CR")},
-        )
-        region, _ = Region.objects.get_or_create(
-            circle=circle,
-            name=region_name,
-            defaults={"code": _code("RG")},
-        )
-        division, _ = Division.objects.get_or_create(
-            region=region,
-            name=division_name,
-            defaults={"code": _code("DV")},
-        )
 
-        branch_name = str(body.get("branch_name") or "").strip()
-        if not branch_name:
-            raise ValidationError("branch_name is required.")
+        circle = None
+        region = None
+        division = None
+
+        if "circle" in levels:
+            circle_name = str(body.get("circle_name") or "").strip()
+            if not circle_name:
+                raise ValidationError("Circle is required by this customer's zonal configuration.")
+            circle, _ = Circle.objects.get_or_create(
+                zone=zone, name=circle_name, defaults={"code": _code("CR")}
+            )
+
+        if "region" in levels:
+            region_name = str(body.get("region_name") or "").strip()
+            if not region_name:
+                raise ValidationError("Region is required by this customer's zonal configuration.")
+            if circle:
+                region, _ = Region.objects.get_or_create(
+                    circle=circle, name=region_name, defaults={"code": _code("RG")}
+                )
+            else:
+                region = Region.objects.filter(
+                    Q(zone=zone) | Q(circle__zone=zone), name__iexact=region_name
+                ).first()
+                if region is None:
+                    region = Region.objects.create(
+                        zone=zone, circle=None, name=region_name, code=_code("RG")
+                    )
+
+        if "division" in levels:
+            division_name = str(body.get("division_name") or "").strip()
+            if not division_name or not region:
+                raise ValidationError("Division and its parent Region are required by this customer's zonal configuration.")
+            division, _ = Division.objects.get_or_create(
+                region=region, name=division_name, defaults={"code": _code("DV")}
+            )
+
+        parent_level = zonal_branch_parent_level(customer.zonal_hierarchy_config)
+        parent = {"zone": zone, "circle": circle, "region": region, "division": division}.get(parent_level)
+        if not parent:
+            raise ValidationError(f"{str(parent_level or 'Configured parent').title()} is required for this customer's Branch.")
 
         branch, _ = Branch.objects.get_or_create(
-            division=division,
+            customer=customer,
             name=branch_name,
-            defaults={
-                "customer": customer,
-                "code": _code("BR"),
-                "pincode": str(body.get("pincode") or "").strip(),
-            },
+            **{parent_level: parent},
+            defaults={"code": _code("BR"), "pincode": str(body.get("pincode") or "").strip()},
         )
-
-        path = {
-            "zone_id": str(zone.pk),
-            "zone_name": zone.name,
-            "circle_id": str(circle.pk),
-            "circle_name": circle.name,
-            "region_id": str(region.pk),
-            "region_name": region.name,
-            "division_id": str(division.pk),
-            "division_name": division.name,
-        }
+        path = {"zone_id": str(zone.pk), "zone_name": zone.name}
+        if circle:
+            path.update({"circle_id": str(circle.pk), "circle_name": circle.name})
+        if region:
+            path.update({"region_id": str(region.pk), "region_name": region.name})
+        if division:
+            path.update({"division_id": str(division.pk), "division_name": division.name})
 
     else:
         raise ValidationError(
@@ -169,9 +181,22 @@ def persist_customer_branch_floor(customer, body, hierarchy, location_type):
         floor_name = str(body.get("floor_name") or "").strip()
         if not floor_name:
             raise ValidationError("floor_name is required.")
-
+        if hierarchy == HierarchyType.ZONAL:
+            levels = (customer.zonal_hierarchy_config or {}).get("levels", [])
+            if "floor" not in levels:
+                raise ValidationError("Floor is not enabled in this customer's hierarchy configuration.")
+        building = None
+        building_name = str(body.get("building_name") or "").strip()
+        if hierarchy == HierarchyType.ZONAL and "building" in levels and not building_name:
+            raise ValidationError("Building name is required by this customer's hierarchy configuration.")
+        if building_name:
+            if hierarchy != HierarchyType.ZONAL or "building" not in levels:
+                raise ValidationError("Building is not enabled in this customer's hierarchy configuration.")
+            building, _ = Building.objects.get_or_create(
+                branch=branch, name=building_name, defaults={"code": _code("BL")},
+            )
         floor, _ = Floor.objects.get_or_create(
-            branch=branch,
+            branch=branch, building=building,
             name=floor_name,
             defaults={"code": _code("FL")},
         )

@@ -18,7 +18,8 @@
 
 .filter-dropdown {
   height: 36px;
-  min-width: 145px;
+  flex: 1 1 120px; /* Changed: Allows dropdowns to grow/shrink and fit the row */
+  max-width: 200px; /* Changed: Prevents a single dropdown from stretching too wide */
   padding: 0 11px;
   border: 1px solid #d6dee8;
   border-radius: 6px;
@@ -31,7 +32,7 @@
 }
 
 /* Action buttons container */
-.filter-dashboard-actions {
+/* .filter-dashboard-actions {
     display: flex !important;
     align-items: center;
     justify-content: flex-start;
@@ -41,6 +42,18 @@
     flex-wrap: wrap;
     flex: 0 0 auto;
 
+    margin: 0;
+    padding: 0;
+} */
+
+/* Action buttons container */
+.filter-dashboard-actions {
+    display: flex !important;
+    align-items: flex-start; /* Aligns top edges instead of center */
+    justify-content: flex-start;
+    gap: 10px !important;
+    flex-wrap: wrap;
+    width: 100%; /* Forces the container to take full width */
     margin: 0;
     padding: 0;
 }
@@ -232,4 +245,135 @@
   .filter-summary-text {
     white-space: normal;
   }
+}
+
+/* Wrapper: Stacks controls on top of the summary text */
+.time-range-filter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Aligns both rows to the right */
+  gap: 6px;
+  margin-left: auto; /* Pushes everything to the right corner */
+  margin-top: 1px; /* Minor nudge to align with the Save Preference button */
+}
+
+/* Top Row: Controls */
+.time-range-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.time-range-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Bottom Row: Summary Text */
+.time-range-info {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding-right: 4px; /* Slight padding so it aligns with the button edge */
+}
+
+.time-range-summary {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.time-range-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.time-range-segmented button {
+  height: 33px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.time-range-segmented button:hover {
+  background: #f1f5f9;
+}
+
+.time-range-segmented button.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.time-range-segmented button.active:hover {
+  background: #1d4ed8;
+}
+
+.time-range-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-range-custom input {
+  height: 33px;
+  padding: 0 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.time-range-to {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.time-range-live-btn {
+  height: 33px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.time-range-live-btn:hover {
+  background: #f8fafc;
+}
+
+/* Bottom Row: Summary Text */
+.time-range-info {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding-right: 2px;
+}
+
+.time-range-summary {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap; /* Keeps the date on one line */
+}
+
+.time-range-error {
+  color: #c0392b;
+  font-size: 12px;
 }

@@ -67,11 +67,14 @@ from .models import (
     Taluka,
     City,
     Branch,
+    Building,
     Floor,
+    Room,
     Site,
     ACDevice,
     Role,
     DashboardPreference,
+    get_branch_zone_id,
 )
 
 from .serializers import (
@@ -92,6 +95,8 @@ from .serializers import (
     StateSerializer,
     DistrictSerializer,
     BranchSerializer,
+    BuildingSerializer,
+    RoomSerializer,
     SiteSerializer,
 )
 
@@ -280,18 +285,45 @@ def _branch_expected_tree_path(branch, hierarchy):
             ),
         })
     elif hierarchy == "ZONAL":
-        division = getattr(branch, "division", None)
-        if not getattr(branch, "division_id", None) or division is None:
+        if getattr(branch, "zone_id", None):
+            zone = branch.zone
+            expected.update({"zone_name": str(zone.name or "").strip().casefold()})
+        elif getattr(branch, "circle_id", None):
+            circle = branch.circle
+            zone = circle.zone
+            expected.update({
+                "zone_name": str(zone.name or "").strip().casefold(),
+                "circle_name": str(circle.name or "").strip().casefold(),
+            })
+        elif getattr(branch, "region_id", None):
+            region = branch.region
+            zone = region.zone if region.zone_id else (region.circle.zone if region.circle_id else None)
+            if not zone:
+                return {}
+            expected.update({
+                "zone_name": str(zone.name or "").strip().casefold(),
+                "region_name": str(region.name or "").strip().casefold(),
+            })
+            levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
+            if "circle" in levels and region.circle_id:
+                expected["circle_name"] = str(region.circle.name or "").strip().casefold()
+        elif getattr(branch, "division_id", None):
+            division = branch.division
+            region = division.region
+            circle = region.circle if region.circle_id else None
+            zone = region.zone if region.zone_id else (circle.zone if circle else None)
+            if not zone:
+                return {}
+            expected.update({
+                "zone_name": str(zone.name or "").strip().casefold(),
+                "region_name": str(region.name or "").strip().casefold(),
+                "division_name": str(division.name or "").strip().casefold(),
+            })
+            levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
+            if circle and "circle" in levels:
+                expected["circle_name"] = str(circle.name or "").strip().casefold()
+        else:
             return {}
-        region = division.region
-        circle = region.circle
-        zone = circle.zone
-        expected.update({
-            "zone_name": str(zone.name or "").strip().casefold(),
-            "circle_name": str(circle.name or "").strip().casefold(),
-            "region_name": str(region.name or "").strip().casefold(),
-            "division_name": str(division.name or "").strip().casefold(),
-        })
     return expected
 
 
@@ -330,7 +362,7 @@ def _find_branch_node_for_db_branch(tree, branch, hierarchy=None):
         else:
             keys = ("zone_name", "circle_name", "region_name", "division_name")
             if any(
-                str(context.get(key, "")).strip().casefold() != expected[key]
+                str(context.get(key, "")).strip().casefold() != expected.get(key, "")
                 for key in keys
             ):
                 continue
@@ -2804,6 +2836,27 @@ def iter_branches(tree, hierarchy_type):
                 zones = country["zones"]
         for zone in zones:
             for circle in zone.get("circles", []):
+                for branch in circle.get("branches", []):
+                    context = {
+                        "hierarchy_type": "ZONAL",
+                        "zone_id": zone.get("zone_id", ""), "zone_name": zone.get("zone_name", ""),
+                        "circle_id": circle.get("circle_id", ""), "circle_name": circle.get("circle_name", ""),
+                        "region_id": "", "region_name": "", "division_id": "", "division_name": "",
+                        "branch_id": branch.get("branch_id", ""), "branch_name": branch.get("branch_name", ""),
+                    }
+                    yield branch, context
+            for region in zone.get("regions", []):
+                for branch in region.get("branches", []):
+                    context = {
+                        "hierarchy_type": "ZONAL",
+                        "zone_id": zone.get("zone_id", ""), "zone_name": zone.get("zone_name", ""),
+                        "circle_id": "", "circle_name": "",
+                        "region_id": region.get("region_id", ""), "region_name": region.get("region_name", ""),
+                        "division_id": "", "division_name": "",
+                        "branch_id": branch.get("branch_id", ""), "branch_name": branch.get("branch_name", ""),
+                    }
+                    yield branch, context
+            for circle in zone.get("circles", []):
                 for region in circle.get("regions", []):
                     for division in region.get("divisions", []):
                         for branch in division.get("branches", []):
@@ -3109,23 +3162,44 @@ def resolve_site_hierarchy(site):
             "taluka_name": taluka.name, "city_name": city.name,
             "branch_name": branch.name,
         }
+    elif branch.zone_id:
+        zone = branch.zone
+        hierarchy = "ZONAL"
+        ctx.update({"zone_id": str(zone.id), "zone_name": zone.name})
+        body = {"zone_name": zone.name, "branch_name": branch.name}
+    elif branch.circle_id:
+        circle = branch.circle
+        zone = circle.zone
+        hierarchy = "ZONAL"
+        ctx.update({"zone_id": str(zone.id), "zone_name": zone.name,
+                    "circle_id": str(circle.id), "circle_name": circle.name})
+        body = {"zone_name": zone.name, "circle_name": circle.name, "branch_name": branch.name}
+    elif branch.region_id:
+        region = branch.region
+        zone = region.zone if region.zone_id else (region.circle.zone if region.circle_id else None)
+        hierarchy = "ZONAL"
+        ctx.update({"zone_id": str(zone.id), "zone_name": zone.name,
+                    "region_id": str(region.id), "region_name": region.name})
+        body = {"zone_name": zone.name, "region_name": region.name, "branch_name": branch.name}
+        levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
+        if "circle" in levels and region.circle_id:
+            ctx.update({"circle_id": str(region.circle_id), "circle_name": region.circle.name})
+            body["circle_name"] = region.circle.name
     elif branch.division_id:
         division = branch.division
-        region   = division.region
-        circle   = region.circle
-        zone     = circle.zone
+        region = division.region
+        circle = region.circle if region.circle_id else None
+        zone = region.zone if region.zone_id else (circle.zone if circle else None)
         hierarchy = "ZONAL"
-        ctx.update({
-            "zone_id": str(zone.id),         "zone_name": zone.name,
-            "circle_id": str(circle.id),     "circle_name": circle.name,
-            "region_id": str(region.id),     "region_name": region.name,
-            "division_id": str(division.id), "division_name": division.name,
-        })
-        body = {
-            "zone_name": zone.name, "circle_name": circle.name,
-            "region_name": region.name, "division_name": division.name,
-            "branch_name": branch.name,
-        }
+        ctx.update({"zone_id": str(zone.id), "zone_name": zone.name,
+                    "region_id": str(region.id), "region_name": region.name,
+                    "division_id": str(division.id), "division_name": division.name})
+        body = {"zone_name": zone.name, "region_name": region.name,
+                "division_name": division.name, "branch_name": branch.name}
+        levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
+        if circle and "circle" in levels:
+            ctx.update({"circle_id": str(circle.id), "circle_name": circle.name})
+            body["circle_name"] = circle.name
     else:
         return {}
 
@@ -3348,10 +3422,12 @@ def user_can_see_ac(user, ac_id, device_map, branch_index):
             if hierarchy == "ZONAL" and user.zone_id:
                 return (
                     site.branch.customer_id == user.customer_id
-                    and site.branch.division
-                    and site.branch.division.region
-                    and site.branch.division.region.circle
-                    and site.branch.division.region.circle.zone_id == user.zone_id
+                    and (
+                        (site.branch.zone_id and site.branch.zone_id == user.zone_id)
+                        or (site.branch.circle_id and site.branch.circle.zone_id == user.zone_id)
+                        or (site.branch.region_id and get_branch_zone_id(site.branch) == user.zone_id)
+                        or (site.branch.division_id and get_branch_zone_id(site.branch) == user.zone_id)
+                    )
                 )
             return site.branch_id == user.branch_id
 
@@ -3661,12 +3737,7 @@ def _devices_impl(request):
                         )
                     ) if state_id else []
                 elif customer_obj and customer_obj.hierarchy_type == "ZONAL":
-                    zone_id = (
-                        branch_obj.division.region.circle.zone_id
-                        if branch_obj.division_id and branch_obj.division.region_id
-                        and branch_obj.division.region.circle_id
-                        else None
-                    )
+                    zone_id = get_branch_zone_id(branch_obj)
                     site_admins = list(
                         User.objects.filter(
                             role=Role.BR_ADMIN,
@@ -3752,10 +3823,12 @@ def _devices_impl(request):
             elif hierarchy == "ZONAL" and acting.zone_id:
                 allowed = (
                     site_obj.branch.customer_id == acting.customer_id
-                    and site_obj.branch.division
-                    and site_obj.branch.division.region
-                    and site_obj.branch.division.region.circle
-                    and site_obj.branch.division.region.circle.zone_id == acting.zone_id
+                    and (
+                        (site_obj.branch.zone_id and site_obj.branch.zone_id == acting.zone_id)
+                        or (site_obj.branch.circle_id and site_obj.branch.circle.zone_id == acting.zone_id)
+                        or (site_obj.branch.region_id and get_branch_zone_id(site_obj.branch) == acting.zone_id)
+                        or (site_obj.branch.division_id and get_branch_zone_id(site_obj.branch) == acting.zone_id)
+                    )
                 )
             else:
                 allowed = site_obj.branch_id == acting.branch_id
@@ -4194,13 +4267,19 @@ def _scoped_tree(location_file, user, customer_id=None, hierarchy=None):
                 picker_customer = None
 
     if picker_customer is not None:
-        wanted = picker_customer.pk
-        tree = ownership.filter_branches_only(
-            tree, lambda n: n.get("customer_id") in (None, "", wanted)
-        )
-        if hierarchy and ownership.tree_has_no_locations(tree):
+        # Branch creation must use the customer's actual database hierarchy.
+        # The bundled JSON files are master templates: their source IDs/codes
+        # are not necessarily the customer-specific DB primary keys/codes.
+        # Using them here made District/Taluka IDs fail validation and made
+        # newly-created Zone/Circle rows invisible in the picker.
+        if hierarchy in ("GEOGRAPHICAL", "ZONAL"):
             from .hierarchy_tree_sync import db_location_tree
             tree = db_location_tree(hierarchy, picker_customer)
+        else:
+            wanted = picker_customer.pk
+            tree = ownership.filter_branches_only(
+                tree, lambda n: n.get("customer_id") in (None, "", wanted)
+            )
         return ownership.attach_owner_details(_attach_devices_to_tree(tree, user))
 
     tree = ownership.filter_tree_for_user(tree, user)
@@ -4602,21 +4681,22 @@ def resolve_ac_location(ac_id, device_map):
                     }
                     hierarchy_type = "GEOGRAPHICAL"
 
-                elif branch.division_id:
-                    division = branch.division
-                    region = division.region
-                    circle = region.circle
-                    zone = circle.zone
+                elif branch.zone_id or branch.circle_id or branch.region_id or branch.division_id:
+                    division = branch.division if branch.division_id else None
+                    region = division.region if division else (branch.region if branch.region_id else None)
+                    circle = region.circle if region and region.circle_id else (branch.circle if branch.circle_id else None)
+                    zone = branch.zone if branch.zone_id else (circle.zone if circle else (region.zone if region and region.zone_id else (region.circle.zone if region and region.circle_id else None)))
 
+                    levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
                     zon = {
-                        "zone_id": str(zone.id),
-                        "zone_name": zone.name,
-                        "circle_id": str(circle.id),
-                        "circle_name": circle.name,
-                        "region_id": str(region.id),
-                        "region_name": region.name,
-                        "division_id": str(division.id),
-                        "division_name": division.name,
+                        "zone_id": str(zone.id) if zone else "",
+                        "zone_name": zone.name if zone else "",
+                        "circle_id": str(circle.id) if circle and "circle" in levels else "",
+                        "circle_name": circle.name if circle and "circle" in levels else "",
+                        "region_id": str(region.id) if region and "region" in levels else "",
+                        "region_name": region.name if region and "region" in levels else "",
+                        "division_id": str(division.id) if division and "division" in levels else "",
+                        "division_name": division.name if division and "division" in levels else "",
                         "branch_id": str(branch.id),
                         "branch_name": branch.name,
                         "floor_id": (
@@ -4859,7 +4939,17 @@ def ac_data_with_location(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def ac_data(request):
+    from .history_views import RangeError
+    from .time_range import apply_time_range, requested_window
+
     try:
+        # Optional global time filter (?from=&to=). Without it this endpoint
+        # is the live snapshot, exactly as before.
+        try:
+            window = requested_window(request)
+        except RangeError as exc:
+            return JsonResponse({"status": "error", "message": str(exc)}, status=400)
+
         data = get_telemetry_records()
         data = scope_ac_records(data, request.user)
         data = filter_by_location(data, request)
@@ -4867,10 +4957,13 @@ def ac_data(request):
         device_map = build_device_location_map()
         data = [attach_location(rec, device_map) for rec in data]
 
-        return JsonResponse(
-            {"status": "success", "count": len(data), "data": data},
-            safe=True,
-        )
+        if window:
+            data = apply_time_range(data, window)
+
+        payload = {"status": "success", "count": len(data), "data": data}
+        if window:
+            payload["range"] = {"from": window[0].isoformat(), "to": window[1].isoformat()}
+        return JsonResponse(payload, safe=True)
     except json.JSONDecodeError:
         return JsonResponse({"status": "error", "message": "Invalid JSON format"}, status=500)
     except Exception as e:
@@ -5378,12 +5471,10 @@ class CustomerListView(CustomerScopeMixin, generics.ListCreateAPIView):
                     customer_admin.set_password(request.data.get("admin_password") or raw_password)
                     customer_admin.save()
 
-                # The hierarchy initializer creates the customer's branch
-                # records before either login exists. Attach those initial
-                # branches now that the contact-person admin is available.
-                Branch.objects.filter(
-                    customer=customer, assigned_admin__isnull=True
-                ).update(assigned_admin=customer_admin)
+                # Branch no longer has an assigned_admin field. Branch-admin
+                # access is derived from the customer's configured hierarchy
+                # scope (see accessible_branches), so customer creation must
+                # not query or update a removed Branch column.
         except Exception as exc:
             traceback.print_exc()
             _rollback_3tp_customer(auth_header, tpt_customer_id)
@@ -5641,7 +5732,7 @@ class CountryListAPIView(generics.ListAPIView):
         ).order_by("name")
 
 
-class ZoneListView(generics.ListAPIView):
+class ZoneListView(generics.ListCreateAPIView):
     serializer_class = ZoneSerializer
 
     def get_queryset(self):
@@ -5673,7 +5764,23 @@ class ZoneListView(generics.ListAPIView):
 
         return qs.order_by("name")
 
-class CircleListView(generics.ListAPIView):
+    def perform_create(self, serializer):
+        user = self.request.user
+        customer = serializer.validated_data["customer"]
+        if user.role == Role.ORG_SUPER_ADMIN:
+            if customer.organization_id != user.organization_id:
+                raise DRFValidationError("Customer does not belong to your organization.")
+        elif user.role == Role.CUSTOMER:
+            if customer.pk != user.customer_id:
+                raise DRFValidationError("Customer does not belong to your account.")
+        else:
+            raise DRFValidationError("You cannot create zones.")
+        levels = (customer.zonal_hierarchy_config or {}).get("levels", [])
+        if customer.hierarchy_type != "ZONAL" or "zone" not in levels:
+            raise DRFValidationError("Zone is not enabled in this customer's hierarchy.")
+        serializer.save()
+
+class CircleListView(generics.ListCreateAPIView):
     serializer_class = CircleSerializer
 
     def get_queryset(self):
@@ -5691,6 +5798,17 @@ class CircleListView(generics.ListAPIView):
         if zone_id:
             qs = qs.filter(zone_id=zone_id)
         return qs
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        zone = serializer.validated_data["zone"]
+        if user.role == Role.ORG_SUPER_ADMIN and zone.customer.organization_id != user.organization_id:
+            raise DRFValidationError("Zone does not belong to your organization.")
+        if user.role == Role.CUSTOMER and zone.customer_id != user.customer_id:
+            raise DRFValidationError("Zone does not belong to your customer.")
+        if user.role not in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER):
+            raise DRFValidationError("You cannot create circles.")
+        serializer.save()
 
 
 class StateListView(generics.ListAPIView):
@@ -5753,27 +5871,43 @@ class CityListView(generics.ListAPIView):
         return qs.order_by("name")
 
 
-class RegionListView(generics.ListAPIView):
+class RegionListView(generics.ListCreateAPIView):
     serializer_class = RegionSerializer
 
     def get_queryset(self):
         user = self.request.user
-        qs = Region.objects.select_related("circle", "circle__zone")
+        qs = Region.objects.select_related("circle", "circle__zone", "zone")
 
         if user.role == Role.ORG_SUPER_ADMIN:
-            qs = qs.filter(circle__zone__customer__organization_id=user.organization_id)
+            qs = qs.filter(Q(circle__zone__customer__organization_id=user.organization_id) | Q(zone__customer__organization_id=user.organization_id))
         elif user.role in [Role.CUSTOMER, Role.BR_ADMIN, Role.ENGINEER]:
-            qs = qs.filter(circle__zone__customer_id=user.customer_id)
+            qs = qs.filter(Q(circle__zone__customer_id=user.customer_id) | Q(zone__customer_id=user.customer_id))
         else:
             return qs.none()
 
         circle_id = self.request.query_params.get("circle")
+        zone_id = self.request.query_params.get("zone")
         if circle_id:
             qs = qs.filter(circle_id=circle_id)
+        if zone_id:
+            qs = qs.filter(Q(zone_id=zone_id) | Q(circle__zone_id=zone_id))
         return qs.order_by("name")
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        attrs = serializer.validated_data
+        parent = attrs.get("zone") or attrs.get("circle")
+        customer = parent.customer if hasattr(parent, "customer_id") else parent.zone.customer
+        if user.role == Role.ORG_SUPER_ADMIN and customer.organization_id != user.organization_id:
+            raise DRFValidationError("The selected parent does not belong to your organization.")
+        if user.role == Role.CUSTOMER and customer.pk != user.customer_id:
+            raise DRFValidationError("The selected parent does not belong to your customer.")
+        if user.role not in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER):
+            raise DRFValidationError("You cannot create regions.")
+        serializer.save()
 
-class DivisionListView(generics.ListAPIView):
+
+class DivisionListView(generics.ListCreateAPIView):
     serializer_class = DivisionSerializer
 
     def get_queryset(self):
@@ -5781,9 +5915,9 @@ class DivisionListView(generics.ListAPIView):
         qs = Division.objects.select_related("region", "region__circle", "region__circle__zone")
 
         if user.role == Role.ORG_SUPER_ADMIN:
-            qs = qs.filter(region__circle__zone__customer__organization_id=user.organization_id)
+            qs = qs.filter(Q(region__circle__zone__customer__organization_id=user.organization_id) | Q(region__zone__customer__organization_id=user.organization_id))
         elif user.role in [Role.CUSTOMER, Role.BR_ADMIN, Role.ENGINEER]:
-            qs = qs.filter(region__circle__zone__customer_id=user.customer_id)
+            qs = qs.filter(Q(region__circle__zone__customer_id=user.customer_id) | Q(region__zone__customer_id=user.customer_id))
         else:
             return qs.none()
 
@@ -5791,6 +5925,20 @@ class DivisionListView(generics.ListAPIView):
         if region_id:
             qs = qs.filter(region_id=region_id)
         return qs.order_by("name")
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        region = serializer.validated_data["region"]
+        customer = region.zone.customer if region.zone_id else region.circle.zone.customer
+        if user.role == Role.ORG_SUPER_ADMIN:
+            if customer.organization_id != user.organization_id:
+                raise DRFValidationError("Region does not belong to your organization.")
+        elif user.role == Role.CUSTOMER:
+            if customer.pk != user.customer_id:
+                raise DRFValidationError("Region does not belong to your customer.")
+        else:
+            raise DRFValidationError("You cannot create divisions.")
+        serializer.save()
 
 
 class DistrictListView(generics.ListAPIView):
@@ -5822,6 +5970,8 @@ class BranchListView(generics.ListCreateAPIView):
 
         qs = Branch.objects.select_related(
             "customer",
+            "geographic_state",
+            "geographic_city",
 
             # Geographical
             "city",
@@ -5834,6 +5984,7 @@ class BranchListView(generics.ListCreateAPIView):
             "division__region",
             "division__region__circle",
             "division__region__circle__zone",
+            "circle", "circle__zone", "region", "region__zone", "region__circle", "region__circle__zone",
         )
 
         if user.role == Role.ORG_SUPER_ADMIN:
@@ -5847,30 +5998,9 @@ class BranchListView(generics.ListCreateAPIView):
             )
 
         elif user.role == Role.BR_ADMIN:
-            assigned_branch_ids = list(
-                Branch.objects.filter(assigned_admin=user).values_list("pk", flat=True)
-            )
-            if assigned_branch_ids:
-                qs = qs.filter(pk__in=assigned_branch_ids)
-            else:
-                hierarchy = (
-                    getattr(user.customer, "hierarchy_type", None)
-                    if user.customer_id else None
-                )
-                if hierarchy == "GEOGRAPHICAL" and user.state_id:
-                    qs = qs.filter(
-                        customer_id=user.customer_id,
-                        city__taluka__district__state_id=user.state_id,
-                    )
-                elif hierarchy == "ZONAL" and user.zone_id:
-                    qs = qs.filter(
-                        customer_id=user.customer_id,
-                        division__region__circle__zone_id=user.zone_id,
-                    )
-                elif user.branch_id:
-                    qs = qs.filter(pk=user.branch_id)
-                else:
-                    return Branch.objects.none()
+            # Branch assignment is represented by the user's hierarchy scope;
+            # Branch.assigned_admin was removed by migration 0010.
+            qs = qs.filter(pk__in=accessible_branches(user).values_list("pk", flat=True))
 
         elif user.role == Role.ENGINEER:
 
@@ -5907,16 +6037,7 @@ class BranchListView(generics.ListCreateAPIView):
                     "customer": "Logged-in user is not linked to a customer."
                 })
 
-            branch = serializer.save(customer_id=user.customer_id)
-            if not branch.assigned_admin_id:
-                primary_admin = User.objects.filter(
-                    customer_id=user.customer_id, role=Role.BR_ADMIN, is_active=True
-                ).order_by("date_joined").first() or User.objects.filter(
-                    customer_id=user.customer_id, role=Role.CUSTOMER, is_active=True
-                ).order_by("date_joined").first()
-                if primary_admin:
-                    branch.assigned_admin = primary_admin
-                    branch.save(update_fields=["assigned_admin"])
+            serializer.save(customer_id=user.customer_id)
             return
 
         # --------------------------------------------------
@@ -5942,16 +6063,7 @@ class BranchListView(generics.ListCreateAPIView):
                     "customer": "Invalid customer."
                 })
 
-            branch = serializer.save(customer=customer)
-            if not branch.assigned_admin_id:
-                primary_admin = User.objects.filter(
-                    customer=customer, role=Role.BR_ADMIN, is_active=True
-                ).order_by("date_joined").first() or User.objects.filter(
-                    customer=customer, role=Role.CUSTOMER, is_active=True
-                ).order_by("date_joined").first()
-                if primary_admin:
-                    branch.assigned_admin = primary_admin
-                    branch.save(update_fields=["assigned_admin"])
+            serializer.save(customer=customer)
             return
 
         # --------------------------------------------------
@@ -5974,6 +6086,38 @@ class BranchListView(generics.ListCreateAPIView):
         raise permissions.PermissionDenied(
             "You do not have permission to create a branch."
         )
+
+
+class BranchDetailView(generics.RetrieveUpdateAPIView):
+    """Retrieve or update a branch within the logged-in user's branch scope."""
+    serializer_class = BranchSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "patch", "put", "head", "options"]
+
+    def get_queryset(self):
+        # Reuse the same role-based customer/branch scoping as the branch list.
+        return BranchListView.get_queryset(self)
+
+    def update(self, request, *args, **kwargs):
+        if request.user.role not in [Role.ORG_SUPER_ADMIN, Role.CUSTOMER, Role.BR_ADMIN]:
+            raise permissions.PermissionDenied(
+                "You do not have permission to edit branch information."
+            )
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        editable_fields = {
+            "name", "code", "ifsc_code", "address", "pincode",
+            "latitude", "longitude", "is_active", "org_unit",
+        }
+        update_data = {
+            key: value for key, value in request.data.items()
+            if key in editable_fields
+        }
+        serializer = self.get_serializer(instance, data=update_data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
 
 class SiteListView(generics.ListCreateAPIView):
     serializer_class = SiteSerializer
@@ -6136,13 +6280,10 @@ def search_site_branches(request):
 
     else:
         branches = branches.filter(
-            division__isnull=False
+            Q(division__isnull=False) | Q(circle__isnull=False) | Q(region__isnull=False)
         ).select_related(
-            "customer",
-            "division",
-            "division__region",
-            "division__region__circle",
-            "division__region__circle__zone",
+            "customer", "division", "division__region", "division__region__circle",
+            "division__region__circle__zone", "division__region__zone", "circle", "circle__zone", "region", "region__zone", "region__circle", "region__circle__zone",
         )
 
     # ---------------------------------------------------------
@@ -6235,30 +6376,38 @@ def search_site_branches(request):
         # -----------------------------------------------------
 
         else:
-
-            division = branch.division
-
-            if division:
+            if branch.zone_id:
+                row["zone_id"] = str(branch.zone.id)
+                row["zone_name"] = branch.zone.name
+            elif branch.circle_id:
+                row["circle_id"] = str(branch.circle.id)
+                row["circle_name"] = branch.circle.name
+                row["zone_id"] = str(branch.circle.zone_id)
+                row["zone_name"] = branch.circle.zone.name
+            elif branch.region_id:
+                row["region_id"] = str(branch.region.id)
+                row["region_name"] = branch.region.name
+                levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
+                if "circle" in levels and branch.region.circle_id:
+                    row["circle_id"] = str(branch.region.circle_id)
+                    row["circle_name"] = branch.region.circle.name
+                row["zone_id"] = str(get_branch_zone_id(branch) or "")
+                row["zone_name"] = branch.region.zone.name if branch.region.zone_id else (branch.region.circle.zone.name if branch.region.circle_id else "")
+            elif branch.division_id:
+                division = branch.division
                 row["division_id"] = str(division.id)
                 row["division_name"] = division.name
-
-                region = getattr(division, "region", None)
-
-                if region:
-                    row["region_id"] = str(region.id)
-                    row["region_name"] = region.name
-
-                    circle = getattr(region, "circle", None)
-
-                    if circle:
-                        row["circle_id"] = str(circle.id)
-                        row["circle_name"] = circle.name
-
-                        zone = getattr(circle, "zone", None)
-
-                        if zone:
-                            row["zone_id"] = str(zone.id)
-                            row["zone_name"] = zone.name
+                region = division.region
+                circle = region.circle if region.circle_id else None
+                zone = region.zone if region.zone_id else (circle.zone if circle else None)
+                row["region_id"] = str(region.id)
+                row["region_name"] = region.name
+                levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
+                if circle and "circle" in levels:
+                    row["circle_id"] = str(circle.id)
+                    row["circle_name"] = circle.name
+                row["zone_id"] = str(zone.id)
+                row["zone_name"] = zone.name
 
         result.append(row)
 
@@ -6433,10 +6582,12 @@ def site_assignment(request, pk):
         elif hierarchy == "ZONAL" and user.zone_id:
             allowed = (
                 site.branch.customer_id == user.customer_id
-                and site.branch.division
-                and site.branch.division.region
-                and site.branch.division.region.circle
-                and site.branch.division.region.circle.zone_id == user.zone_id
+                and (
+                    (site.branch.zone_id and site.branch.zone_id == user.zone_id)
+                    or (site.branch.circle_id and site.branch.circle.zone_id == user.zone_id)
+                    or (site.branch.region_id and get_branch_zone_id(site.branch) == user.zone_id)
+                    or (site.branch.division_id and get_branch_zone_id(site.branch) == user.zone_id)
+                )
             )
         else:
             allowed = site.branch_id == user.branch_id
@@ -6467,12 +6618,88 @@ class UserListView(generics.ListCreateAPIView):
         return User.objects.none()
 
 
-class FloorListView(generics.ListAPIView):
-    serializer_class = FloorSerializer
+class BuildingListView(generics.ListCreateAPIView):
+    serializer_class = BuildingSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        qs = Floor.objects.select_related("branch", "branch__customer")
+        qs = Building.objects.select_related("branch", "branch__customer")
+        if user.role == Role.ORG_SUPER_ADMIN:
+            qs = qs.filter(branch__customer__organization_id=user.organization_id)
+        elif user.role == Role.CUSTOMER:
+            qs = qs.filter(branch__customer_id=user.customer_id)
+        elif user.role in (Role.BR_ADMIN, Role.ENGINEER):
+            qs = qs.filter(branch_id=user.branch_id)
+        else:
+            return qs.none()
+        branch_id = self.request.query_params.get("branch")
+        if branch_id:
+            qs = qs.filter(branch_id=branch_id)
+        return qs.order_by("name")
+
+    def perform_create(self, serializer):
+        branch = serializer.validated_data["branch"]
+        user = self.request.user
+        if user.role == Role.ORG_SUPER_ADMIN and branch.customer.organization_id != user.organization_id:
+            raise DRFValidationError("Branch does not belong to your organization.")
+        if user.role == Role.CUSTOMER and branch.customer_id != user.customer_id:
+            raise DRFValidationError("Branch does not belong to your customer.")
+        if user.role not in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER):
+            raise DRFValidationError("You cannot create buildings.")
+        serializer.save()
+
+
+class RoomListView(generics.ListCreateAPIView):
+    serializer_class = RoomSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Room.objects.select_related("floor", "floor__branch", "floor__branch__customer")
+        if user.role == Role.ORG_SUPER_ADMIN:
+            qs = qs.filter(floor__branch__customer__organization_id=user.organization_id)
+        elif user.role == Role.CUSTOMER:
+            qs = qs.filter(floor__branch__customer_id=user.customer_id)
+        elif user.role in (Role.BR_ADMIN, Role.ENGINEER):
+            qs = qs.filter(floor__branch_id=user.branch_id)
+        else:
+            return qs.none()
+        floor_id = self.request.query_params.get("floor")
+        if floor_id:
+            qs = qs.filter(floor_id=floor_id)
+        return qs.order_by("name")
+
+    def perform_create(self, serializer):
+        floor = serializer.validated_data["floor"]
+        branch = floor.branch
+        user = self.request.user
+        if user.role == Role.ORG_SUPER_ADMIN and branch.customer.organization_id != user.organization_id:
+            raise DRFValidationError("Floor does not belong to your organization.")
+        if user.role == Role.CUSTOMER and branch.customer_id != user.customer_id:
+            raise DRFValidationError("Floor does not belong to your customer.")
+        if user.role not in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER):
+            raise DRFValidationError("You cannot create rooms.")
+        serializer.save()
+
+
+class FloorListView(generics.ListCreateAPIView):
+    serializer_class = FloorSerializer
+
+    def perform_create(self, serializer):
+        branch = serializer.validated_data["branch"]
+        user = self.request.user
+        if user.role == Role.ORG_SUPER_ADMIN and branch.customer.organization_id != user.organization_id:
+            raise DRFValidationError("Branch does not belong to your organization.")
+        if user.role == Role.CUSTOMER and branch.customer_id != user.customer_id:
+            raise DRFValidationError("Branch does not belong to your customer.")
+        if user.role not in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER):
+            raise DRFValidationError("You cannot create floors.")
+        serializer.save()
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Floor.objects.select_related("branch", "branch__customer", "building")
 
         if user.role == Role.ORG_SUPER_ADMIN:
             qs = qs.filter(branch__customer__organization_id=user.organization_id)
@@ -8704,6 +8931,24 @@ def assign_device_to_branch(request):
                     })
 
             # Zonal hierarchy.
+            elif branch.customer.hierarchy_type == "ZONAL" and branch.zone_id:
+                item.update({"zone_id": str(branch.zone_id), "zone_name": branch.zone.name})
+            elif branch.customer.hierarchy_type == "ZONAL" and branch.circle_id:
+                item.update({
+                    "zone_id": str(branch.circle.zone_id),
+                    "zone_name": branch.circle.zone.name,
+                    "circle_id": str(branch.circle_id),
+                    "circle_name": branch.circle.name,
+                })
+            elif branch.customer.hierarchy_type == "ZONAL" and branch.region_id:
+                region = branch.region
+                zone = region.zone if region.zone_id else (region.circle.zone if region.circle_id else None)
+                item.update({
+                    "zone_id": str(zone.id) if zone else "",
+                    "zone_name": zone.name if zone else "",
+                    "region_id": str(region.id),
+                    "region_name": region.name,
+                })
             elif (
                 branch.customer.hierarchy_type == "ZONAL"
                 and branch.division_id

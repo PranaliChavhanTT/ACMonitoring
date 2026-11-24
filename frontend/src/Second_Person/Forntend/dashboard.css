@@ -1,4 +1,4 @@
-/* dashboard.css */
+/* 1. Dashboard shell */
 .ac-dashboard {
     width: 100%;
     min-height: 100%;
@@ -12,8 +12,7 @@
     padding: 22px 26px;
     border-radius: 14px;
     margin-bottom: 18px;
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
 .ac-dashboard-header h1 {
@@ -42,8 +41,7 @@
     height: 10px;
     border-radius: 50%;
     background: #22c55e;
-    box-shadow:
-        0 0 8px rgba(34, 197, 94, 0.7);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
 }
 
 .dashboard-filter-info {
@@ -94,16 +92,17 @@
     color: #1e293b;
 }
 
+/* ------------------------------------------------------------
+   2. KPI cards
+   ------------------------------------------------------------ */
 .kpi-card {
     background: white;
     border-radius: 12px;
     min-height: 125px;
     display: flex;
     flex-direction: column;
-    align-items: center;          /* center icon + text */
+    align-items: center;
     justify-content: center;
-    /* gap: 3px; */
-    /* padding: 18px 12px; */
     text-align: center;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     border: 1px solid #eef2f7;
@@ -119,7 +118,6 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    /* background: #f1f5f9;          default soft grey */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -137,843 +135,16 @@
 
 .kpi-content p {
     margin: 0;
-    font-size: 13px;
-    color: #64748b;
-    font-weight: 600;
-}
-
-.kpi-content h2 {
-    margin: 0;
-    font-size: 20px;
-    color: #111827;
-    font-weight: 700;
-}
-
-.kpi-content span {
-    font-size: 11px;
-    color: #94a3b8;
-}
-
-.kpi-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-}
-
-.kpi-content p {
-    margin: 0;
     font-size: 14px;
     color: #64748b;
     font-weight: 600;
 }
 
 .kpi-content h2 {
-    /* margin: 5px 0; */
-    font-size: 20px;
-    color: #111827;
-    margin: 0;
-}
-
-.kpi-content span {
-    font-size: 11px;
-    color: #94a3b8;
-}
-
-.kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
-    gap: 16px;
-}
-
-.dashboard-grid {
-    display: grid;
-    grid-template-columns:repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 18px;
-}
-
-.chart-box {
-    background: white;
-    border-radius: 14px;
-    padding: 10px;
-    min-width: 0;
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.06);
-    border: 1px solid #eef2f7;
-}
-
-.chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.chart-header h3 {
-    margin: 0;
-    font-size: 16px;
-    color: #1e293b;
-}
-
-.chart-header span {
-    display: block;
-    margin-top: 4px;
-    font-size: 11px;
-    color: #94a3b8;
-}
-
-.chart-select {
-    padding: 7px 10px;
-    border: 1px solid #dbe2ea;
-    border-radius: 7px;
-    background: white;
-    font-size: 12px;
-    cursor: pointer;
-}
-
-.dashboard-full-width {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.table-wrapper {
-    overflow-x: auto;
-}
-
-.ac-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 850px;
-}
-
-.ac-table th {
-    background: #f8fafc;
-    color: #64748b;
-    font-size: 12px;
-    font-weight: 700;
-    text-align: left;
-    padding: 12px;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.ac-table td {
-    padding: 13px 12px;
-    font-size: 13px;
-    color: #475569;
-    border-bottom: 1px solid #eef2f7;
-}
-
-.ac-table tbody tr:hover {
-    background: #f8fafc;
-}
-
-.branch-name {
-    font-weight: 700;
-    color: #1e293b !important;
-}
-
-.percentage-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 130px;
-}
-
-.percentage-bar {
-    width: 80px;
-    height: 7px;
-    background: #e2e8f0;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.percentage-bar span {
-    display: block;
-    height: 100%;
-    background: #1677ff;
-    border-radius: 10px;
-}
-
-.percentage-cell small {
-    color: #64748b;
-    font-size: 11px;
-}
-
-.health-chart-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    min-height: 260px;
-}
-
-.health-center {
-    position: absolute;
-    left: 30%;
-    top: 50%;
-    transform:
-        translate(-50%, -50%);
-    text-align: center;
-    pointer-events: none;
-}
-
-.health-center strong {
-    display: block;
-    font-size: 25px;
-    color: #111827;
-}
-
-.health-center span {
-    display: block;
-    font-size: 10px;
-    color: #94a3b8;
-    margin-top: 3px;
-}
-
-.health-legend {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.health-item {
-    display: grid;
-    grid-template-columns:
-        10px 1fr auto;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: #475569;
-}
-
-.health-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-}
-
-.chart-empty {
-    min-height: 220px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #94a3b8;
-    font-size: 13px;
-}
-
-.dashboard-no-data {
-    background: white;
-    border-radius: 14px;
-    min-height: 350px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.06);
-}
-
-.no-data-icon {
-    font-size: 45px;
-    margin-bottom: 10px;
-}
-
-.dashboard-no-data h2 {
-    margin: 0;
-    color: #334155;
-    font-size: 20px;
-}
-
-.dashboard-no-data p {
-    color: #94a3b8;
-    font-size: 13px;
-}
-
-
-@media (max-width: 1200px) {
-    .kpi-grid {
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 850px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    .ac-dashboard-header {
-        align-items: flex-start;
-        gap: 15px;
-    }
-}
-
-@media (max-width: 600px) {
-    .kpi-grid {
-        grid-template-columns: 1fr;
-    }
-    .ac-dashboard-header {
-        flex-direction: column;
-    }
-    .dashboard-filter-info {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-    .record-count {
-        margin-left: 0;
-    }
-}
-
- 
-.dashboard-grid {
-    display: grid;
-    grid-template-columns:
-        repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    width: 100%;
-    margin-bottom: 16px;
-    box-sizing: border-box;
-}
-
-.chart-box {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    min-height: 350px;
-    box-sizing: border-box;
-    padding: 16px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow:
-        0 2px 8px
-        rgba(15, 23, 42, 0.05);
-    overflow: hidden;
-}
-
-.chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    width: 100%;
-    min-height: 43px;
-    margin-bottom: 4px;
-    box-sizing: border-box;
-}
-
-.chart-header > div {
-    min-width: 0;
-}
-
-.chart-header h3 {
-    margin: 0;
-    color: #1e293b;
-    font-size: 14px;
-    line-height: 1.3;
-    font-weight: 700;
-}
-
-.chart-header span {
-    display: block;
-    margin-top: 4px;
-    color: #94a3b8;
-    font-size: 10px;
-    line-height: 1.3;
-}
-
-.chart-select {
-    flex-shrink: 0;
-    height: 28px;
-    padding: 0 8px;
-    border: 1px solid #dbe2ea;
-    border-radius: 6px;
-    background: #ffffff;
-    color: #475569;
-    font-size: 10px;
-    outline: none;
-}
-
-.chart-box
-.recharts-responsive-container {
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-.chart-empty {
-    width: 100%;
-    height: 280px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #94a3b8;
-    font-size: 11px;
-}
-
-.health-chart-container {
-    position: relative;
-    width: 100%;
-    min-height: 280px;
-    display: flex;
-    align-items: center;
-    box-sizing: border-box;
-}
-
-.health-center {
-    position: absolute;
-    left: 30%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    pointer-events: none;
-}
-
-.health-center strong {
-    display: block;
-    color: #111827;
-    font-size: 24px;
-    line-height: 1.2;
-}
-
-.health-center span {
-    display: block;
-    margin-top: 3px;
-    color: #94a3b8;
-    font-size: 9px;
-}
-
-.health-legend {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.health-item {
-    display: grid;
-    grid-template-columns: 9px 1fr auto;
-    align-items: center;
-    gap: 7px; 
-    color: #475569;
-    font-size: 10px;
-}
-
-.health-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.dashboard-full-width {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-}
-
-.ac-table {
-    width: 100%;
-    min-width: 850px;
-    border-collapse: collapse;
-}
-
-.ac-table th {
-    padding: 11px 12px;
-    background: #f8fafc;
-    color: #64748b;
-    font-size: 10px;
-    font-weight: 700;
-    text-align: left;
-    border-bottom:
-        1px solid #e2e8f0;
-}
-
-.ac-table td {
-    padding: 12px;
-    color: #475569;
-    font-size: 10px;
-    border-bottom:
-        1px solid #eef2f7;
-}
-
-.ac-table tbody tr:hover {
-    background: #f8fafc;
-}
-
-.branch-name {
-    color: #1e293b !important;
-    font-weight: 700;
-}
-
-.percentage-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 130px;
-}
-
-.percentage-bar {
-    width: 80px;
-    height: 6px;
-    overflow: hidden;
-    border-radius: 10px;
-    background: #e2e8f0;
-}
-
-.percentage-bar span {
-    display: block;
-    height: 100%;
-    border-radius: 10px;
-    background: #3182BD;
-}
-
-.percentage-cell small {
-    color: #64748b;
-    font-size: 9px;
-}
-
-.dashboard-no-data {
-    min-height: 320px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 25px;
-    box-sizing: border-box;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow:
-        0 2px 8px
-        rgba(15, 23, 42, 0.05);
-}
-
-.no-data-icon {
-    margin-bottom: 10px;
-    font-size: 40px;
-}
-
-.dashboard-no-data h2 {
-    margin: 0;
-    color: #334155;
-    font-size: 17px;
-}
-
-
-.dashboard-no-data p {
-    margin-top: 6px;
-    color: #94a3b8;
-    font-size: 11px;
-
-}
-
-
-@media (max-width: 1400px) {
-    .dashboard-grid {
-        grid-template-columns:
-            repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 1000px) {
-    .dashboard-grid {
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 700px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    .chart-box {
-        min-height: 320px;
-    }
-} 
-
-.dashboard-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.trends-button {
-    padding: 8px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #fff;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.trends-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-}
-
-.trends-button:active {
-    transform: translateY(0);
-}
-
-/* Filter-aware dashboard layout additions */
-.dashboard-scope-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
-.dashboard-scope-heading h2 { margin: 0; }
-.dashboard-scope-heading p { margin: 5px 0 0; color: #7b8ba3; font-size: 12px; }
-.dashboard-grid--primary { align-items: stretch; margin-bottom: 16px; }
-.dashboard-grid--secondary { align-items: stretch; margin-bottom: 16px; }
-.dashboard-grid--regional, .dashboard-grid--devices { align-items: stretch; margin-bottom: 18px; }
-.dashboard-context-card { min-height: 240px; }
-.dashboard-context-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
-.dashboard-context-stats > div { display: flex; flex-direction: column; gap: 6px; padding: 13px; border: 1px solid #edf2f7; border-radius: 10px; background: #f8fbff; }
-.dashboard-context-stats span { color: #7b8ba3; font-size: 11px; }
-.dashboard-context-stats strong { color: #172033; font-size: 17px; font-weight: 800; }
-.dashboard-context-note { margin-top: 14px; color: #718096; font-size: 11px; line-height: 1.5; }
-.ai-module-toggle-section { margin: 4px 0 18px; }
-.ai-module-toggle-button { min-height: 40px; }
-.ai-module-panel { margin-top: 14px; }
-@media (max-width: 700px) {
-  .dashboard-scope-heading { align-items: flex-start; }
-  .dashboard-scope-heading .trends-button { padding: 8px 10px; font-size: 12px; white-space: nowrap; }
-  .dashboard-context-stats { grid-template-columns: 1fr 1fr; }
-}
-.ac-device-table { min-width: 1050px; }
-.ac-device-status { display: inline-flex; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 750; text-transform: capitalize; }
-.ac-device-status.is-on { color: #15803d; background: #dcfce7; }
-.ac-device-status.is-off { color: #64748b; background: #f1f5f9; }
-
-
-/* Compact KPI treatment: deliberately matches the dashboard's existing KPI cards. */
-.energy-cost-kpi {
-  min-width: 0;
-  padding: 10px 6px;
-  overflow: hidden;
-}
-.energy-cost-kpi__icon {
-  color: #16845b;
-  /* background: #e8f8ef; */
-  font-weight: 800;
-  font-size: 24px;
-}
-.energy-cost-kpi__content {
-  width: 100%;
-  min-width: 0;
-  padding: 0 4px 7px;
-}
-.energy-cost-kpi__content p {
-  margin: 2px 0 6px;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.25;
-}
-.energy-cost-kpi__content h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: clamp(14px, 1.05vw, 20px);
-  line-height: 1.25;
-  font-weight: 750;
-  overflow-wrap: anywhere;
-}
-.energy-cost-kpi__content > span {
-  display: block;
-  margin-top: 5px;
-  color: #94a3b8;
-  font-size: 10px;
-  line-height: 1.3;
-}
-.energy-cost-kpi__source {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  margin-top: 5px;
-  color: #2563eb;
-  font-size: 9px;
-  line-height: 1.2;
-  text-decoration: none;
-}
-.energy-cost-kpi__source:hover { text-decoration: underline; }
-
-/* dashboard.css */
-.ac-dashboard {
-    width: 100%;
-    min-height: 100%;
-}
-
-.ac-dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: 22px 26px;
-    border-radius: 14px;
-    margin-bottom: 18px;
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.06);
-}
-
-.ac-dashboard-header h1 {
-    margin: 0;
-    font-size: 26px;
-    color: #111827;
-}
-
-.ac-dashboard-header p {
-    margin: 7px 0 0;
-    color: #64748b;
-    font-size: 14px;
-}
-
-.dashboard-live-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #16a34a;
-}
-
-.live-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #22c55e;
-    box-shadow:
-        0 0 8px rgba(34, 197, 94, 0.7);
-}
-
-.dashboard-filter-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-bottom: 22px;
-}
-
-.filter-label {
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.filter-value {
-    color: #1e293b;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.record-count {
-    margin-left: auto;
-    background: #e0f2fe;
-    color: #0369a1;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.dashboard-section {
-    margin-bottom: 22px;
-}
-
-.section-title {
-    margin-bottom: 12px;
-}
-
-.section-title h2 {
-    margin: 0;
-    font-size: 18px;
-    color: #1e293b;
-}
-
-.kpi-card {
-    background: white;
-    border-radius: 12px;
-    min-height: 125px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;          /* center icon + text */
-    justify-content: center;
-    /* gap: 3px; */
-    /* padding: 18px 12px; */
-    text-align: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    border: 1px solid #eef2f7;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.09);
-}
-
-.kpi-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    /* background: #f1f5f9;          default soft grey */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    flex-shrink: 0;
-}
-
-.kpi-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-    align-items: center;
-}
-
-.kpi-content p {
-    margin: 0;
-    font-size: 13px;
-    color: #64748b;
-    font-weight: 600;
-}
-
-.kpi-content h2 {
     margin: 0;
     font-size: 20px;
     color: #111827;
     font-weight: 700;
-}
-
-.kpi-content span {
-    font-size: 11px;
-    color: #94a3b8;
-}
-
-.kpi-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-}
-
-.kpi-content p {
-    margin: 0;
-    font-size: 14px;
-    color: #64748b;
-    font-weight: 600;
-}
-
-.kpi-content h2 {
-    /* margin: 5px 0; */
-    font-size: 20px;
-    color: #111827;
-    margin: 0;
 }
 
 .kpi-content span {
@@ -987,376 +158,77 @@
     gap: 16px;
 }
 
+/* ------------------------------------------------------------
+   3. Chart grid & chart box
+   ------------------------------------------------------------ */
 .dashboard-grid {
     display: grid;
-    grid-template-columns:repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 18px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    width: 100%;
+    margin-bottom: 16px;
+    box-sizing: border-box;
 }
 
 .chart-box {
-    background: white;
-    border-radius: 14px;
-    padding: 10px;
+    width: 100%;
+    height: 100%;
     min-width: 0;
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.06);
-    border: 1px solid #eef2f7;
+    min-height: 350px;
+    box-sizing: border-box;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
 }
 
 .chart-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 43px;
+    margin-bottom: 4px;
+    box-sizing: border-box;
+}
+
+.chart-header > div {
+    min-width: 0;
 }
 
 .chart-header h3 {
     margin: 0;
-    font-size: 16px;
     color: #1e293b;
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 700;
 }
 
 .chart-header span {
     display: block;
     margin-top: 4px;
-    font-size: 11px;
     color: #94a3b8;
+    font-size: 10px;
+    line-height: 1.3;
 }
 
 .chart-select {
-    padding: 7px 10px;
+    flex-shrink: 0;
+    height: 28px;
+    padding: 0 8px;
     border: 1px solid #dbe2ea;
-    border-radius: 7px;
-    background: white;
-    font-size: 12px;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #475569;
+    font-size: 10px;
+    outline: none;
     cursor: pointer;
 }
 
-.dashboard-full-width {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.table-wrapper {
-    overflow-x: auto;
-}
-
-.ac-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 850px;
-}
-
-.ac-table th {
-    background: #f8fafc;
-    color: #64748b;
-    font-size: 12px;
-    font-weight: 700;
-    text-align: left;
-    padding: 12px;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.ac-table td {
-    padding: 13px 12px;
-    font-size: 13px;
-    color: #475569;
-    border-bottom: 1px solid #eef2f7;
-}
-
-.ac-table tbody tr:hover {
-    background: #f8fafc;
-}
-
-.branch-name {
-    font-weight: 700;
-    color: #1e293b !important;
-}
-
-.percentage-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 130px;
-}
-
-.percentage-bar {
-    width: 80px;
-    height: 7px;
-    background: #e2e8f0;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.percentage-bar span {
-    display: block;
-    height: 100%;
-    background: #1677ff;
-    border-radius: 10px;
-}
-
-.percentage-cell small {
-    color: #64748b;
-    font-size: 11px;
-}
-
-.health-chart-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    min-height: 260px;
-}
-
-.health-center {
-    position: absolute;
-    left: 30%;
-    top: 50%;
-    transform:
-        translate(-50%, -50%);
-    text-align: center;
-    pointer-events: none;
-}
-
-.health-center strong {
-    display: block;
-    font-size: 25px;
-    color: #111827;
-}
-
-.health-center span {
-    display: block;
-    font-size: 10px;
-    color: #94a3b8;
-    margin-top: 3px;
-}
-
-.health-legend {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.health-item {
-    display: grid;
-    grid-template-columns:
-        10px 1fr auto;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: #475569;
-}
-
-.health-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-}
-
-.chart-empty {
-    min-height: 220px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #94a3b8;
-    font-size: 13px;
-}
-
-.dashboard-no-data {
-    background: white;
-    border-radius: 14px;
-    min-height: 350px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.06);
-}
-
-.no-data-icon {
-    font-size: 45px;
-    margin-bottom: 10px;
-}
-
-.dashboard-no-data h2 {
-    margin: 0;
-    color: #334155;
-    font-size: 20px;
-}
-
-.dashboard-no-data p {
-    color: #94a3b8;
-    font-size: 13px;
-}
-
-
-@media (max-width: 1200px) {
-    .kpi-grid {
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 850px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    .ac-dashboard-header {
-        align-items: flex-start;
-        gap: 15px;
-    }
-}
-
-@media (max-width: 600px) {
-    .kpi-grid {
-        grid-template-columns: 1fr;
-    }
-    .ac-dashboard-header {
-        flex-direction: column;
-    }
-    .dashboard-filter-info {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-    .record-count {
-        margin-left: 0;
-    }
-}
-
-
-
- 
-
-.dashboard-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(3, minmax(0, 1fr));
-
-    gap: 14px;
-
-    width: 100%;
-
-    margin-bottom: 16px;
-
-    box-sizing: border-box;
-
-}
-
-
-.chart-box {
-
-    width: 100%;
-
-    height: 100%;
-
-    min-width: 0;
-
-    min-height: 350px;
-
-    box-sizing: border-box;
-
-    padding: 16px;
-
-    background: #ffffff;
-
-    border: 1px solid #e5e7eb;
-
-    border-radius: 10px;
-
-    box-shadow:
-        0 2px 8px
-        rgba(15, 23, 42, 0.05);
-
-    overflow: hidden;
-
-}
-
-.chart-header {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: flex-start;
-
-    gap: 10px;
-
-    width: 100%;
-
-    min-height: 43px;
-
-    margin-bottom: 4px;
-
-    box-sizing: border-box;
-
-}
-
-
-.chart-header > div {
-
-    min-width: 0;
-
-}
-
-
-.chart-header h3 {
-
-    margin: 0;
-
-    color: #1e293b;
-
-    font-size: 14px;
-
-    line-height: 1.3;
-
-    font-weight: 700;
-
-}
-
-
-.chart-header span {
-
-    display: block;
-
-    margin-top: 4px;
-
-    color: #94a3b8;
-
-    font-size: 10px;
-
-    line-height: 1.3;
-
-}
-
-
-.chart-select {
-
-    flex-shrink: 0;
-
-    height: 28px;
-
-    padding: 0 8px;
-
-    border: 1px solid #dbe2ea;
-
-    border-radius: 6px;
-
-    background: #ffffff;
-
-    color: #475569;
-
-    font-size: 10px;
-
-    outline: none;
-
-}
-
-.chart-box
-.recharts-responsive-container {
+.chart-box .recharts-responsive-container {
     width: 100% !important;
     max-width: 100% !important;
 }
@@ -1364,6 +236,7 @@
 .chart-empty {
     width: 100%;
     height: 280px;
+    min-height: 220px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1371,10 +244,16 @@
     font-size: 11px;
 }
 
+.dashboard-full-width {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* 4. Health chart */
 .health-chart-container {
     position: relative;
     width: 100%;
-    min-height: 280px;
+    min-height: 250px;
     display: flex;
     align-items: center;
     box-sizing: border-box;
@@ -1414,7 +293,7 @@
     display: grid;
     grid-template-columns: 9px 1fr auto;
     align-items: center;
-    gap: 7px; 
+    gap: 7px;
     color: #475569;
     font-size: 10px;
 }
@@ -1425,11 +304,9 @@
     border-radius: 50%;
 }
 
-.dashboard-full-width {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
+/* ------------------------------------------------------------
+   5. Tables
+   ------------------------------------------------------------ */
 .table-wrapper {
     width: 100%;
     overflow-x: auto;
@@ -1448,16 +325,27 @@
     font-size: 10px;
     font-weight: 700;
     text-align: left;
-    border-bottom:
-        1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .ac-table td {
     padding: 12px;
     color: #475569;
     font-size: 10px;
-    border-bottom:
-        1px solid #eef2f7;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.ts-cell {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.ts-time {
+  font-weight: 500;
+}
+.ts-date {
+  font-size: 0.8em;
+  color: #6b7280; /* muted */
 }
 
 .ac-table tbody tr:hover {
@@ -1488,7 +376,7 @@
     display: block;
     height: 100%;
     border-radius: 10px;
-    background: #3182BD;
+    background: #3182bd;
 }
 
 .percentage-cell small {
@@ -1496,6 +384,9 @@
     font-size: 9px;
 }
 
+/* ------------------------------------------------------------
+   6. No-data state
+   ------------------------------------------------------------ */
 .dashboard-no-data {
     min-height: 320px;
     display: flex;
@@ -1507,9 +398,7 @@
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    box-shadow:
-        0 2px 8px
-        rgba(15, 23, 42, 0.05);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
 .no-data-icon {
@@ -1523,38 +412,15 @@
     font-size: 17px;
 }
 
-
 .dashboard-no-data p {
     margin-top: 6px;
     color: #94a3b8;
     font-size: 11px;
-
 }
 
-
-@media (max-width: 1400px) {
-    .dashboard-grid {
-        grid-template-columns:
-            repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 1000px) {
-    .dashboard-grid {
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 700px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    .chart-box {
-        min-height: 320px;
-    }
-} 
-
+/* ------------------------------------------------------------
+   7. Header actions & trends button
+   ------------------------------------------------------------ */
 .dashboard-header-actions {
     display: flex;
     align-items: center;
@@ -1582,33 +448,307 @@
     transform: translateY(0);
 }
 
-/* Processed 3TP fault panel */
-.fault-panel { width: 100%; box-sizing: border-box; padding: 18px; }
-.fault-panel__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.fault-panel__header h3 { margin: 0 0 5px; color: #0f172a; font-size: 1.05rem; }
-.fault-panel__header p { margin: 0; color: #64748b; font-size: .85rem; }
-.fault-panel__count { border-radius: 999px; padding: 6px 10px; background: #f1f5f9; color: #334155; font-size: .82rem; font-weight: 700; }
-.fault-panel__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
-.fault-card { min-width: 0; border: 1px solid #e2e8f0; border-left: 4px solid #f59e0b; border-radius: 10px; padding: 13px; background: #fff; overflow-wrap: anywhere; }
-.fault-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
-.fault-card__top strong { color: #0f172a; }
-.fault-card p { margin: 7px 0; color: #475569; font-size: .88rem; line-height: 1.45; }
-.fault-card small { display: block; margin-top: 10px; color: #64748b; }
-.fault-severity { white-space: nowrap; border-radius: 6px; padding: 4px 7px; background: #e2e8f0; color: #334155; font-size: .72rem; font-weight: 800; text-transform: uppercase; }
-.fault-severity--critical { background: #fee2e2; color: #b91c1c; }
-.fault-severity--warning { background: #fef3c7; color: #92400e; }
-.fault-severity--low { background: #dcfce7; color: #166534; }
-.fault-panel__message, .fault-panel__error { padding: 12px; border-radius: 8px; background: #f8fafc; color: #475569; }
-.fault-panel__error { background: #fef2f2; color: #b91c1c; }
-.fault-panel__footer { display: block; margin-top: 12px; color: #94a3b8; }
+/* ------------------------------------------------------------
+   8. Filter-aware layout additions
+   ------------------------------------------------------------ */
+.dashboard-scope-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between !important;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
 
+.dashboard-scope-heading h2 {
+    margin: 0;
+}
 
-/* =====================================================
-   Energy Consumption Chart
-   Extends .chart-box / .chart-header / .chart-select
-   ===================================================== */
+.dashboard-scope-heading p {
+    margin: 5px 0 0;
+    color: #7b8ba3;
+    font-size: 12px;
+}
 
-/* Fallback notice (shown when TB all-history is being used) */
+.dashboard-grid--primary {
+    align-items: stretch;
+    margin-bottom: 16px;
+}
+
+.dashboard-grid--secondary {
+    align-items: stretch;
+    margin-bottom: 16px;
+}
+
+.dashboard-grid--regional,
+.dashboard-grid--devices {
+    align-items: stretch;
+    margin-bottom: 18px;
+}
+
+.dashboard-context-card {
+    min-height: 240px;
+}
+
+.dashboard-context-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.dashboard-context-stats > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 13px;
+    border: 1px solid #edf2f7;
+    border-radius: 10px;
+    background: #f8fbff;
+}
+
+.dashboard-context-stats span {
+    color: #7b8ba3;
+    font-size: 11px;
+}
+
+.dashboard-context-stats strong {
+    color: #172033;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.dashboard-context-note {
+    margin-top: 14px;
+    color: #718096;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.ai-module-toggle-section {
+    margin: 4px 0 18px;
+}
+
+.ai-module-toggle-button {
+    min-height: 40px;
+}
+
+.ai-module-panel {
+    margin-top: 14px;
+}
+
+.ac-device-table {
+    min-width: 1050px;
+}
+
+.ac-device-status {
+    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: capitalize;
+}
+
+.ac-device-status.is-on {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.ac-device-status.is-off {
+    color: #64748b;
+    background: #f1f5f9;
+}
+
+/* ------------------------------------------------------------
+   9. Compact KPI (energy cost)
+   ------------------------------------------------------------ */
+.energy-cost-kpi {
+    min-width: 0;
+    padding: 10px 6px;
+    overflow: hidden;
+}
+
+.energy-cost-kpi__icon {
+    color: #16845b;
+    font-weight: 800;
+    font-size: 24px;
+}
+
+.energy-cost-kpi__content {
+    width: 100%;
+    min-width: 0;
+    padding: 0 4px 7px;
+}
+
+.energy-cost-kpi__content p {
+    margin: 2px 0 6px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.energy-cost-kpi__content h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: clamp(14px, 1.05vw, 20px);
+    line-height: 1.25;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+
+.energy-cost-kpi__content > span {
+    display: block;
+    margin-top: 5px;
+    color: #94a3b8;
+    font-size: 10px;
+    line-height: 1.3;
+}
+
+.energy-cost-kpi__source {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 5px;
+    color: #2563eb;
+    font-size: 9px;
+    line-height: 1.2;
+    text-decoration: none;
+}
+
+.energy-cost-kpi__source:hover {
+    text-decoration: underline;
+}
+
+/* ------------------------------------------------------------
+   10. Processed 3TP fault panel
+   ------------------------------------------------------------ */
+.fault-panel {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 18px;
+}
+
+.fault-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.fault-panel__header h3 {
+    margin: 0 0 5px;
+    color: #0f172a;
+    font-size: 1.05rem;
+}
+
+.fault-panel__header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.fault-panel__count {
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.fault-panel__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+}
+
+.fault-card {
+    min-width: 0;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #f59e0b;
+    border-radius: 10px;
+    padding: 13px;
+    background: #fff;
+    overflow-wrap: anywhere;
+}
+
+.fault-card__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.fault-card__top strong {
+    color: #0f172a;
+}
+
+.fault-card p {
+    margin: 7px 0;
+    color: #475569;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.fault-card small {
+    display: block;
+    margin-top: 10px;
+    color: #64748b;
+}
+
+.fault-severity {
+    white-space: nowrap;
+    border-radius: 6px;
+    padding: 4px 7px;
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.fault-severity--critical {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.fault-severity--warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.fault-severity--low {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fault-panel__message,
+.fault-panel__error {
+    padding: 12px;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #475569;
+}
+
+.fault-panel__error {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.fault-panel__footer {
+    display: block;
+    margin-top: 12px;
+    color: #94a3b8;
+}
+
+/* ------------------------------------------------------------
+   11. Energy consumption chart
+   ------------------------------------------------------------ */
 .energy-chart-fallback-note {
     display: block;
     margin: 0 0 8px;
@@ -1621,7 +761,6 @@
     line-height: 1.4;
 }
 
-/* Loading / error / empty states rendered inside the chart box */
 .energy-chart-state {
     display: flex;
     align-items: center;
@@ -1641,7 +780,6 @@
     color: #b91c1c;
 }
 
-/* Icon button (expand / close) */
 .energy-chart-icon-btn {
     display: inline-flex;
     align-items: center;
@@ -1656,7 +794,7 @@
     font-size: 18px;
     line-height: 1;
     cursor: pointer;
-    transition: background .15s, border-color .15s, color .15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .energy-chart-icon-btn:hover {
@@ -1670,7 +808,6 @@
     outline-offset: 2px;
 }
 
-/* Expanded overlay */
 .energy-chart-overlay {
     position: fixed;
     inset: 0;
@@ -1678,12 +815,12 @@
     display: flex;
     padding: 24px;
     box-sizing: border-box;
-    background: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(2px);
-    animation: energy-chart-fade .15s ease-out;
+    background: rgba(15, 23, 42, 0.22) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    animation: energy-chart-fade 0.15s ease-out;
 }
 
-/* Expanded modal */
 .energy-chart-modal {
     margin: auto;
     display: flex;
@@ -1696,11 +833,18 @@
     background: #fff;
     border-radius: 14px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
-    animation: energy-chart-pop .18s ease-out;
+    overflow: hidden !important;
+    filter: none !important;
+    opacity: 1 !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    animation: energy-chart-pop 0.18s ease-out;
 }
 
-/* Modal header — reuse .chart-header but tighten its children */
+.energy-chart-modal::-webkit-scrollbar {
+    display: none !important;
+}
+
 .energy-chart-modal .chart-header {
     min-height: 43px;
     margin-bottom: 4px;
@@ -1713,12 +857,12 @@
     flex-shrink: 0;
 }
 
-/* Body area that lets the Recharts container flex-grow */
 .energy-chart-modal__body {
     flex: 1;
-    min-height: 0;
+    min-height: 0 !important;
     display: flex;
     flex-direction: column;
+    overflow: hidden !important;
 }
 
 .energy-chart-modal__body .recharts-responsive-container,
@@ -1727,7 +871,6 @@
     max-width: 100% !important;
 }
 
-/* Recharts tooltip + legend, aligned with the dashboard look */
 .chart-box .recharts-default-tooltip,
 .energy-chart-modal .recharts-default-tooltip {
     border-radius: 8px !important;
@@ -1746,150 +889,98 @@
     color: #475569 !important;
 }
 
-/* Animations */
 @keyframes energy-chart-fade {
     from { opacity: 0; }
     to   { opacity: 1; }
 }
 
 @keyframes energy-chart-pop {
-    from { opacity: 0; transform: translateY(8px) scale(.98); }
-    to   { opacity: 1; transform: translateY(0)  scale(1); }
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
 }
 
-/* Responsive */
-@media (max-width: 700px) {
-    .energy-chart-overlay { padding: 10px; }
-    .energy-chart-modal   { padding: 14px; border-radius: 10px; }
-    .energy-chart-modal .chart-header { flex-wrap: wrap; gap: 8px; }
-    .energy-chart-modal .chart-header h3 { font-size: 13px; }
-    .energy-chart-state   { min-height: 200px; font-size: 11px; }
+/* 12. Current & temperature chart column span */
+.current-temp-chart {
+    grid-column: span 2;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .chart-expand-btn {
-  padding: 2px 4px;
-  border: 1px solid #cbd5e1;
-  /* border: none; */
-  border-radius: 6px;
-  background: #ffffff;
-  color: #334155;
-  cursor: pointer;
-  font-size: 10px;
-  white-space: nowrap;
+    padding: 2px 4px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    font-size: 10px;
+    white-space: nowrap;
 }
 
 .chart-expand-btn:hover {
-  background: #f1f5f9;
+    background: #f1f5f9;
 }
 
-/* .current-history-expanded {
-  position: fixed;
-  inset: 16px;
-  z-index: 9999;
-  overflow: auto;
-  padding: 20px;
-  background: #ffffff;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-} */
-
-/* Current & Temperature chart: occupy 2 dashboard columns */
-.current-temp-chart {
-  grid-column: span 2;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-/* Responsive: use the full row when the dashboard has 2 columns */
-@media (max-width: 1000px) {
-  .current-temp-chart {
-    grid-column: span 2;
-  }
-}
-
-/* Mobile: occupy the single available column */
-@media (max-width: 700px) {
-  .current-temp-chart {
-    grid-column: span 1;
-  }
-}
-
-/* ============================================================
-   Graph zoom (zooms the chart's time axis, never the page)
-   ============================================================ */
+/* 13. Graph zoom (zooms chart time axis only) */
 .chart-zoom-area {
-  position: relative;
-  width: 100%;
-  cursor: crosshair;
-  -webkit-user-select: none;
-  user-select: none;
-  overscroll-behavior: contain;
+    position: relative;
+    width: 100%;
+    cursor: crosshair;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: contain;
 }
 
 .chart-zoom-area .recharts-wrapper {
-  touch-action: pan-y;
+    touch-action: pan-y;
 }
 
 .chart-zoom-toolbar {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
 }
 
 .chart-zoom-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: #334155;
-  cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #334155;
+    cursor: pointer;
 }
 
 .chart-zoom-btn:hover:not(:disabled) {
-  background: #f1f5f9;
+    background: #f1f5f9;
 }
 
 .chart-zoom-btn:focus-visible {
-  outline: 2px solid #3182bd;
-  outline-offset: 1px;
+    outline: 2px solid #3182bd;
+    outline-offset: 1px;
 }
 
 .chart-zoom-btn:disabled {
-  color: #cbd5e1;
-  cursor: not-allowed;
+    color: #cbd5e1;
+    cursor: not-allowed;
 }
 
-/* selection rectangle drawn while dragging */
 .chart-box .recharts-reference-area-rect {
-  pointer-events: none;
+    pointer-events: none;
 }
 
-@media (max-width: 640px) {
-  .chart-zoom-btn {
-    width: 24px;
-    height: 24px;
-  }
-}
-
-/* Overview heading and telemetry status */
-.dashboard-scope-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between !important;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-bottom: 14px;
-}
-
+/* ------------------------------------------------------------
+   14. Overview heading / telemetry status
+   ------------------------------------------------------------ */
 .overview-live-status {
     display: inline-flex;
     align-items: center;
@@ -1932,144 +1023,196 @@
     min-width: 0;
 }
 
+.top-energy-branches {
+    min-width: 0;
+}
+
+.dashboard-grid--primary > .chart-box {
+    min-width: 0;
+}
+
+/* ------------------------------------------------------------
+   15. Expanded chart popup (shared by Current/Temperature, Energy,
+       and metric history charts)
+   ------------------------------------------------------------ */
+.ac-dashboard .ac-dashboard-chart-expanded {
+    position: fixed !important;
+    inset: auto !important;
+    left: calc(var(--sidebar-w, 260px) + (100vw - var(--sidebar-w, 260px)) / 2) !important;
+    top: calc(var(--header-h, 68px) + (100vh - var(--header-h, 68px)) / 2) !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: min(1200px, calc(100vw - var(--sidebar-w, 260px) - 48px)) !important;
+    height: min(720px, calc(100vh - var(--header-h, 68px) - 48px)) !important;
+    max-width: none !important;
+    max-height: none !important;
+    z-index: 850 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding: 20px;
+    box-sizing: border-box !important;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+.ac-dashboard .ac-dashboard-chart-expanded::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.layout.collapsed .ac-dashboard .ac-dashboard-chart-expanded {
+    left: calc(var(--sidebar-w-collapsed, 78px) + (100vw - var(--sidebar-w-collapsed, 78px)) / 2) !important;
+    width: min(1200px, calc(100vw - var(--sidebar-w-collapsed, 78px) - 48px)) !important;
+}
+
+.ac-dashboard .ac-dashboard-chart-expanded .chart-zoom-area,
+.ac-dashboard .ac-dashboard-chart-expanded .recharts-responsive-container {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Blur only the dashboard background while a popup is open */
+body:has(.ac-dashboard .ac-dashboard-chart-expanded)::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 849;
+    background: rgba(15, 23, 42, 0.22);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   16. Media queries
+   ------------------------------------------------------------ */
+
+/* Dashboard header / filter collapse */
+@media (max-width: 850px) {
+    .ac-dashboard-header {
+        align-items: flex-start;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 600px) {
+    .ac-dashboard-header {
+        flex-direction: column;
+    }
+    .dashboard-filter-info {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .record-count {
+        margin-left: 0;
+    }
+}
+
+/* KPI grid */
+@media (max-width: 1200px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Chart grid */
+@media (max-width: 1000px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .current-temp-chart {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 700px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    .chart-box {
+        min-height: 320px;
+    }
+    .current-temp-chart {
+        grid-column: span 1;
+    }
+}
+
+/* Filter-aware additions */
+@media (max-width: 700px) {
+    .dashboard-scope-heading {
+        align-items: flex-start;
+    }
+    .dashboard-scope-heading .trends-button {
+        padding: 8px 10px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    .dashboard-context-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 @media (max-width: 600px) {
     .dashboard-scope-heading {
         align-items: flex-start;
         gap: 8px;
     }
 }
-/* Zone energy, top-five branches and map dashboard layout */
-.top-energy-branches { min-width: 0; }
-.dashboard-grid--primary > .chart-box { min-width: 0; }
 
-/* ------------------------- */
-
-/* =========================================================
-   ACDashboard expanded graph popup
-   Shared by Current/Temperature, Energy, and metric history
-   charts. Trends.jsx keeps its separate Trends styling.
-   ========================================================= */
-
-.ac-dashboard .ac-dashboard-chart-expanded {
-  position: fixed !important;
-  inset: auto !important;
-
-  /* Center the popup in the usable area to the right of the sidebar
-     and below the top navbar. */
-  left: calc(var(--sidebar-w, 260px) + (100vw - var(--sidebar-w, 260px)) / 2) !important;
-  top: calc(var(--header-h, 68px) + (100vh - var(--header-h, 68px)) / 2) !important;
-  right: auto !important;
-  bottom: auto !important;
-  transform: translate(-50%, -50%) !important;
-
-  width: min(1200px, calc(100vw - var(--sidebar-w, 260px) - 48px)) !important;
-  height: min(720px, calc(100vh - var(--header-h, 68px) - 48px)) !important;
-  max-width: none !important;
-  max-height: none !important;
-
-  z-index: 850 !important;
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
-  padding: 20px;
-  box-sizing: border-box;
-
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+/* Zoom controls on small screens */
+@media (max-width: 640px) {
+    .chart-zoom-btn {
+        width: 24px;
+        height: 24px;
+    }
 }
 
-/* Match the same usable-area centering when the sidebar is collapsed. */
-.layout.collapsed .ac-dashboard .ac-dashboard-chart-expanded {
-  left: calc(var(--sidebar-w-collapsed, 78px) + (100vw - var(--sidebar-w-collapsed, 78px)) / 2) !important;
-  width: min(1200px, calc(100vw - var(--sidebar-w-collapsed, 78px) - 48px)) !important;
-}
-
-/* Keep popup inside the viewport on smaller screens. */
-@media (max-width: 900px) {
-  .ac-dashboard .ac-dashboard-chart-expanded,
-  .layout.collapsed .ac-dashboard .ac-dashboard-chart-expanded {
-    left: 50vw !important;
-    top: 50vh !important;
-    width: calc(100vw - 24px) !important;
-    height: calc(100vh - 24px) !important;
-  }
-}
-
-
-/* ============================================
-   DASHBOARD GRAPH POPUPS — BLURRED BACKGROUND
-   ============================================ */
-
-/* Blur only the dashboard background */
-body:has(.ac-dashboard .ac-dashboard-chart-expanded)::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 849;
-  background: rgba(15, 23, 42, 0.22);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  pointer-events: none;
-}
-
-/* Expanded Current, Temperature and metric charts */
-.ac-dashboard .ac-dashboard-chart-expanded {
-  z-index: 850 !important;
-  overflow: hidden !important;
-  overscroll-behavior: none !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-  filter: none !important;
-  opacity: 1 !important;
-  box-sizing: border-box !important;
-}
-
-.ac-dashboard .ac-dashboard-chart-expanded::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-/* Keep chart content within popup */
-.ac-dashboard .ac-dashboard-chart-expanded .chart-zoom-area,
-.ac-dashboard .ac-dashboard-chart-expanded .recharts-responsive-container {
-  min-width: 0 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Energy chart: blur only the background */
-.energy-chart-overlay {
-  background: rgba(15, 23, 42, 0.22) !important;
-  backdrop-filter: blur(6px) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
-}
-
-/* Energy modal must remain sharp and scroll-free */
-.energy-chart-modal {
-  overflow: hidden !important;
-  filter: none !important;
-  opacity: 1 !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-.energy-chart-modal::-webkit-scrollbar {
-  display: none !important;
-}
-
-/* Prevent inner energy chart from scrolling */
-.energy-chart-modal__body {
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Small screens */
+/* Energy chart modal */
 @media (max-width: 700px) {
-  .ac-dashboard .ac-dashboard-chart-expanded,
-  .energy-chart-modal {
-    overflow: hidden !important;
-  }
+    .energy-chart-overlay {
+        padding: 10px;
+    }
+    .energy-chart-modal {
+        padding: 14px;
+        border-radius: 10px;
+    }
+    .energy-chart-modal .chart-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .energy-chart-modal .chart-header h3 {
+        font-size: 13px;
+    }
+    .energy-chart-state {
+        min-height: 200px;
+        font-size: 11px;
+    }
+}
+
+/* Expanded chart popup */
+@media (max-width: 900px) {
+    .ac-dashboard .ac-dashboard-chart-expanded,
+    .layout.collapsed .ac-dashboard .ac-dashboard-chart-expanded {
+        left: 50vw !important;
+        top: 50vh !important;
+        width: calc(100vw - 24px) !important;
+        height: calc(100vh - 24px) !important;
+    }
 }

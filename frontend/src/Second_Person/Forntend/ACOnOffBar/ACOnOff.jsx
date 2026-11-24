@@ -1,246 +1,662 @@
+// // import React, { useEffect, useMemo, useState } from "react";
+// // import "./ACOnOff.css";
+
+// // // ON / OFF detection based strictly on Active Energy
+// // const rowIsOn = (row) => {
+// //     const energy = Number(
+// //         row?.active_energy ??
+// //         row?.energy_consumption ??
+// //         row?.Energy_Consumption ??
+// //         row?.energyConsumption ??
+// //         row?.energy ??
+// //         row?.kwh ??
+// //         row?.kWh ?? 0
+// //     );
+// //     return energy > 0;
+// // };
+
+// // const getToken = () =>
+// //     ["token", "authToken", "access_token", "accessToken"]
+// //         .map((k) => localStorage.getItem(k))
+// //         .find(Boolean);
+
+// // const pickRows = (payload) => {
+// //     if (Array.isArray(payload)) return payload;
+// //     if (Array.isArray(payload?.data)) return payload.data;
+// //     if (Array.isArray(payload?.results)) return payload.results;
+// //     return [];
+// // };
+
+// // // Format duration nicely (e.g., "12h 30m" or "45m")
+// // const formatDuration = (ms) => {
+// //     const totalMinutes = Math.floor(ms / (1000 * 60));
+// //     if (totalMinutes < 60) return `${totalMinutes}m`;
+// //     const h = Math.floor(totalMinutes / 60);
+// //     const m = totalMinutes % 60;
+// //     return m === 0 ? `${h}h` : `${h}h ${m}m`;
+// // };
+
+// // const ACOnOff = ({
+// //     data = [],
+// //     deviceId = "",
+// //     scope = {},
+// //     endpoint = "http://localhost:8000/api/telemetry/",
+// // }) => {
+// //     const [history, setHistory] = useState([]);
+// //     const [status, setStatus] = useState("idle");
+
+// //     // Fetch past 24 hours data
+// //     useEffect(() => {
+// //         if (!deviceId && !scope?.branch) {
+// //             setHistory([]);
+// //             setStatus("idle");
+// //             return undefined;
+// //         }
+
+// //         const controller = new AbortController();
+// //         const load = async () => {
+// //             setStatus("loading");
+// //             try {
+// //                 const end = new Date();
+// //                 const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+                
+// //                 const params = new URLSearchParams();
+// //                 params.set("from", start.toISOString());
+// //                 params.set("to", end.toISOString());
+
+// //                 ["state", "district", "taluka", "city", "zone", "circle", "region", "division", "branch", "floor"].forEach((key) => {
+// //                     if (scope?.[key] != null && String(scope[key]).trim()) {
+// //                         params.set(key, String(scope[key]));
+// //                     }
+// //                 });
+
+// //                 if (deviceId) params.set("device_id", String(deviceId));
+
+// //                 const token = getToken();
+// //                 const res = await fetch(`${endpoint}?${params.toString()}`, {
+// //                     signal: controller.signal,
+// //                     headers: token ? { Authorization: `Bearer ${token}` } : {},
+// //                 });
+// //                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
+// //                 const payload = await res.json();
+// //                 setHistory(pickRows(payload));
+// //                 setStatus("loaded");
+// //             } catch (e) {
+// //                 if (e.name === "AbortError") return;
+// //                 console.error("[ACOnOff] load failed:", e);
+// //                 setHistory([]);
+// //                 setStatus("error");
+// //             }
+// //         };
+
+// //         load();
+// //         const id = window.setInterval(load, 5 * 60 * 1000); // refresh every 5 mins
+// //         return () => {
+// //             controller.abort();
+// //             window.clearInterval(id);
+// //         };
+// //     }, [deviceId, scope, endpoint]);
+
+// //     // Calculate Timeline Segments & KPIs for the past 24 hours
+// //     const { segments, totalOnMs, totalOffMs, onEvents, axisLabels } = useMemo(() => {
+// //         const now = Date.now();
+// //         const windowMs = 24 * 60 * 60 * 1000;
+// //         const windowStart = now - windowMs;
+        
+// //         // 96 bins = 15-minute intervals
+// //         const BINS = 96;
+// //         const binMs = windowMs / BINS;
+// //         const binStates = Array(BINS).fill("OFF");
+
+// //         // Combine API history + fallback data
+// //         const source = [...history, ...data];
+        
+// //         // Filter by device if needed
+// //         const filteredSource = deviceId 
+// //             ? source.filter(r => String(r.device_id ?? r.ac_id ?? r.id) === String(deviceId))
+// //             : source;
+
+// //         filteredSource.forEach((row) => {
+// //             const time = new Date(row.timestamp ?? row.ts ?? row.created_at).getTime();
+// //             if (isNaN(time)) return;
+// //             if (time < windowStart || time > now) return;
+            
+// //             const diff = time - windowStart;
+// //             const binIndex = Math.floor(diff / binMs);
+            
+// //             if (binIndex >= 0 && binIndex < BINS) {
+// //                 if (rowIsOn(row)) {
+// //                     binStates[binIndex] = "ON";
+// //                 }
+// //             }
+// //         });
+
+// //         // Calculate KPIs
+// //         let onCount = 0;
+// //         let offCount = 0;
+// //         let events = 0;
+
+// //         for (let i = 0; i < BINS; i++) {
+// //             if (binStates[i] === "ON") onCount++;
+// //             else offCount++;
+
+// //             if (i > 0 && binStates[i] === "ON" && binStates[i - 1] === "OFF") {
+// //                 events++;
+// //             }
+// //         }
+
+// //         // Group adjacent bins of the same state to create a smooth bar
+// //         const builtSegments = [];
+// //         let currentState = binStates[0];
+// //         let count = 1;
+        
+// //         for (let i = 1; i < BINS; i++) {
+// //             if (binStates[i] === currentState) {
+// //                 count++;
+// //             } else {
+// //                 builtSegments.push({ state: currentState, flex: count });
+// //                 currentState = binStates[i];
+// //                 count = 1;
+// //             }
+// //         }
+// //         builtSegments.push({ state: currentState, flex: count });
+
+// //         // Generate 7 axis labels (every 4 hours from start to now)
+// //         const labels = [];
+// //         for (let i = 0; i <= 6; i++) {
+// //             const t = new Date(windowStart + i * 4 * 60 * 60 * 1000);
+// //             // If it's the last label, show "Now" or the actual current time
+// //             if (i === 6) {
+// //                 labels.push(t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
+// //             } else {
+// //                 labels.push(t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
+// //             }
+// //         }
+
+// //         return {
+// //             segments: builtSegments,
+// //             totalOnMs: onCount * binMs,
+// //             totalOffMs: offCount * binMs,
+// //             onEvents: events,
+// //             axisLabels: labels,
+// //         };
+// //     }, [history, data, deviceId]);
+
+// //     return (
+// //         <div className="ac-power-state-card">
+// //             {/* Header */}
+// //             <div className="ac-power-state-header">
+// //                 <div className="ac-power-state-title">
+// //                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+// //                         <circle cx="12" cy="12" r="10"></circle>
+// //                         <polyline points="12 6 12 12 16 14"></polyline>
+// //                     </svg>
+// //                     AC Runtime ({deviceId ? "Selected AC" : "All Zones"})
+// //                 </div>
+// //                 <div className="ac-power-state-legend">
+// //                     <span className="legend-item"><span className="dot on" /> ON</span>
+// //                     <span className="legend-item"><span className="dot off" /> OFF</span>
+// //                 </div>
+// //             </div>
+
+// //             {/* Timeline Bar */}
+// //             <div className="ac-power-state-timeline">
+// //                 <div className="ac-power-state-bar">
+// //                     {status === "loading" && <div className="segment loading" style={{ flex: 96 }} />}
+// //                     {status !== "loading" && segments.map((seg, i) => (
+// //                         <div key={i} className={`segment ${seg.state.toLowerCase()}`} style={{ flex: seg.flex }} />
+// //                     ))}
+// //                 </div>
+// //                 <div className="ac-power-state-axis">
+// //                     {axisLabels.map((label, i) => (
+// //                         <span key={i}>{label}</span>
+// //                     ))}
+// //                 </div>
+// //             </div>
+
+// //             {/* KPIs */}
+// //             <div className="ac-power-state-kpis">
+// //                 <div className="kpi-box">
+// //                     <div className="kpi-label">Total ON Time</div>
+// //                     <div className="kpi-value">{formatDuration(totalOnMs)}</div>
+// //                 </div>
+// //                 <div className="kpi-box">
+// //                     <div className="kpi-label">Total OFF Time</div>
+// //                     <div className="kpi-value">{formatDuration(totalOffMs)}</div>
+// //                 </div>
+// //                 <div className="kpi-box">
+// //                     <div className="kpi-label">ON Events</div>
+// //                     <div className="kpi-value">{new Intl.NumberFormat('en-IN').format(onEvents)}</div>
+// //                 </div>
+// //             </div>
+// //         </div>
+// //     );
+// // };
+
+// // export default ACOnOff;
+
+
 // import React, { useEffect, useMemo, useState } from "react";
+// import { ZoomToolbar, useTimeZoom } from "../shared/chartZoom";
 // import "./ACOnOff.css";
 
-// // ON / OFF detection based strictly on Active Energy
-// const rowIsOn = (row) => {
-//     const energy = Number(
-//         row?.active_energy ??
-//         row?.energy_consumption ??
-//         row?.Energy_Consumption ??
-//         row?.energyConsumption ??
-//         row?.energy ??
-//         row?.kwh ??
-//         row?.kWh ?? 0
-//     );
-//     return energy > 0;
-// };
+// // Same endpoint CurrentHistoryChart already uses.
+// // const CURRENT_HISTORY_URL = "http://localhost:8000/api/current-history/";
+// const CURRENT_HISTORY_URL =
+//     `$DIL2/current-history/`;
 
 // const getToken = () =>
-//     ["token", "authToken", "access_token", "accessToken"]
-//         .map((k) => localStorage.getItem(k))
-//         .find(Boolean);
+//   localStorage.getItem("token") ||
+//   localStorage.getItem("authToken") ||
+//   localStorage.getItem("access_token") ||
+//   localStorage.getItem("accessToken") ||
+//   "";
 
-// const pickRows = (payload) => {
-//     if (Array.isArray(payload)) return payload;
-//     if (Array.isArray(payload?.data)) return payload.data;
-//     if (Array.isArray(payload?.results)) return payload.results;
-//     return [];
-// };
-
-// // Format duration nicely (e.g., "12h 30m" or "45m")
 // const formatDuration = (ms) => {
-//     const totalMinutes = Math.floor(ms / (1000 * 60));
-//     if (totalMinutes < 60) return `${totalMinutes}m`;
-//     const h = Math.floor(totalMinutes / 60);
-//     const m = totalMinutes % 60;
-//     return m === 0 ? `${h}h` : `${h}h ${m}m`;
+//   const totalMinutes = Math.floor(ms / 60000);
+//   if (totalMinutes < 60) return `${totalMinutes}m`;
+//   const h = Math.floor(totalMinutes / 60);
+//   const m = totalMinutes % 60;
+//   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 // };
 
 // const ACOnOff = ({
-//     data = [],
-//     deviceId = "",
-//     scope = {},
-//     endpoint = "http://localhost:8000/api/telemetry/",
+//   deviceId = "",
+//   scope = {},
+//   endpoint = CURRENT_HISTORY_URL,
 // }) => {
-//     const [history, setHistory] = useState([]);
-//     const [status, setStatus] = useState("idle");
+//   const [rows, setRows] = useState([]);
+//   const [status, setStatus] = useState("idle"); // idle | loading | loaded | empty | error
+//   const [error, setError] = useState("");
 
-//     // Fetch past 24 hours data
-//     useEffect(() => {
-//         if (!deviceId && !scope?.branch) {
-//             setHistory([]);
-//             setStatus("idle");
-//             return undefined;
-//         }
+//   // Stable dependency — plain object `scope` would re-fire on every render.
+//   const scopeKey = useMemo(() => JSON.stringify(scope || {}), [scope]);
 
-//         const controller = new AbortController();
-//         const load = async () => {
-//             setStatus("loading");
-//             try {
-//                 const end = new Date();
-//                 const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-                
-//                 const params = new URLSearchParams();
-//                 params.set("from", start.toISOString());
-//                 params.set("to", end.toISOString());
+//   // Graph zoom over the 24 h timeline (Ctrl+scroll / pinch / drag on the bar / toolbar).
+//   // The 24 h of 1-minute buckets is already loaded, so zooming needs no new request.
+//   const nowMs = Date.now();
+//   const zoomState = useTimeZoom({
+//     baseFrom: nowMs - 24 * 60 * 60 * 1000,
+//     baseTo: nowMs,
+//     resetKey: `${deviceId}|${scopeKey}`,
+//   });
+//   const zoom = zoomState.zoom;
 
-//                 ["state", "district", "taluka", "city", "zone", "circle", "region", "division", "branch", "floor"].forEach((key) => {
-//                     if (scope?.[key] != null && String(scope[key]).trim()) {
-//                         params.set(key, String(scope[key]));
-//                     }
-//                 });
+//   /* ---------------- Fetch last 24 h from /api/current-history/ ---------------- */
+//   useEffect(() => {
+//     if (!deviceId && !scope?.branch) {
+//       setRows([]);
+//       setStatus("idle");
+//       setError("");
+//       return undefined;
+//     }
 
-//                 if (deviceId) params.set("device_id", String(deviceId));
+//     const controller = new AbortController();
+//     let cancelled = false;
 
-//                 const token = getToken();
-//                 const res = await fetch(`${endpoint}?${params.toString()}`, {
-//                     signal: controller.signal,
-//                     headers: token ? { Authorization: `Bearer ${token}` } : {},
-//                 });
-//                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-//                 const payload = await res.json();
-//                 setHistory(pickRows(payload));
-//                 setStatus("loaded");
-//             } catch (e) {
-//                 if (e.name === "AbortError") return;
-//                 console.error("[ACOnOff] load failed:", e);
-//                 setHistory([]);
-//                 setStatus("error");
-//             }
-//         };
+//     const load = async () => {
+//       // Only show "loading" the first time; 10 s refreshes update in place.
+//       setStatus((prev) => (prev === "loaded" || prev === "empty" ? prev : "loading"));
+//       setError("");
+//       try {
+//         const end = new Date();
+//         const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
 
-//         load();
-//         const id = window.setInterval(load, 5 * 60 * 1000); // refresh every 5 mins
-//         return () => {
-//             controller.abort();
-//             window.clearInterval(id);
-//         };
-//     }, [deviceId, scope, endpoint]);
-
-//     // Calculate Timeline Segments & KPIs for the past 24 hours
-//     const { segments, totalOnMs, totalOffMs, onEvents, axisLabels } = useMemo(() => {
-//         const now = Date.now();
-//         const windowMs = 24 * 60 * 60 * 1000;
-//         const windowStart = now - windowMs;
-        
-//         // 96 bins = 15-minute intervals
-//         const BINS = 96;
-//         const binMs = windowMs / BINS;
-//         const binStates = Array(BINS).fill("OFF");
-
-//         // Combine API history + fallback data
-//         const source = [...history, ...data];
-        
-//         // Filter by device if needed
-//         const filteredSource = deviceId 
-//             ? source.filter(r => String(r.device_id ?? r.ac_id ?? r.id) === String(deviceId))
-//             : source;
-
-//         filteredSource.forEach((row) => {
-//             const time = new Date(row.timestamp ?? row.ts ?? row.created_at).getTime();
-//             if (isNaN(time)) return;
-//             if (time < windowStart || time > now) return;
-            
-//             const diff = time - windowStart;
-//             const binIndex = Math.floor(diff / binMs);
-            
-//             if (binIndex >= 0 && binIndex < BINS) {
-//                 if (rowIsOn(row)) {
-//                     binStates[binIndex] = "ON";
-//                 }
-//             }
+//         // Mirror CurrentHistoryChart's params exactly.
+//         const params = new URLSearchParams({
+//           key: "current",                // required: the endpoint serves several metrics
+//           period: "today",               // 1-minute buckets
+//           from: String(start.getTime()), // millis, same as CurrentHistoryChart
+//           to: String(end.getTime()),
 //         });
 
-//         // Calculate KPIs
-//         let onCount = 0;
-//         let offCount = 0;
-//         let events = 0;
-
-//         for (let i = 0; i < BINS; i++) {
-//             if (binStates[i] === "ON") onCount++;
-//             else offCount++;
-
-//             if (i > 0 && binStates[i] === "ON" && binStates[i - 1] === "OFF") {
-//                 events++;
-//             }
+//         if (deviceId) {
+//           // Send both — some viewsets key on `device_id`, others on `ac_id`.
+//           params.set("device_id", deviceId);
+//           params.set("ac_id", deviceId);
+//         } else {
+//           Object.entries(scope || {}).forEach(([k, v]) => {
+//             if (typeof v === "string" && v) params.set(k, v);
+//           });
 //         }
 
-//         // Group adjacent bins of the same state to create a smooth bar
-//         const builtSegments = [];
-//         let currentState = binStates[0];
-//         let count = 1;
-        
-//         for (let i = 1; i < BINS; i++) {
-//             if (binStates[i] === currentState) {
-//                 count++;
-//             } else {
-//                 builtSegments.push({ state: currentState, flex: count });
-//                 currentState = binStates[i];
-//                 count = 1;
-//             }
-//         }
-//         builtSegments.push({ state: currentState, flex: count });
+//         const token = getToken();
+//         const res = await fetch(`${endpoint}?${params.toString()}`, {
+//           signal: controller.signal,
+//           headers: token ? { Authorization: `Bearer ${token}` } : {},
+//           cache: "no-store",
+//         });
 
-//         // Generate 7 axis labels (every 4 hours from start to now)
-//         const labels = [];
-//         for (let i = 0; i <= 6; i++) {
-//             const t = new Date(windowStart + i * 4 * 60 * 60 * 1000);
-//             // If it's the last label, show "Now" or the actual current time
-//             if (i === 6) {
-//                 labels.push(t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
-//             } else {
-//                 labels.push(t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
-//             }
+//         if (!res.ok) {
+//           const body = await res.text().catch(() => "");
+//           throw new Error(`HTTP ${res.status} — ${body.slice(0, 200)}`);
 //         }
 
-//         return {
-//             segments: builtSegments,
-//             totalOnMs: onCount * binMs,
-//             totalOffMs: offCount * binMs,
-//             onEvents: events,
-//             axisLabels: labels,
-//         };
-//     }, [history, data, deviceId]);
+//         const payload = await res.json().catch(() => ({}));
+//         const data = Array.isArray(payload?.data)
+//           ? payload.data
+//           : Array.isArray(payload?.results)
+//           ? payload.results
+//           : Array.isArray(payload)
+//           ? payload
+//           : [];
 
-//     return (
-//         <div className="ac-power-state-card">
-//             {/* Header */}
-//             <div className="ac-power-state-header">
-//                 <div className="ac-power-state-title">
-//                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//                         <circle cx="12" cy="12" r="10"></circle>
-//                         <polyline points="12 6 12 12 16 14"></polyline>
-//                     </svg>
-//                     AC Runtime ({deviceId ? "Selected AC" : "All Zones"})
-//                 </div>
-//                 <div className="ac-power-state-legend">
-//                     <span className="legend-item"><span className="dot on" /> ON</span>
-//                     <span className="legend-item"><span className="dot off" /> OFF</span>
-//                 </div>
-//             </div>
+//         if (cancelled) return;
 
-//             {/* Timeline Bar */}
-//             <div className="ac-power-state-timeline">
-//                 <div className="ac-power-state-bar">
-//                     {status === "loading" && <div className="segment loading" style={{ flex: 96 }} />}
-//                     {status !== "loading" && segments.map((seg, i) => (
-//                         <div key={i} className={`segment ${seg.state.toLowerCase()}`} style={{ flex: seg.flex }} />
-//                     ))}
-//                 </div>
-//                 <div className="ac-power-state-axis">
-//                     {axisLabels.map((label, i) => (
-//                         <span key={i}>{label}</span>
-//                     ))}
-//                 </div>
-//             </div>
+//         // TEMP diagnostic — remove once the chart is populated.
+//         console.log(
+//           "[ACOnOff] buckets:",
+//           data.length,
+//           "first:",
+//           data[0]
+//         );
 
-//             {/* KPIs */}
-//             <div className="ac-power-state-kpis">
-//                 <div className="kpi-box">
-//                     <div className="kpi-label">Total ON Time</div>
-//                     <div className="kpi-value">{formatDuration(totalOnMs)}</div>
-//                 </div>
-//                 <div className="kpi-box">
-//                     <div className="kpi-label">Total OFF Time</div>
-//                     <div className="kpi-value">{formatDuration(totalOffMs)}</div>
-//                 </div>
-//                 <div className="kpi-box">
-//                     <div className="kpi-label">ON Events</div>
-//                     <div className="kpi-value">{new Intl.NumberFormat('en-IN').format(onEvents)}</div>
-//                 </div>
-//             </div>
+//         setRows(data);
+//         setStatus(data.length ? "loaded" : "empty");
+//         if (!data.length) {
+//           setError("No current samples for the last 24 hours.");
+//         }
+//       } catch (e) {
+//         if (e.name === "AbortError" || cancelled) return;
+//         console.error("[ACOnOff] load failed:", e);
+//         setRows([]);
+//         setStatus("error");
+//         setError(e.message || "Failed to load runtime data.");
+//       }
+//     };
+
+//     load();
+//     const id = window.setInterval(load, 10_000); // live: re-read the DB every 10 s
+//     return () => {
+//       cancelled = true;
+//       controller.abort();
+//       window.clearInterval(id);
+//     };
+//   }, [deviceId, scopeKey, endpoint]);
+
+//   /* ---------------- Build the timeline bar + KPIs ---------------- */
+//   const { segments, totalOnMs, totalOffMs, onEvents, axisLabels, view } = useMemo(() => {
+//     const now = Date.now();
+//     const windowMs = 24 * 60 * 60 * 1000;
+//     const windowStart = now - windowMs;
+
+//     // Any current above this counts as "running". Backend already pre-aggregates
+//     // per minute, so a bucket is ON iff its average current > 0.
+//     const THRESHOLD = 0.0001;
+
+//     const onTimes = [];
+//     for (const row of rows) {
+//       const ts = pickBucketTs(row);
+//       if (ts === null) continue;
+//       const avg = pickCurrent(row);
+//       if (avg === null || avg <= THRESHOLD) continue;
+//       onTimes.push(ts);
+//     }
+
+//     const pickCurrent = (row) => {
+//       const candidates = [row?.avg, row?.avg_current, row?.current, row?.value, row?.amps];
+//       for (const c of candidates) {
+//         if (c === null || c === undefined || c === "") continue;
+//         const n = Number(c);
+//         if (Number.isFinite(n)) return n;
+//       }
+//       return null;
+//     };
+
+//     // Accept every field name the backend has ever emitted for the bucket time.
+//     const pickBucketTs = (row) => {
+//       const raw =
+//         row?.bucket ?? row?.bucket_start ?? row?.timestamp ??
+//         row?.ts ?? row?.time ?? row?.datetime;
+//       if (!raw) return null;
+//       const ts = new Date(raw).getTime();
+//       return Number.isFinite(ts) ? ts : null;
+//     };
+
+//     // ON/OFF state per bin for a window.  Bins are never shorter than the 1-minute
+//     // buckets, otherwise a zoomed-in bin could miss its bucket and look OFF.
+//     const binsFor = (from, to) => {
+//       const span = to - from;
+//       const binMs = Math.max(span / 96, 60_000);
+//       const BINS = Math.max(1, Math.ceil(span / binMs));
+//       const states = Array(BINS).fill("OFF");
+//       for (const ts of onTimes) {
+//         if (ts < from || ts > to) continue;
+//         const i = Math.min(Math.floor((ts - from) / binMs), BINS - 1);
+//         if (i >= 0) states[i] = "ON";
+//       }
+//       return { states, binMs, BINS };
+//     };
+
+//     // KPIs always describe the whole 24 h (unchanged by zoom).
+//     const full = binsFor(windowStart, now);
+//     let onBins = 0;
+//     let offBins = 0;
+//     let events = 0;
+//     for (let i = 0; i < full.BINS; i++) {
+//       if (full.states[i] === "ON") onBins++;
+//       else offBins++;
+//       if (i > 0 && full.states[i] === "ON" && full.states[i - 1] === "OFF") events++;
+//     }
+
+//     // The timeline bar shows the zoomed window (or the whole 24 h).
+//     const view = zoom ? { from: zoom.from, to: zoom.to } : { from: windowStart, to: now };
+//     const win = zoom ? binsFor(view.from, view.to) : full;
+
+//     // Collapse adjacent same-state bins into one flex segment.
+//     const builtSegments = [];
+//     let curState = win.states[0];
+//     let run = 1;
+//     for (let i = 1; i < win.BINS; i++) {
+//       if (win.states[i] === curState) {
+//         run++;
+//       } else {
+//         builtSegments.push({ state: curState, flex: run });
+//         curState = win.states[i];
+//         run = 1;
+//       }
+//     }
+//     builtSegments.push({ state: curState, flex: run });
+
+//     // 7 axis labels evenly across the visible window.
+//     const labels = [];
+//     for (let i = 0; i <= 6; i++) {
+//       const t = new Date(view.from + (i * (view.to - view.from)) / 6);
+//       labels.push(
+//         t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
+//       );
+//     }
+
+//     return {
+//       segments: builtSegments,
+//       totalOnMs: onBins * full.binMs,
+//       totalOffMs: offBins * full.binMs,
+//       onEvents: events,
+//       axisLabels: labels,
+//       view,
+//     };
+//   }, [rows, zoom]);
+
+//   // Pointer position on the bar -> time, for drag-to-zoom and wheel-zoom anchoring.
+//   const timeAt = (e) => {
+//     const rect = e.currentTarget.getBoundingClientRect();
+//     const frac = Math.min(Math.max((e.clientX - rect.left) / Math.max(rect.width, 1), 0), 1);
+//     return view.from + frac * (view.to - view.from);
+//   };
+//   const sel = zoomState.sel;
+
+//   return (
+//     <div className="ac-power-state-card">
+//       {/* Header */}
+//       <div className="ac-power-state-header">
+//         <div className="ac-power-state-title">
+//           <svg
+//             width="18"
+//             height="18"
+//             viewBox="0 0 24 24"
+//             fill="none"
+//             stroke="currentColor"
+//             strokeWidth="2"
+//             strokeLinecap="round"
+//             strokeLinejoin="round"
+//           >
+//             <circle cx="12" cy="12" r="10"></circle>
+//             <polyline points="12 6 12 12 16 14"></polyline>
+//           </svg>
+//           AC Runtime
 //         </div>
-//     );
+//         <div className="ac-power-state-legend">
+//           <span className="legend-item">
+//             <span className="dot on" /> ON
+//           </span>
+//           <span className="legend-item">
+//             <span className="dot off" /> OFF
+//           </span>
+//         </div>
+//         {/* <ZoomToolbar z={zoomState} /> */}
+//         {/* <div className="ac-power-state-legend">
+//           <span className="legend-item">
+//             <span className="dot on" /> ON
+//           </span>
+//           <span className="legend-item">
+//             <span className="dot off" /> OFF
+//           </span>
+//         </div> */}
+//       </div>
+
+//       {/* Timeline Bar */}
+//       <div
+//         ref={zoomState.areaProps.ref}
+//         className="ac-power-state-timeline chart-zoom-area"
+//         onDoubleClick={zoomState.reset}
+//         title={zoomState.areaProps.title}
+//       >
+//         <div
+//           style={{ position: "relative" }}
+//           onMouseDown={(e) => zoomState.pointer.down(timeAt(e))}
+//           onMouseMove={(e) => zoomState.pointer.move(timeAt(e))}
+//           onMouseUp={zoomState.pointer.up}
+//           onMouseLeave={zoomState.pointer.leave}
+//         >
+//           {sel && sel.a !== sel.b && (
+//             <div
+//               style={{
+//                 position: "absolute",
+//                 top: 0,
+//                 bottom: 0,
+//                 left: `${((Math.min(sel.a, sel.b) - view.from) / (view.to - view.from)) * 100}%`,
+//                 width: `${(Math.abs(sel.b - sel.a) / (view.to - view.from)) * 100}%`,
+//                 background: "rgba(37, 99, 235, 0.18)",
+//                 border: "1px solid rgba(37, 99, 235, 0.45)",
+//                 zIndex: 2,
+//                 pointerEvents: "none",
+//               }}
+//             />
+//           )}
+//         <div className="ac-power-state-bar">
+//           {status === "loading" && (
+//             <div className="segment loading" style={{ flex: 96 }} />
+//           )}
+//           {status !== "loading" &&
+//             segments.map((seg, i) => (
+//               <div
+//                 key={i}
+//                 className={`segment ${seg.state.toLowerCase()}`}
+//                 style={{ flex: seg.flex }}
+//               />
+//             ))}
+//         </div>
+//         </div>
+//         <div className="ac-power-state-axis">
+//           {axisLabels.map((label, i) => (
+//             <span key={i}>{label}</span>
+//           ))}
+//         </div>
+//       </div>
+
+//       {/* Error / empty notice */}
+//       {(status === "error" || status === "empty") && error && (
+//         <div
+//           style={{
+//             margin: "8px 0",
+//             padding: "8px 12px",
+//             borderRadius: 6,
+//             background: status === "error" ? "#fdecea" : "#fff8e1",
+//             color: status === "error" ? "#b71c1c" : "#8a6d3b",
+//             fontSize: 12,
+//           }}
+//         >
+//           {error}
+//         </div>
+//       )}
+
+//       {/* KPIs */}
+//       <div className="ac-power-state-kpis">
+//         <div className="kpi-box">
+//           <div className="kpi-label">Total ON Time</div>
+//           <div className="kpi-value">{formatDuration(totalOnMs)}</div>
+//         </div>
+//         <div className="kpi-box">
+//           <div className="kpi-label">Total OFF Time</div>
+//           <div className="kpi-value">{formatDuration(totalOffMs)}</div>
+//         </div>
+//         <div className="kpi-box">
+//           <div className="kpi-label">ON Events</div>
+//           <div className="kpi-value">
+//             {new Intl.NumberFormat("en-IN").format(onEvents)}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
 // };
 
 // export default ACOnOff;
 
+
+
+
 import React, { useEffect, useMemo, useState } from "react";
-import { ZoomToolbar, useTimeZoom } from "../shared/chartZoom";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import "./ACOnOff.css";
 
-// Same endpoint CurrentHistoryChart already uses.
-const CURRENT_HISTORY_URL = "http://localhost:8000/api/current-history/";
+// const CURRENT_HISTORY_URL =
+//   `${window.location.origin}/api/current-history/`;
+
+const CURRENT_HISTORY_URL =
+  "http://localhost:8000/api/current-history/";
+
+const PERIOD_CONFIG = {
+  "24h": {
+    label: "Last 24 Hours",
+    center: "24h",
+    apiPeriod: "24h",
+    durationMs: 24 * 60 * 60 * 1000,
+    intervalSeconds: 60,
+  },
+  "7d": {
+    label: "Last 7 Days",
+    center: "7d",
+    apiPeriod: "week",
+    durationMs: 7 * 24 * 60 * 60 * 1000,
+    intervalSeconds: 900,
+  },
+  "30d": {
+    label: "Last 30 Days",
+    center: "30d",
+    apiPeriod: "month",
+    durationMs: 30 * 24 * 60 * 60 * 1000,
+    intervalSeconds: 3600,
+  },
+};
+
+const COLORS = ["#16A34A", "#EF4444"];
 
 const getToken = () =>
   localStorage.getItem("token") ||
@@ -250,87 +666,134 @@ const getToken = () =>
   "";
 
 const formatDuration = (ms) => {
-  const totalMinutes = Math.floor(ms / 60000);
-  if (totalMinutes < 60) return `${totalMinutes}m`;
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  const minutes = Math.floor(ms / 60000);
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+
+  if (hours === 0) return `${remaining}m`;
+  return remaining ? `${hours}h ${remaining}m` : `${hours}h`;
+};
+
+const pickCurrent = (row) => {
+  const candidates = [
+    row?.avg,
+    row?.avg_current,
+    row?.current,
+    row?.value,
+    row?.amps,
+  ];
+
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === "") continue;
+
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+
+  return null;
+};
+
+const pickTimestamp = (row) => {
+  const raw =
+    row?.bucket ??
+    row?.bucket_start ??
+    row?.timestamp ??
+    row?.ts ??
+    row?.time ??
+    row?.datetime;
+
+  if (!raw) return null;
+
+  const timestamp = new Date(raw).getTime();
+
+  return Number.isFinite(timestamp) ? timestamp : null;
 };
 
 const ACOnOff = ({
   deviceId = "",
   scope = {},
   endpoint = CURRENT_HISTORY_URL,
+  period = "24h",
 }) => {
   const [rows, setRows] = useState([]);
-  const [status, setStatus] = useState("idle"); // idle | loading | loaded | empty | error
+  const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
-  // Stable dependency — plain object `scope` would re-fire on every render.
-  const scopeKey = useMemo(() => JSON.stringify(scope || {}), [scope]);
+  const scopeKey = useMemo(
+    () => JSON.stringify(scope || {}),
+    [scope]
+  );
+  const config = PERIOD_CONFIG[period] || PERIOD_CONFIG["24h"];
 
-  // Graph zoom over the 24 h timeline (Ctrl+scroll / pinch / drag on the bar / toolbar).
-  // The 24 h of 1-minute buckets is already loaded, so zooming needs no new request.
-  const nowMs = Date.now();
-  const zoomState = useTimeZoom({
-    baseFrom: nowMs - 24 * 60 * 60 * 1000,
-    baseTo: nowMs,
-    resetKey: `${deviceId}|${scopeKey}`,
-  });
-  const zoom = zoomState.zoom;
-
-  /* ---------------- Fetch last 24 h from /api/current-history/ ---------------- */
+  // Fetch last 24 hours
   useEffect(() => {
     if (!deviceId && !scope?.branch) {
       setRows([]);
       setStatus("idle");
-      setError("");
-      return undefined;
+      return;
     }
 
     const controller = new AbortController();
     let cancelled = false;
 
     const load = async () => {
-      // Only show "loading" the first time; 10 s refreshes update in place.
-      setStatus((prev) => (prev === "loaded" || prev === "empty" ? prev : "loading"));
-      setError("");
-      try {
-        const end = new Date();
-        const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+      setStatus((prev) =>
+        prev === "loaded" ? prev : "loading"
+      );
 
-        // Mirror CurrentHistoryChart's params exactly.
+      try {
+        const end = Date.now();
+        const start = end - config.durationMs;
+
         const params = new URLSearchParams({
-          key: "current",                // required: the endpoint serves several metrics
-          period: "today",               // 1-minute buckets
-          from: String(start.getTime()), // millis, same as CurrentHistoryChart
-          to: String(end.getTime()),
+          key: "current",
+          period: config.apiPeriod,
+          interval_seconds: String(config.intervalSeconds),
+          from: String(start),
+          to: String(end),
         });
 
         if (deviceId) {
-          // Send both — some viewsets key on `device_id`, others on `ac_id`.
-          params.set("device_id", deviceId);
-          params.set("ac_id", deviceId);
+          params.set("device_id", String(deviceId));
+          params.set("ac_id", String(deviceId));
         } else {
-          Object.entries(scope || {}).forEach(([k, v]) => {
-            if (typeof v === "string" && v) params.set(k, v);
+          Object.entries(scope || {}).forEach(([key, value]) => {
+            if (value != null && String(value).trim()) {
+              params.set(key, String(value));
+            }
           });
         }
 
         const token = getToken();
-        const res = await fetch(`${endpoint}?${params.toString()}`, {
-          signal: controller.signal,
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          cache: "no-store",
-        });
 
-        if (!res.ok) {
-          const body = await res.text().catch(() => "");
-          throw new Error(`HTTP ${res.status} — ${body.slice(0, 200)}`);
+        const response = await fetch(
+          `${endpoint}?${params.toString()}`,
+          {
+            signal: controller.signal,
+            headers: token
+              ? { Authorization: `Bearer ${token}` }
+              : {},
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
         }
 
-        const payload = await res.json().catch(() => ({}));
-        const data = Array.isArray(payload?.data)
+        const payload = await response.json();
+
+        // const result = Array.isArray(payload?.data)
+        //   ? payload.data
+        //   : Array.isArray(payload?.results)
+        //   ? payload.results
+        //   : Array.isArray(payload)
+        //   ? payload
+        //   : [];
+
+        const result = Array.isArray(payload?.series)
+          ? payload.series
+          : Array.isArray(payload?.data)
           ? payload.data
           : Array.isArray(payload?.results)
           ? payload.results
@@ -340,252 +803,314 @@ const ACOnOff = ({
 
         if (cancelled) return;
 
-        // TEMP diagnostic — remove once the chart is populated.
-        console.log(
-          "[ACOnOff] buckets:",
-          data.length,
-          "first:",
-          data[0]
-        );
+        setRows(result);
+        setStatus(result.length ? "loaded" : "empty");
+        setError("");
+      } catch (err) {
+        if (err.name === "AbortError" || cancelled) return;
 
-        setRows(data);
-        setStatus(data.length ? "loaded" : "empty");
-        if (!data.length) {
-          setError("No current samples for the last 24 hours.");
-        }
-      } catch (e) {
-        if (e.name === "AbortError" || cancelled) return;
-        console.error("[ACOnOff] load failed:", e);
-        setRows([]);
+        console.error("[ACOnOff] Error:", err);
         setStatus("error");
-        setError(e.message || "Failed to load runtime data.");
+        setError(err.message || "Unable to load AC history.");
       }
     };
 
     load();
-    const id = window.setInterval(load, 10_000); // live: re-read the DB every 10 s
+
+    const interval = window.setInterval(load, 10000);
+
     return () => {
       cancelled = true;
       controller.abort();
-      window.clearInterval(id);
+      window.clearInterval(interval);
     };
-  }, [deviceId, scopeKey, endpoint]);
+  }, [deviceId, scopeKey, endpoint, period]);
 
-  /* ---------------- Build the timeline bar + KPIs ---------------- */
-  const { segments, totalOnMs, totalOffMs, onEvents, axisLabels, view } = useMemo(() => {
+  // Calculate ON/OFF duration for one AC
+  // const runtime = useMemo(() => {
+  //   const now = Date.now();
+  //   const windowMs = 24 * 60 * 60 * 1000;
+  //   const start = now - windowMs;
+
+  //   const MINUTE = 60000;
+  //   const BIN_COUNT = 1440;
+
+  //   const states = Array(BIN_COUNT).fill(null);
+
+  //   const sortedRows = [...rows]
+  //     .map((row) => ({
+  //       timestamp: pickTimestamp(row),
+  //       current: pickCurrent(row),
+  //     }))
+  //     .filter(
+  //       (row) =>
+  //         row.timestamp !== null &&
+  //         row.current !== null &&
+  //         row.timestamp >= start &&
+  //         row.timestamp <= now
+  //     )
+  //     .sort((a, b) => a.timestamp - b.timestamp);
+
+  //   sortedRows.forEach((row) => {
+  //     const index = Math.min(
+  //       Math.floor((row.timestamp - start) / MINUTE),
+  //       BIN_COUNT - 1
+  //     );
+
+  //     states[index] = row.current > 0.0001 ? "ON" : "OFF";
+  //   });
+
+  //   // Fill gaps using the last known state.
+  //   let lastState = null;
+
+  //   for (let i = 0; i < BIN_COUNT; i++) {
+  //     if (states[i] !== null) {
+  //       lastState = states[i];
+  //     } else if (lastState !== null) {
+  //       states[i] = lastState;
+  //     }
+  //   }
+
+  //   // Do not assume OFF before the first known measurement.
+  //   let onMinutes = 0;
+  //   let offMinutes = 0;
+  //   let unknownMinutes = 0;
+  //   let onEvents = 0;
+
+  //   for (let i = 0; i < BIN_COUNT; i++) {
+  //     if (states[i] === "ON") {
+  //       onMinutes++;
+  //       if (i > 0 && states[i - 1] === "OFF") {
+  //         onEvents++;
+  //       }
+  //     } else if (states[i] === "OFF") {
+  //       offMinutes++;
+  //     } else {
+  //       unknownMinutes++;
+  //     }
+  //   }
+
+  //   const knownMinutes = onMinutes + offMinutes;
+
+  //   return {
+  //     onMs: onMinutes * MINUTE,
+  //     offMs: offMinutes * MINUTE,
+  //     unknownMs: unknownMinutes * MINUTE,
+  //     onEvents,
+  //     onPercent: knownMinutes
+  //       ? (onMinutes / knownMinutes) * 100
+  //       : 0,
+  //     offPercent: knownMinutes
+  //       ? (offMinutes / knownMinutes) * 100
+  //       : 0,
+  //     knownMinutes,
+  //   };
+  // }, [rows]);
+
+  const runtime = useMemo(() => {
     const now = Date.now();
-    const windowMs = 24 * 60 * 60 * 1000;
-    const windowStart = now - windowMs;
+    const windowMs = config.durationMs;
+    const start = now - windowMs;
 
-    // Any current above this counts as "running". Backend already pre-aggregates
-    // per minute, so a bucket is ON iff its average current > 0.
-    const THRESHOLD = 0.0001;
+    const bucketMs = config.intervalSeconds * 1000;
+    const BIN_COUNT = Math.ceil(windowMs / bucketMs);
 
-    const onTimes = [];
-    for (const row of rows) {
-      const bucketRaw = row?.bucket ?? row?.bucket_start;
-      if (!bucketRaw) continue;
-      const ts = new Date(bucketRaw).getTime();
-      if (!Number.isFinite(ts)) continue;
-      const avg = Number(row?.avg ?? 0);
-      if (!Number.isFinite(avg) || avg <= THRESHOLD) continue;
-      onTimes.push(ts);
-    }
+    const states = Array(BIN_COUNT).fill(null);
 
-    // ON/OFF state per bin for a window.  Bins are never shorter than the 1-minute
-    // buckets, otherwise a zoomed-in bin could miss its bucket and look OFF.
-    const binsFor = (from, to) => {
-      const span = to - from;
-      const binMs = Math.max(span / 96, 60_000);
-      const BINS = Math.max(1, Math.ceil(span / binMs));
-      const states = Array(BINS).fill("OFF");
-      for (const ts of onTimes) {
-        if (ts < from || ts > to) continue;
-        const i = Math.min(Math.floor((ts - from) / binMs), BINS - 1);
-        if (i >= 0) states[i] = "ON";
-      }
-      return { states, binMs, BINS };
-    };
+    const sortedRows = [...rows]
+      .map((row) => ({
+        timestamp: pickTimestamp(row),
+        current: pickCurrent(row),
+      }))
+      .filter(
+        (row) =>
+          row.timestamp !== null &&
+          row.current !== null &&
+          row.timestamp >= start &&
+          row.timestamp <= now
+      )
+      .sort((a, b) => a.timestamp - b.timestamp);
 
-    // KPIs always describe the whole 24 h (unchanged by zoom).
-    const full = binsFor(windowStart, now);
-    let onBins = 0;
-    let offBins = 0;
-    let events = 0;
-    for (let i = 0; i < full.BINS; i++) {
-      if (full.states[i] === "ON") onBins++;
-      else offBins++;
-      if (i > 0 && full.states[i] === "ON" && full.states[i - 1] === "OFF") events++;
-    }
-
-    // The timeline bar shows the zoomed window (or the whole 24 h).
-    const view = zoom ? { from: zoom.from, to: zoom.to } : { from: windowStart, to: now };
-    const win = zoom ? binsFor(view.from, view.to) : full;
-
-    // Collapse adjacent same-state bins into one flex segment.
-    const builtSegments = [];
-    let curState = win.states[0];
-    let run = 1;
-    for (let i = 1; i < win.BINS; i++) {
-      if (win.states[i] === curState) {
-        run++;
-      } else {
-        builtSegments.push({ state: curState, flex: run });
-        curState = win.states[i];
-        run = 1;
-      }
-    }
-    builtSegments.push({ state: curState, flex: run });
-
-    // 7 axis labels evenly across the visible window.
-    const labels = [];
-    for (let i = 0; i <= 6; i++) {
-      const t = new Date(view.from + (i * (view.to - view.from)) / 6);
-      labels.push(
-        t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
+    sortedRows.forEach((row) => {
+      const index = Math.min(
+        Math.floor((row.timestamp - start) / bucketMs),
+        BIN_COUNT - 1
       );
+
+      states[index] = row.current > 0.0001 ? "ON" : "OFF";
+    });
+
+    // Fill missing buckets using the last known state.
+    let lastState = null;
+
+    for (let i = 0; i < BIN_COUNT; i++) {
+      if (states[i] !== null) {
+        lastState = states[i];
+      } else if (lastState !== null) {
+        states[i] = lastState;
+      }
     }
+
+    let onBuckets = 0;
+    let offBuckets = 0;
+    let unknownBuckets = 0;
+    let onEvents = 0;
+
+    for (let i = 0; i < BIN_COUNT; i++) {
+      if (states[i] === "ON") {
+        onBuckets++;
+
+        if (i > 0 && states[i - 1] === "OFF") {
+          onEvents++;
+        }
+      } else if (states[i] === "OFF") {
+        offBuckets++;
+      } else {
+        unknownBuckets++;
+      }
+    }
+
+    const knownBuckets = onBuckets + offBuckets;
 
     return {
-      segments: builtSegments,
-      totalOnMs: onBins * full.binMs,
-      totalOffMs: offBins * full.binMs,
-      onEvents: events,
-      axisLabels: labels,
-      view,
-    };
-  }, [rows, zoom]);
+      onMs: onBuckets * bucketMs,
+      offMs: offBuckets * bucketMs,
+      unknownMs: unknownBuckets * bucketMs,
+      onEvents,
 
-  // Pointer position on the bar -> time, for drag-to-zoom and wheel-zoom anchoring.
-  const timeAt = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const frac = Math.min(Math.max((e.clientX - rect.left) / Math.max(rect.width, 1), 0), 1);
-    return view.from + frac * (view.to - view.from);
-  };
-  const sel = zoomState.sel;
+      onPercent: knownBuckets
+        ? (onBuckets / knownBuckets) * 100
+        : 0,
+
+      offPercent: knownBuckets
+        ? (offBuckets / knownBuckets) * 100
+        : 0,
+
+      knownMinutes: knownBuckets,
+    };
+  }, [rows, config]);
+
+  const chartData = [
+    { name: "ON", value: runtime.onMs, color: COLORS[0] },
+    { name: "OFF", value: runtime.offMs, color: COLORS[1] },
+  ];
 
   return (
     <div className="ac-power-state-card">
-      {/* Header */}
+
       <div className="ac-power-state-header">
         <div className="ac-power-state-title">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          AC Runtime
+          AC Runtime ({config.label})
         </div>
-        <div className="ac-power-state-legend">
-          <span className="legend-item">
-            <span className="dot on" /> ON
-          </span>
-          <span className="legend-item">
-            <span className="dot off" /> OFF
-          </span>
-        </div>
-        {/* <ZoomToolbar z={zoomState} /> */}
-        {/* <div className="ac-power-state-legend">
-          <span className="legend-item">
-            <span className="dot on" /> ON
-          </span>
-          <span className="legend-item">
-            <span className="dot off" /> OFF
-          </span>
-        </div> */}
+
+        <span className="ac-runtime-live">
+          <span className="ac-runtime-dot" />
+          Live
+        </span>
       </div>
 
-      {/* Timeline Bar */}
-      <div
-        ref={zoomState.areaProps.ref}
-        className="ac-power-state-timeline chart-zoom-area"
-        onDoubleClick={zoomState.reset}
-        title={zoomState.areaProps.title}
-      >
-        <div
-          style={{ position: "relative" }}
-          onMouseDown={(e) => zoomState.pointer.down(timeAt(e))}
-          onMouseMove={(e) => zoomState.pointer.move(timeAt(e))}
-          onMouseUp={zoomState.pointer.up}
-          onMouseLeave={zoomState.pointer.leave}
-        >
-          {sel && sel.a !== sel.b && (
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                bottom: 0,
-                left: `${((Math.min(sel.a, sel.b) - view.from) / (view.to - view.from)) * 100}%`,
-                width: `${(Math.abs(sel.b - sel.a) / (view.to - view.from)) * 100}%`,
-                background: "rgba(37, 99, 235, 0.18)",
-                border: "1px solid rgba(37, 99, 235, 0.45)",
-                zIndex: 2,
-                pointerEvents: "none",
-              }}
-            />
-          )}
-        <div className="ac-power-state-bar">
-          {status === "loading" && (
-            <div className="segment loading" style={{ flex: 96 }} />
-          )}
-          {status !== "loading" &&
-            segments.map((seg, i) => (
-              <div
-                key={i}
-                className={`segment ${seg.state.toLowerCase()}`}
-                style={{ flex: seg.flex }}
-              />
-            ))}
+      {status === "loading" && (
+        <div className="ac-runtime-message">
+          Loading AC runtime...
         </div>
-        </div>
-        <div className="ac-power-state-axis">
-          {axisLabels.map((label, i) => (
-            <span key={i}>{label}</span>
-          ))}
-        </div>
-      </div>
+      )}
 
-      {/* Error / empty notice */}
-      {(status === "error" || status === "empty") && error && (
-        <div
-          style={{
-            margin: "8px 0",
-            padding: "8px 12px",
-            borderRadius: 6,
-            background: status === "error" ? "#fdecea" : "#fff8e1",
-            color: status === "error" ? "#b71c1c" : "#8a6d3b",
-            fontSize: 12,
-          }}
-        >
+      {status === "error" && (
+        <div className="ac-runtime-message error">
           {error}
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="ac-power-state-kpis">
-        <div className="kpi-box">
-          <div className="kpi-label">Total ON Time</div>
-          <div className="kpi-value">{formatDuration(totalOnMs)}</div>
+      {status === "empty" && (
+        <div className="ac-runtime-message">
+          No current history available.
         </div>
-        <div className="kpi-box">
-          <div className="kpi-label">Total OFF Time</div>
-          <div className="kpi-value">{formatDuration(totalOffMs)}</div>
-        </div>
-        <div className="kpi-box">
-          <div className="kpi-label">ON Events</div>
-          <div className="kpi-value">
-            {new Intl.NumberFormat("en-IN").format(onEvents)}
+      )}
+
+      {status === "loaded" && runtime.knownMinutes > 0 && (
+        <>
+          <div className="ac-runtime-chart">
+            <ResponsiveContainer width="100%" height={230}>
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={65}
+                  outerRadius={90}
+                  paddingAngle={1}
+                  stroke="none"
+                >
+                  {chartData.map((entry) => (
+                    <Cell
+                      key={entry.name}
+                      fill={entry.color}
+                    />
+                  ))}
+                </Pie>
+
+                <Tooltip
+                  formatter={(value, name) => [
+                    formatDuration(value),
+                    name,
+                  ]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+
+            <div className="ac-runtime-center">
+              <strong>{config.center}</strong>
+              <span>Runtime</span>
+            </div>
           </div>
-        </div>
-      </div>
+
+          <div className="ac-runtime-stats">
+
+            <div className="ac-runtime-stat">
+              <div className="ac-runtime-label">
+                <span className="ac-runtime-indicator on" />
+                ON TIME
+              </div>
+
+              <strong>
+                {formatDuration(runtime.onMs)}
+              </strong>
+
+              <span>
+                {runtime.onPercent.toFixed(1)}%
+              </span>
+            </div>
+
+            <div className="ac-runtime-stat">
+              <div className="ac-runtime-label">
+                <span className="ac-runtime-indicator off" />
+                OFF TIME
+              </div>
+
+              <strong>
+                {formatDuration(runtime.offMs)}
+              </strong>
+
+              <span>
+                {runtime.offPercent.toFixed(1)}%
+              </span>
+            </div>
+
+          </div>
+
+          {/* <div className="ac-runtime-events">
+            ON Events: <strong>{runtime.onEvents}</strong>
+          </div> */}
+
+          {runtime.unknownMs > 0 && (
+            <div className="ac-runtime-unknown">
+              No data: {formatDuration(runtime.unknownMs)}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

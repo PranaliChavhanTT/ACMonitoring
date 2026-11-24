@@ -2,6 +2,7 @@ from django.urls import path
 from .telemetry_aggregate_views import save_production_type
 from .analytics_views import comparison_analytics
 from .history_views import current_history, telemetry_aggregates
+from .generic_hierarchy_api import OrgUnitTypeList, CustomerOrgConfig, AllowedOrgChildren, OrgUnitListCreate, OrgUnitTree
 
 from .hierarchy_site_views import create_hierarchy_site, create_hierarchy_branch
 from .cloud_views import CloudCustomerListView, CloudUserListView
@@ -13,7 +14,8 @@ from .views import (
     profile,
     AdminDetailView, 
     AdminListView, 
-    BranchListView, 
+    BranchListView,
+    BranchDetailView,
     CircleListView, 
     CityListView,
     CountryListAPIView, 
@@ -22,7 +24,7 @@ from .views import (
     DivisionListView,
     EngDetailView, 
     EngListView, 
-    FloorListView, 
+    FloorListView, BuildingListView, RoomListView,
     OrganizationListView, 
     RegionListView,
     TalukaListView, 
@@ -73,6 +75,11 @@ from .views import (
 )
 
 urlpatterns = [
+    path("org-unit-types/", OrgUnitTypeList.as_view()),
+    path("customers/<int:customer_id>/org-config/", CustomerOrgConfig.as_view()),
+    path("org-units/allowed-children/", AllowedOrgChildren.as_view()),
+    path("org-units/", OrgUnitListCreate.as_view()),
+    path("org-units/<uuid:unit_id>/tree/", OrgUnitTree.as_view()),
     path("analytics/comparison/", comparison_analytics),
     path("save_production_type/", save_production_type),
     path("telemetry-aggregates/", telemetry_aggregates),
@@ -129,10 +136,13 @@ urlpatterns = [
     path("regions/", RegionListView.as_view()),
     path("divisions/", DivisionListView.as_view()),
     path("branches/", BranchListView.as_view()),
+    path("branches/<uuid:pk>/", BranchDetailView.as_view(), name="branch-detail"),
     path("branches/assignments/", branch_assignments),
     path("branches/ownership/", branch_ownership),
     path("branches/search/", search_site_branches),
+    path("buildings/", BuildingListView.as_view()),
     path("floors/", FloorListView.as_view()),
+    path("rooms/", RoomListView.as_view()),
     path("users/", UserListView.as_view()),
     path("locations/create/", create_branch_or_floor),
     path("hierarchy-branch/create/", create_hierarchy_branch),

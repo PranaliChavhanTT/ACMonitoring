@@ -18,6 +18,7 @@ import Locations from "./Pages/Organization/Locations";
 import ACCreation from "./Pages/Organization/ACCreation";
 import Trends from "./Second_Person/Forntend/Trends";
 import HierarchySiteCreation from "./Pages/Organization/HierarchySiteCreation";
+import GenericHierarchyManagement from "./Pages/Organization/GenericHierarchyManagement";
 
 import AIAnalysisPage from "./Second_Person/Forntend/AIModules/AIAnalysisPage";
 import SuperAdminLogin from "./Pages/Layout/SuperAdminLogin";
@@ -93,6 +94,15 @@ export default function App() {
             element={
               <Page roles={[ROLES.ORG_SUPER_ADMIN]}>
                 <EngCreation />
+              </Page>
+            }
+          />
+
+          <Route
+            path="/org/hierarchy"
+            element={
+              <Page roles={[ROLES.ORG_SUPER_ADMIN]}>
+                <GenericHierarchyManagement />
               </Page>
             }
           />

@@ -3,7 +3,14 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import (
-    User, Organization, Customer, Zone, Circle, Branch, Site, LoginAudit,
+    User, 
+    Organization, 
+    Customer, 
+    Zone, 
+    Circle, 
+    Branch, Building, Floor, Room,
+    Site, 
+    LoginAudit,
 )
 
 
@@ -123,3 +130,23 @@ class LoginAuditAdmin(admin.ModelAdmin):
     list_filter     = ("success", "role_attempted")
     readonly_fields = [f.name for f in LoginAudit._meta.fields]
     
+
+@admin.register(Building)
+class BuildingAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "branch", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "code", "branch__name")
+
+
+@admin.register(Floor)
+class FloorAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "branch", "building", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "code", "branch__name", "building__name")
+
+
+@admin.register(Room)
+class RoomAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "floor", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "code", "floor__name")

@@ -1,11 +1,21 @@
 // Single place for the backend address and auth token.
 // Set VITE_API_BASE in .env (e.g. VITE_API_BASE=http://192.168.1.9:8000/api) to override.
-export const API_BASE =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
-  "http://localhost:8000/api";
+// export const API_BASE =
+//   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
+//   "http://localhost:8000/api";
 
-// Chart history is served by the backend from its own database (telemetry_aggregate).
-export const HISTORY_URL = `${API_BASE}/current-history/`;
+// export const HISTORY_URL = `${API_BASE}/current-history/`;
+
+
+export const API_BASE =
+    import.meta.env.VITE_API_BASE_URL ||
+    "http://localhost:8000/api";
+
+// export const HISTORY_URL =
+//     `$DIL1/current-history/`;
+
+  export const HISTORY_URL = `${API_BASE}/current-history/`;
+
 export const AGGREGATES_URL = `${API_BASE}/telemetry-aggregates/`;
 
 export const getToken = () =>

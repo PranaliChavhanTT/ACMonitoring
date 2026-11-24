@@ -63,7 +63,7 @@ export function useMetricHistory({
       const plan = zoomed ? zoomPlan(zoomTo - zoomFrom) : null;
       const { period, intervalSeconds } = zoomed
         ? { period: plan.mode === "today" ? "today" : plan.mode, intervalSeconds: plan.intervalSeconds }
-        : requestFor(windowMs ? "today" : viewMode);
+        : requestFor(windowMs ? "today" : viewMode, nextRange);
       const params = new URLSearchParams({
         key: metric,
         agg,

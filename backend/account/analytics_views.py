@@ -64,15 +64,29 @@ def _device_location(device):
             "district_name": district.name if district else "",
             "state_name": state.name if state else "",
         })
+    elif branch.zone_id:
+        result.update({"zone_name": branch.zone.name})
+    elif branch.circle_id:
+        result.update({"circle_name": branch.circle.name, "zone_name": branch.circle.zone.name})
+    elif branch.region_id:
+        region = branch.region
+        zone = region.zone if region.zone_id else (region.circle.zone if region.circle_id else None)
+        levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
+        result.update({
+            "region_name": region.name,
+            "circle_name": region.circle.name if "circle" in levels and region.circle_id else "",
+            "zone_name": zone.name if zone else "",
+        })
     elif branch.division_id:
         division = branch.division
         region = division.region if division else None
-        circle = region.circle if region else None
-        zone = circle.zone if circle else None
+        circle = region.circle if region and region.circle_id else None
+        zone = region.zone if region and region.zone_id else (circle.zone if circle else None)
+        levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer_id else []
         result.update({
             "division_name": division.name if division else "",
-            "region_name": region.name if region else "",
-            "circle_name": circle.name if circle else "",
+            "region_name": region.name if region and "region" in levels else "",
+            "circle_name": circle.name if circle and "circle" in levels else "",
             "zone_name": zone.name if zone else "",
         })
     return result

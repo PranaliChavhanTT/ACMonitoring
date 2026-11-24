@@ -118,6 +118,8 @@ function makeTicksFromRange(from, to) {
   return ticks;
 }
 
+
+
 function formatTick(ts, from, to) {
   const spanMs = to.getTime() - from.getTime();
   const d = new Date(ts);
@@ -262,20 +264,37 @@ function buildChartData(currentRows, temperatureRows, stepMs) {
 /* ------------------------------------------------------------------ *
  *  Component
  * ------------------------------------------------------------------ */
-function CurrentTemperatureChart({ deviceId = "", scope = {}, height = 320 }) {
-  const [viewMode, setViewMode] = useState("last-24-hours");
-  const [selectedHour, setSelectedHour] = useState(() => new Date().getHours());
-  const [customFrom, setCustomFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-  });
-  const [customTo, setCustomTo] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-  });
-  const [expanded, setExpanded] = useState(false);
+function CurrentTemperatureChart({
+  deviceId = "",
+  scope = {},
+  height = 320,
+  period = "24h",
+}) {
+  // The Trends page is now the source of the time range.
+  const viewMode =
+    period === "7d"
+      ? "week"
+      : period === "30d"
+      ? "month"
+      : "last-24-hours";
+
+    const windowMs = useMemo(() => {
+      switch (period) {
+        case "7d":
+          return 7 * 24 * 60 * 60 * 1000;
+        case "30d":
+          return 30 * 24 * 60 * 60 * 1000;
+        default:
+          return 24 * 60 * 60 * 1000;
+      }
+    }, [period]);
+
+  const selectedHour = new Date().getHours();
+  const customFrom = "";
+  const customTo = "";
+
   const [picked, setPicked] = useState("");
+  const [expanded, setExpanded] = useState(false); 
   const [zoom, setZoom] = useState(null);          // null = full range, else { from, to } in ms
   const [sel, setSel] = useState(null);            // drag-selection { a, b }
   const wrapRef = useRef(null);
@@ -466,7 +485,7 @@ function CurrentTemperatureChart({ deviceId = "", scope = {}, height = 320 }) {
           )}
 
           {/* 1. viewMode dropdown -- same set as MetricHistoryChart */}
-          <select
+          {/* <select
             className="chart-select"
             value={viewMode}
             onChange={(e) => setViewMode(e.target.value)}
@@ -477,7 +496,7 @@ function CurrentTemperatureChart({ deviceId = "", scope = {}, height = 320 }) {
                 {m.label}
               </option>
             ))}
-          </select>
+          </select> */}
 
           {/* 2. custom date range -- only for viewMode === "custom" */}
           {viewMode === "custom" && (
@@ -605,15 +624,15 @@ function CurrentTemperatureChart({ deviceId = "", scope = {}, height = 320 }) {
             <YAxis
               yAxisId="right"
               orientation="right"
-              tick={{ fontSize: 11, fill: "#F44336 " }}
-              axisLine={{ stroke: "#F44336 " }}
-              tickLine={{ stroke: "#F44336 " }}
+              tick={{ fontSize: 11, fill: "#f28e2b " }}
+              axisLine={{ stroke: "#f28e2b " }}
+              tickLine={{ stroke: "#f28e2b " }}
               domain={["auto", "auto"]}
               label={{
                 value: "Temperature (°C)",
                 angle: 90,
                 position: "insideRight",
-                style: { textAnchor: "middle", fontSize: 11, fill: "#F44336 " },
+                style: { textAnchor: "middle", fontSize: 11, fill: "#f28e2b " },
               }}
             />
 
@@ -657,7 +676,7 @@ function CurrentTemperatureChart({ deviceId = "", scope = {}, height = 320 }) {
               type="linear"
               dataKey="temperature"
               name="Temperature"
-              stroke="#F44336 "
+              stroke="#f28e2b"
               strokeWidth={2}
               dot={false}
               connectNulls={false}

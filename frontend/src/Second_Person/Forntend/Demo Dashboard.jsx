@@ -14,9 +14,10 @@ import ACDashboard from "./ACDashboard";
 // import { useAuth } from "../../Pages/Layout/Layout.css";
 import { useAuth } from '../../Pages/Layout/AuthContext'
 
-const API_BASE = "http://192.168.1.9:8000/api";
+// const API_BASE = "http://192.168.1.9:8000/api";
 // const API_BASE = "http://192.168.1.9:8000/api/v1/filters/locations/";
 const API_URL = `${API_BASE}/ac-data/`;
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const DASHBOARD_URL = `${API_BASE}/dashboard/preferences/`;
 
 // const FILTER_KEYS = [

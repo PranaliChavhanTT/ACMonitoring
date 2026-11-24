@@ -2,8 +2,11 @@
 import { useState } from "react";
 import "./AIAssistantPanel.css";
 
+// const AI_BASE = import.meta.env.VITE_AI_API_BASE || "http://127.0.0.1:9000";
+
 const AI_BASE =
-    import.meta.env.VITE_AI_API_BASE || "http://127.0.0.1:9000";
+    import.meta.env.VITE_AI_API_BASE ||
+    "http://localhost:9000";
 
 const ANALYSIS_SECTIONS = [
     // "KPI",

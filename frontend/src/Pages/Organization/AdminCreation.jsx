@@ -3089,7 +3089,7 @@ const getCustomerId = (user) => {
                 everything below that hierarchy node.
               </p>
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {/* <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {(isSuperAdmin || isCustomerUser) && (
                 <button type="button" className="btn-secondary" onClick={() => { setView("allocate"); fetchAllocationData(); }}>
                   <FiCpu /> Allocate Devices
@@ -3098,7 +3098,7 @@ const getCustomerId = (user) => {
               <button type="button" className="btn-primary" onClick={openCreate}>
                 <FiUserPlus /> Add Admin
               </button>
-            </div>
+            </div> */}
           </div>
 
           <div className="admins-toolbar">

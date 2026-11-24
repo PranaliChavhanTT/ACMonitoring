@@ -23,6 +23,8 @@ function HumidityChart({
         decimals: 1,
         color: "#3182bd",
         yDomain: [0, 100],
+        // name:"Humidity",
+        // stroke:"#3182BD"
       }}
       deviceId={deviceId}
       scope={scope}

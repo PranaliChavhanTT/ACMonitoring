@@ -434,15 +434,11 @@ import {
 } from "./metricHistory";
 import { getViewRange } from "./metricHistory";
 import { useMetricHistory } from "./useMetricHistory";
+import { chartModeFor } from "./metricHistory";
+import { isWindowed, useTimeRange } from "./TimeRangeContext";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
-/**
- * Generic history line chart backed by the database.
- *
- * config: { metric, title, subtitleDevice, subtitleScope, seriesName, unit,
- *           yLabel, decimals, color, yDomain }
- */
 export default function MetricHistoryChart({
   config,
   deviceId = "",
@@ -455,18 +451,27 @@ export default function MetricHistoryChart({
   outdoorStatus = "idle",
   outdoorError = "",
 }) {
-  const [viewMode, setViewMode] = useState("last-24-hours");
+  // The dashboard-wide time filter (when present) drives every history chart;
+  // "Live" has no window of its own, so these charts show the last 24 hours.
+  const globalTime = useTimeRange();
+  const [localViewMode, setViewMode] = useState("last-24-hours");
   const [selectedHour, setSelectedHour] = useState(() => new Date().getHours());
-  const [customFrom, setCustomFrom] = useState(() => {
+  const [localCustomFrom, setCustomFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
     return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
   });
-  const [customTo, setCustomTo] = useState(() => {
+  const [localCustomTo, setCustomTo] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
   });
   const [expanded, setExpanded] = useState(false);
+
+  const viewMode = globalTime
+    ? (isWindowed(globalTime) ? globalTime.preset : "last-24-hours")
+    : localViewMode;
+  const customFrom = globalTime ? globalTime.customFrom : localCustomFrom;
+  const customTo = globalTime ? globalTime.customTo : localCustomTo;
 
   // Graph zoom: the selected period is the zoom-out limit; zooming changes the visible
   // span, the axis ticks, and re-requests finer data for just that span.
@@ -498,12 +503,12 @@ export default function MetricHistoryChart({
 
   const chartMode = zoom
     ? zoomPlan(zoom.to - zoom.from).mode
-    : viewMode === "custom"
-    ? (range.to - range.from > 2 * 24 * 60 * 60 * 1000 ? "month" : "week")
-    : viewMode;
+    : chartModeFor(viewMode, range);
 
   const xAxisLabel = useMemo(() => {
     const hourlyModes = [
+      "last-hour",
+      "last-12-hours",
       "last-24-hours",
       "selected-hour",
       "daily",
@@ -620,6 +625,7 @@ export default function MetricHistoryChart({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {!globalTime && (
           <select
             className="chart-select"
             value={viewMode}
@@ -632,8 +638,9 @@ export default function MetricHistoryChart({
               </option>
             ))}
           </select>
+          )}
 
-          {viewMode === "custom" && (
+          {!globalTime && viewMode === "custom" && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
               <input
                 className="chart-select"
@@ -656,7 +663,7 @@ export default function MetricHistoryChart({
             </div>
           )}
 
-          {viewMode === "selected-hour" && (
+          {!globalTime && viewMode === "selected-hour" && (
             <select
               className="chart-select"
               value={Math.min(selectedHour, currentHour)}
@@ -737,6 +744,7 @@ export default function MetricHistoryChart({
               dataKey="avg"
               name={config.seriesName}
               stroke={config.color}
+              // strokeWidth={config.strokeWidth ?? 2}
               strokeWidth={2.5}
               dot={false}
               activeDot={{ r: 5 }}

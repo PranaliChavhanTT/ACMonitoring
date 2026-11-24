@@ -30135,7 +30135,26 @@
                                         "taluka_name": "Pune Taluka",
                                         "customer_id": 12,
                                         "admin_ids": [],
-                                        "engineer_ids": []
+                                        "engineer_ids": [],
+                                        "devices": [
+                                            {
+                                                "ac_id": "AC-002",
+                                                "device_name": "AC-002",
+                                                "name": "AC-002",
+                                                "label": "AC-002",
+                                                "tpt_device_id": "fdf8b310-c3d9-11f1-9fbd-e7ab598bb869",
+                                                "thingsboard_device_id": "fdf8b310-c3d9-11f1-9fbd-e7ab598bb869",
+                                                "device_id": "fdf8b310-c3d9-11f1-9fbd-e7ab598bb869",
+                                                "id": "fdf8b310-c3d9-11f1-9fbd-e7ab598bb869",
+                                                "local_device_id": "74026e61-1271-4aba-9b0f-c6a012492e0f",
+                                                "branch_id": "MI-01",
+                                                "db_branch_id": "ee5f47cf-61a2-43a3-9b48-9999c047c154",
+                                                "branch_code": "MI-01",
+                                                "customer_id": "12",
+                                                "customer_name": "ICICI",
+                                                "status": "OFF"
+                                            }
+                                        ]
                                     },
                                     {
                                         "branch_id": "NB-01",
@@ -30189,7 +30208,26 @@
                                         "taluka_name": "Pune Taluka",
                                         "customer_id": 10,
                                         "admin_ids": [],
-                                        "engineer_ids": []
+                                        "engineer_ids": [],
+                                        "devices": [
+                                            {
+                                                "ac_id": "AC-001",
+                                                "device_name": "AC-001",
+                                                "name": "AC-001",
+                                                "label": "AC-001",
+                                                "tpt_device_id": "b438b1d0-c3d9-11f1-9fbd-e7ab598bb869",
+                                                "thingsboard_device_id": "b438b1d0-c3d9-11f1-9fbd-e7ab598bb869",
+                                                "device_id": "b438b1d0-c3d9-11f1-9fbd-e7ab598bb869",
+                                                "id": "b438b1d0-c3d9-11f1-9fbd-e7ab598bb869",
+                                                "local_device_id": "297da362-68ec-4711-8e92-5c6b342ffd92",
+                                                "branch_id": "NV-01",
+                                                "db_branch_id": "70b82626-f555-4119-a302-5e1aecce4c7e",
+                                                "branch_code": "NV-01",
+                                                "customer_id": "12",
+                                                "customer_name": "ICICI",
+                                                "status": "ON"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -30366,54 +30404,6 @@
                                         "engineer_ids": [],
                                         "devices": [
                                             {
-                                                "ac_id": "TEST-AC-02",
-                                                "device_name": "TEST-AC-02",
-                                                "name": "TEST-AC-02",
-                                                "label": "TEST-AC-02",
-                                                "tpt_device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "thingsboard_device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "local_device_id": "23ad582d-d1f5-4dbb-9603-72ee7dfd546f",
-                                                "branch_id": "KD-01",
-                                                "db_branch_id": "ad28e867-87c6-4cdf-a3fd-23430ec2ac8d",
-                                                "customer_id": "12",
-                                                "customer_name": "ICICI",
-                                                "status": "ON"
-                                            },
-                                            {
-                                                "ac_id": "TEST-AC-02",
-                                                "device_name": "TEST-AC-02",
-                                                "name": "TEST-AC-02",
-                                                "label": "TEST-AC-02",
-                                                "tpt_device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "thingsboard_device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "local_device_id": "23ad582d-d1f5-4dbb-9603-72ee7dfd546f",
-                                                "branch_id": "KD-01",
-                                                "db_branch_id": "ad28e867-87c6-4cdf-a3fd-23430ec2ac8d",
-                                                "customer_id": "12",
-                                                "customer_name": "ICICI",
-                                                "status": "ON"
-                                            },
-                                            {
-                                                "ac_id": "TEST-AC-02",
-                                                "device_name": "TEST-AC-02",
-                                                "name": "TEST-AC-02",
-                                                "label": "TEST-AC-02",
-                                                "tpt_device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "thingsboard_device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "local_device_id": "23ad582d-d1f5-4dbb-9603-72ee7dfd546f",
-                                                "branch_id": "KD-01",
-                                                "db_branch_id": "ad28e867-87c6-4cdf-a3fd-23430ec2ac8d",
-                                                "customer_id": "12",
-                                                "customer_name": "ICICI",
-                                                "status": "ON"
-                                            },
-                                            {
                                                 "ac_id": "TEST-AC-01",
                                                 "device_name": "TEST-AC-01",
                                                 "name": "TEST-AC-01",
@@ -30425,9 +30415,44 @@
                                                 "local_device_id": "2fed1e6b-7916-404f-9d6a-a71d255b03df",
                                                 "branch_id": "KD-01",
                                                 "db_branch_id": "ad28e867-87c6-4cdf-a3fd-23430ec2ac8d",
+                                                "branch_code": "KD-01",
                                                 "customer_id": "12",
                                                 "customer_name": "ICICI",
                                                 "status": "ON"
+                                            },
+                                            {
+                                                "ac_id": "TEST-AC-03",
+                                                "device_name": "TEST-AC-03",
+                                                "name": "TEST-AC-03",
+                                                "label": "TEST-AC-03",
+                                                "tpt_device_id": "485248e0-e1ad-11f1-b0fa-0d1a0230425c",
+                                                "thingsboard_device_id": "485248e0-e1ad-11f1-b0fa-0d1a0230425c",
+                                                "device_id": "485248e0-e1ad-11f1-b0fa-0d1a0230425c",
+                                                "id": "485248e0-e1ad-11f1-b0fa-0d1a0230425c",
+                                                "local_device_id": "6b2d7b39-38dd-4594-8735-c6bc84452633",
+                                                "branch_id": "KD-01",
+                                                "db_branch_id": "ad28e867-87c6-4cdf-a3fd-23430ec2ac8d",
+                                                "branch_code": "KD-01",
+                                                "customer_id": "12",
+                                                "customer_name": "ICICI",
+                                                "status": "OFFLINE"
+                                            },
+                                            {
+                                                "ac_id": "TEST-AC-04",
+                                                "device_name": "TEST-AC-04",
+                                                "name": "TEST-AC-04",
+                                                "label": "TEST-AC-04",
+                                                "tpt_device_id": "22eaf300-e1b1-11f1-b0fa-0d1a0230425c",
+                                                "thingsboard_device_id": "22eaf300-e1b1-11f1-b0fa-0d1a0230425c",
+                                                "device_id": "22eaf300-e1b1-11f1-b0fa-0d1a0230425c",
+                                                "id": "22eaf300-e1b1-11f1-b0fa-0d1a0230425c",
+                                                "local_device_id": "6892dc97-0951-4568-b3cc-7febe5a18850",
+                                                "branch_id": "KD-01",
+                                                "db_branch_id": "ad28e867-87c6-4cdf-a3fd-23430ec2ac8d",
+                                                "branch_code": "KD-01",
+                                                "customer_id": "12",
+                                                "customer_name": "ICICI",
+                                                "status": "OFFLINE"
                                             }
                                         ]
                                     }
@@ -33156,40 +33181,7 @@
                                         "customer_id": 12,
                                         "admin_ids": [],
                                         "engineer_ids": [],
-                                        "devices": [
-                                            {
-                                                "ac_id": "TEST-AC-01",
-                                                "device_name": "TEST-AC-01",
-                                                "name": "TEST-AC-01",
-                                                "label": "TEST-AC-01",
-                                                "tpt_device_id": "1f4d0d40-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "thingsboard_device_id": "1f4d0d40-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "device_id": "1f4d0d40-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "id": "1f4d0d40-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "local_device_id": "2fed1e6b-7916-404f-9d6a-a71d255b03df",
-                                                "branch_id": "TL-01",
-                                                "db_branch_id": "079eafa8-659b-4676-acd0-e434db52b461",
-                                                "customer_id": "12",
-                                                "customer_name": "ICICI",
-                                                "status": "ON"
-                                            },
-                                            {
-                                                "ac_id": "TEST-AC-02",
-                                                "device_name": "TEST-AC-02",
-                                                "name": "TEST-AC-02",
-                                                "label": "TEST-AC-02",
-                                                "tpt_device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "thingsboard_device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "device_id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "id": "937e3ae0-d6a4-11f1-b0fa-0d1a0230425c",
-                                                "local_device_id": "23ad582d-d1f5-4dbb-9603-72ee7dfd546f",
-                                                "branch_id": "TL-01",
-                                                "db_branch_id": "079eafa8-659b-4676-acd0-e434db52b461",
-                                                "customer_id": "12",
-                                                "customer_name": "ICICI",
-                                                "status": "ON"
-                                            }
-                                        ]
+                                        "devices": []
                                     }
                                 ]
                             }

@@ -24,6 +24,23 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 const pad2 = (n) => String(n).padStart(2, "0");
 
 /* ---------- range ---------- */
+// Accepts epoch ms, "YYYY-MM-DD" (whole day) or "YYYY-MM-DDTHH:mm" (datetime-local),
+// all interpreted in LOCAL time.  Returns ms or NaN.
+export function parseLocalInput(value, endOfDay = false) {
+  if (value === null || value === undefined || value === "") return NaN;
+  const text = String(value).trim();
+  if (/^\d{11,}$/.test(text)) return Number(text);
+  const m = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?$/);
+  if (!m) return NaN;
+  const [, y, mo, d, h, mi] = m;
+  if (h === undefined) {
+    return endOfDay
+      ? new Date(+y, +mo - 1, +d + 1).getTime() - 1
+      : new Date(+y, +mo - 1, +d).getTime();
+  }
+  return new Date(+y, +mo - 1, +d, +h, +mi).getTime();
+}
+
 // -> { from, to } in epoch ms.  Always local-time based, never empty/inverted.
 export function getViewRange(viewMode, selectedHour, now = new Date(), customFrom = "", customTo = "") {
   const to = now.getTime();
@@ -32,10 +49,30 @@ export function getViewRange(viewMode, selectedHour, now = new Date(), customFro
   switch (viewMode) {
     case "last-hour":
       return { from: to - HOUR, to };
+    case "last-6-hours":
+      return { from: to - 6 * HOUR, to };
     case "last-12-hours":
       return { from: to - 12 * HOUR, to };
     case "last-24-hours":
       return { from: to - 24 * HOUR, to };
+    case "yesterday": {
+      const from = new Date(midnight);
+      from.setDate(from.getDate() - 1);
+      return { from: from.getTime(), to: midnight.getTime() - 1 };
+    }
+    case "last-7-days":
+      return { from: to - 7 * DAY, to };
+    case "last-30-days":
+      return { from: to - 30 * DAY, to };
+    case "custom": {
+      const from = parseLocalInput(customFrom, false);
+      const rawTo = parseLocalInput(customTo, true);
+      if (Number.isFinite(from) && Number.isFinite(rawTo)) {
+        const end = Math.min(rawTo, to);
+        return { from: Math.min(from, end), to: end };
+      }
+      return { from: midnight.getTime(), to };
+    }
     case "selected-hour": {
       const hour = Math.min(Math.max(Number(selectedHour) || 0, 0), now.getHours());
       const from = new Date(midnight);
@@ -54,11 +91,36 @@ export function getViewRange(viewMode, selectedHour, now = new Date(), customFro
   }
 }
 
+// Which axis / bucket layout a view mode should be drawn with.
+// Maps the newer presets onto the layouts the chart helpers already know.
+export function chartModeFor(viewMode, range) {
+  switch (viewMode) {
+    case "last-6-hours":
+      return "last-12-hours";
+    case "yesterday":
+      return "today";
+    case "last-7-days":
+      return "week";
+    case "last-30-days":
+      return "month";
+    case "custom": {
+      const span = range.to - range.from;
+      if (span <= 26 * HOUR) return "last-24-hours";
+      return span > 2 * DAY ? "month" : "week";
+    }
+    default:
+      return viewMode;
+  }
+}
+
 // What to ask the backend for.  30-minute buckets line up with local days/hours
 // in half-hour time zones such as IST, so week/month re-bucketing is exact.
-export function requestFor(viewMode) {
-  if (viewMode === "week") return { period: "week", intervalSeconds: 1800 };
-  if (viewMode === "month") return { period: "month", intervalSeconds: 1800 };
+export function requestFor(viewMode, range = null) {
+  if (viewMode === "week" || viewMode === "last-7-days") return { period: "week", intervalSeconds: 1800 };
+  if (viewMode === "month" || viewMode === "last-30-days") return { period: "month", intervalSeconds: 1800 };
+  if (viewMode === "custom" && range && range.to - range.from > 33 * HOUR) {
+    return { period: "month", intervalSeconds: 1800 };
+  }
   return { period: "today", intervalSeconds: 60 };
 }
 

@@ -30,7 +30,7 @@ class Role(models.TextChoices):
 
 class HierarchyType(models.TextChoices):
     GEOGRAPHICAL = "GEOGRAPHICAL", "Geographical (State → District → Taluka → City → Branch)"
-    ZONAL = "ZONAL", "Zonal (Zone → Circle → Region → Division → Branch)"
+    ZONAL = "ZONAL", "Zonal (customer-configurable Zone → Circle → Region → Division → Branch)"
 
 
 class Organization(models.Model):
@@ -54,6 +54,60 @@ class Organization(models.Model):
 
     def __str__(self):
         return self.name
+
+
+def default_zonal_hierarchy_config():
+    """Default customer-specific zonal structure: Zone -> Circle -> Branch -> Floor."""
+    return {"version": 1, "levels": ["zone", "circle", "branch", "floor"], "labels": {"zone": "Zone", "circle": "Circle", "region": "Region", "division": "Division", "branch": "Branch", "building": "Building", "floor": "Floor", "room": "Room"}}
+
+
+def validate_zonal_hierarchy_config(config):
+    """Validate an ordered subset of the canonical zonal hierarchy.
+
+    Administrative levels are selected from Zone -> Circle -> Region ->
+    Division -> Branch. Circle and Region may both be present; Division
+    requires Region. Physical levels are Branch -> [Building] -> Floor ->
+    [Room], or Branch -> Floor -> [Room].
+    """
+    if not isinstance(config, dict):
+        raise ValidationError({"zonal_hierarchy_config": "Hierarchy configuration must be an object."})
+
+    levels = config.get("levels")
+    if not isinstance(levels, list) or not all(isinstance(x, str) for x in levels):
+        raise ValidationError({"zonal_hierarchy_config": "levels must be an ordered list of hierarchy levels."})
+
+    canonical = ["zone", "circle", "region", "division", "branch", "building", "floor", "room"]
+    if len(levels) != len(set(levels)) or any(level not in canonical for level in levels):
+        raise ValidationError({"zonal_hierarchy_config": "Hierarchy levels must be valid and cannot be repeated."})
+
+    if not levels or levels[0] != "zone" or "branch" not in levels:
+        raise ValidationError({"zonal_hierarchy_config": "Zone must be first and Branch is required."})
+
+    branch_index = levels.index("branch")
+    administrative = levels[: branch_index + 1]
+    if administrative[-1] != "branch" or any(level not in canonical[:5] for level in administrative):
+        raise ValidationError({"zonal_hierarchy_config": "Administrative levels must end at Branch."})
+    if administrative != [level for level in canonical[:5] if level in administrative]:
+        raise ValidationError({"zonal_hierarchy_config": "Administrative levels must preserve Zone → Circle → Region → Division → Branch order."})
+    if "division" in administrative and "region" not in administrative:
+        raise ValidationError({"zonal_hierarchy_config": "Division requires Region."})
+
+    physical = levels[branch_index + 1 :]
+    valid_physical = (["floor"], ["floor", "room"], ["building", "floor"], ["building", "floor", "room"])
+    if physical not in valid_physical:
+        raise ValidationError({"zonal_hierarchy_config": "After Branch choose Floor directly, or Building → Floor; Room is optional after Floor."})
+
+    # Customer-specific display labels; internal level keys remain canonical.
+    labels = config.get("labels", {})
+    if not isinstance(labels, dict):
+        raise ValidationError({"zonal_hierarchy_config": "labels must be an object keyed by hierarchy level."})
+    allowed_labels = set(canonical)
+    if any(key not in allowed_labels for key in labels):
+        raise ValidationError({"zonal_hierarchy_config": "labels contains an unknown hierarchy level."})
+    for key, value in labels.items():
+        if not isinstance(value, str) or not value.strip() or len(value.strip()) > 60:
+            raise ValidationError({"zonal_hierarchy_config": f"The display name for {key} must contain 1–60 characters."})
+    return True
 
 
 class Customer(models.Model):
@@ -91,6 +145,14 @@ class Customer(models.Model):
     contact_person_email = models.EmailField(blank=True)
     # admin_designation = models.CharField(max_length=150, blank=True, default="")
     # admin_mobile = models.CharField(max_length=30, blank=True, default="")
+
+    # Customer-specific Zonal path. Geographical hierarchy deliberately ignores
+    # this field and always uses the fixed geographical structure.
+    zonal_hierarchy_config = models.JSONField(
+        default=default_zonal_hierarchy_config,
+        blank=True,
+        help_text="Ordered customer-specific zonal levels; Geographical customers do not use this setting.",
+    )
 
     hierarchy_type = models.CharField(
         max_length=20,
@@ -163,6 +225,12 @@ class Customer(models.Model):
                 "hierarchy_type": "Invalid hierarchy type."
             })
 
+        if self.hierarchy_type == HierarchyType.ZONAL:
+            validate_zonal_hierarchy_config(self.zonal_hierarchy_config)
+        elif self.hierarchy_type == HierarchyType.GEOGRAPHICAL:
+            # Keep the zonal definition inert for geographical customers.
+            self.zonal_hierarchy_config = default_zonal_hierarchy_config()
+
         if self.pk and Branch.objects.filter(customer_id=self.pk).exists():
             original_hierarchy = (
                 Customer.objects
@@ -196,6 +264,19 @@ class Country(models.Model):
 
 
 class Zone(models.Model):
+    GEOGRAPHY_MODE_CHOICES = [
+        ("STATE", "State-wise"),
+        ("CITY", "City-wise"),
+    ]
+    # Optional geographical classification used when branches are directly
+    # organized under this Zone. It is independent of the administrative tree.
+    geography_mode = models.CharField(
+        max_length=10,
+        choices=GEOGRAPHY_MODE_CHOICES,
+        null=True,
+        blank=True,
+        default=None,
+    )
     country = models.ForeignKey(
         "account.Country",
         on_delete=models.PROTECT,
@@ -238,7 +319,9 @@ class Circle(models.Model):
 
 class Region(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    circle = models.ForeignKey(Circle, on_delete=models.CASCADE, related_name="regions")
+    # Legacy Circle -> Region and new direct Zone -> Region are both supported.
+    circle = models.ForeignKey(Circle, on_delete=models.CASCADE, related_name="regions", null=True, blank=True)
+    zone = models.ForeignKey(Zone, on_delete=models.CASCADE, related_name="regions", null=True, blank=True)
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=50, unique=True)
     is_active = models.BooleanField(default=True)
@@ -248,6 +331,12 @@ class Region(models.Model):
         db_table = "regions"
         unique_together = ("circle", "name")
         ordering = ["name"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(circle__isnull=False, zone__isnull=True) | models.Q(circle__isnull=True, zone__isnull=False)),
+                name="region_has_one_parent",
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -357,12 +446,30 @@ class City(models.Model):
 
 class Branch(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Optional link to the generic organisational tree. Legacy parent fields remain active during migration.
+    org_unit = models.ForeignKey("OrgUnit", on_delete=models.SET_NULL, null=True, blank=True, related_name="branches")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="branches", null=True, blank=True)
+    
     city = models.ForeignKey(City, on_delete=models.CASCADE, related_name="branches", null=True, blank=True)
     # New direct geographical parent: a branch can be attached to a Taluka
     # without requiring a City node. Existing city-linked branches are retained.
     taluka = models.ForeignKey(Taluka, on_delete=models.CASCADE, related_name="branches", null=True, blank=True)
     division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name="branches", null=True, blank=True)
+    circle = models.ForeignKey(Circle, on_delete=models.CASCADE, related_name="branches", null=True, blank=True)
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="branches", null=True, blank=True)
+    # Direct Zone parent is allowed when the customer skips Circle/Region/Division.
+    zone = models.ForeignKey(Zone, on_delete=models.CASCADE, related_name="branches", null=True, blank=True)
+
+    # For Zonal customers whose Branch is directly under a Zone, keep the
+    # actual geographical location separately from the organizational parent.
+    geographic_state = models.ForeignKey(
+        State, on_delete=models.PROTECT, related_name="zonal_branches",
+        null=True, blank=True,
+    )
+    geographic_city = models.ForeignKey(
+        City, on_delete=models.PROTECT, related_name="zonal_branches",
+        null=True, blank=True,
+    )
 
     name = models.CharField(max_length=255)
     address = models.TextField(blank=True, default="")
@@ -405,11 +512,17 @@ class Branch(models.Model):
             models.UniqueConstraint(fields=["city", "name"], name="unique_branch_per_city"),
             models.UniqueConstraint(fields=["division", "name"], name="unique_branch_per_division"),
             models.UniqueConstraint(fields=["taluka", "name"], name="unique_branch_per_taluka"),
+            models.UniqueConstraint(fields=["circle", "name"], name="unique_branch_per_circle"),
+            models.UniqueConstraint(fields=["region", "name"], name="unique_branch_per_region"),
+            models.UniqueConstraint(fields=["zone", "name"], name="unique_branch_per_zone"),
             models.CheckConstraint(
                 condition=(
-                    models.Q(city__isnull=False, taluka__isnull=True, division__isnull=True)
-                    | models.Q(city__isnull=True, taluka__isnull=False, division__isnull=True)
-                    | models.Q(city__isnull=True, taluka__isnull=True, division__isnull=False)
+                    models.Q(city__isnull=False, taluka__isnull=True, division__isnull=True, circle__isnull=True, region__isnull=True, zone__isnull=True)
+                    | models.Q(city__isnull=True, taluka__isnull=False, division__isnull=True, circle__isnull=True, region__isnull=True, zone__isnull=True)
+                    | models.Q(city__isnull=True, taluka__isnull=True, division__isnull=False, circle__isnull=True, region__isnull=True, zone__isnull=True)
+                    | models.Q(city__isnull=True, taluka__isnull=True, division__isnull=True, circle__isnull=False, region__isnull=True, zone__isnull=True)
+                    | models.Q(city__isnull=True, taluka__isnull=True, division__isnull=True, circle__isnull=True, region__isnull=False, zone__isnull=True)
+                    | models.Q(city__isnull=True, taluka__isnull=True, division__isnull=True, circle__isnull=True, region__isnull=True, zone__isnull=False)
                 ),
                 name="branch_has_exactly_one_parent",
             ),
@@ -423,18 +536,114 @@ class Branch(models.Model):
         if not self.customer_id:
             raise ValidationError("A branch must belong to a customer.")
 
+        # Generic organisational links are optional and are only valid for
+        # ZONAL customers. They never replace the existing geographical parent.
+        if self.org_unit_id:
+            if self.customer.hierarchy_type != HierarchyType.ZONAL:
+                raise ValidationError({"org_unit": "Geographical customers cannot use organisational hierarchy links."})
+            if self.org_unit.customer_id != self.customer_id:
+                raise ValidationError({"org_unit": "The organisational unit must belong to the same customer."})
+            if self.org_unit.unit_type.code != "BO":
+                raise ValidationError({"org_unit": "A Branch can only link to an organisational unit of type BO."})
+
         ht = self.customer.hierarchy_type if self.customer_id else None
         if ht == HierarchyType.GEOGRAPHICAL and not (self.city_id or self.taluka_id):
             raise ValidationError("This customer follows the Geographical hierarchy: select a Taluka or City.")
-        if ht == HierarchyType.ZONAL and not self.division_id:
-            raise ValidationError("This customer follows the Zonal hierarchy: select a Division.")
-        if sum(bool(value) for value in (self.city_id, self.taluka_id, self.division_id)) != 1:
-            raise ValidationError("A branch must belong to exactly one parent: City, Taluka, or Division.")
+        if ht == HierarchyType.ZONAL:
+            levels = (self.customer.zonal_hierarchy_config or default_zonal_hierarchy_config()).get("levels", [])
+            branch_index = levels.index("branch") if "branch" in levels else -1
+            expected = levels[branch_index - 1] if branch_index > 0 else None
+            parent_ids = {
+                "zone": self.zone_id,
+                "circle": self.circle_id,
+                "region": self.region_id,
+                "division": self.division_id,
+            }
+            if expected not in parent_ids or not parent_ids[expected]:
+                raise ValidationError(
+                    f"This customer requires {str(expected or 'a configured level').title()} as the direct Branch parent."
+                )
+            if any(value for key, value in parent_ids.items() if key != expected):
+                raise ValidationError("Branch parent does not match this customer's configured zonal hierarchy.")
+            if self.city_id or self.taluka_id:
+                raise ValidationError("Zonal branches cannot use Geographical parents.")
+
+            if expected == "zone" and self.zone.customer_id != self.customer_id:
+                raise ValidationError("The selected Zone does not belong to this customer.")
+            if expected == "circle" and self.circle.zone.customer_id != self.customer_id:
+                raise ValidationError("The selected Circle does not belong to this customer.")
+            if expected == "region":
+                region_customer_id = self.region.zone.customer_id if self.region.zone_id else self.region.circle.zone.customer_id
+                if region_customer_id != self.customer_id:
+                    raise ValidationError("The selected Region does not belong to this customer.")
+                if "circle" in levels and not self.region.circle_id:
+                    raise ValidationError("This customer requires the selected Region to belong to a Circle.")
+            if expected == "division":
+                division_region = self.division.region
+                division_zone_id = (
+                    division_region.zone_id if division_region.zone_id
+                    else (division_region.circle.zone_id if division_region.circle_id else None)
+                )
+                if not division_zone_id or Zone.objects.get(pk=division_zone_id).customer_id != self.customer_id:
+                    raise ValidationError("The selected Division does not belong to this customer.")
+                if "circle" in levels and not division_region.circle_id:
+                    raise ValidationError("This customer's Division must belong to a Region under a Circle.")
+
+        parents = (self.city_id, self.taluka_id, self.division_id, self.circle_id, self.region_id, self.zone_id)
+        if sum(bool(value) for value in parents) != 1:
+            raise ValidationError("A branch must belong to exactly one hierarchy parent.")
+
+
+def zonal_branch_parent_level(config):
+    """Return the configured administrative level directly above Branch."""
+    levels = (config or default_zonal_hierarchy_config()).get("levels", [])
+    try:
+        branch_index = levels.index("branch")
+    except (AttributeError, ValueError):
+        return None
+    return levels[branch_index - 1] if branch_index > 0 else None
+
+
+def get_branch_zone_id(branch):
+    """Resolve the Zone for direct Zone, Circle, Region or Division branch parents."""
+    if getattr(branch, "zone_id", None):
+        return branch.zone_id
+    if getattr(branch, "circle_id", None):
+        return branch.circle.zone_id
+    if getattr(branch, "region_id", None):
+        region = branch.region
+        if region.zone_id:
+            return region.zone_id
+        return region.circle.zone_id if region.circle_id else None
+    if getattr(branch, "division_id", None):
+        region = branch.division.region
+        if region.zone_id:
+            return region.zone_id
+        return region.circle.zone_id if region.circle_id else None
+    return None
+
+
+class Building(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name="buildings")
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "buildings"
+        unique_together = ("branch", "name")
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.branch.name} - {self.name}"
 
 
 class Floor(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name="floors")
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name="floors", null=True, blank=True)
     name = models.CharField(max_length=255)  # e.g. "Ground Floor", "Floor 2"
     code = models.CharField(max_length=50, unique=True)
     is_active = models.BooleanField(default=True)
@@ -448,6 +657,35 @@ class Floor(models.Model):
     def __str__(self):
         return f"{self.branch.name} - {self.name}"
 
+    def clean(self):
+        if self.building_id and self.branch_id and self.building.branch_id != self.branch_id:
+            raise ValidationError("The selected building belongs to a different branch.")
+        if self.branch_id and self.branch.customer_id and self.branch.customer.hierarchy_type == HierarchyType.ZONAL:
+            levels = (self.branch.customer.zonal_hierarchy_config or default_zonal_hierarchy_config()).get("levels", [])
+            if "floor" not in levels:
+                raise ValidationError("Floor is not enabled in this customer's hierarchy configuration.")
+            if "building" in levels and not self.building_id:
+                raise ValidationError("Select a Building because this customer's hierarchy includes Building.")
+            if "building" not in levels and self.building_id:
+                raise ValidationError("Building is not enabled in this customer's hierarchy configuration.")
+
+
+class Room(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    floor = models.ForeignKey(Floor, on_delete=models.CASCADE, related_name="rooms")
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "rooms"
+        unique_together = ("floor", "name")
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.floor} - {self.name}"
+
 
 class Site(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -460,6 +698,8 @@ class Site(models.Model):
         blank=True,
     )
     floor = models.ForeignKey(Floor, on_delete=models.CASCADE, related_name="sites", null=True, blank=True)
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name="sites", null=True, blank=True)
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, related_name="sites", null=True, blank=True)
     pincode = models.CharField(max_length=6, blank=True, default="")
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=50, unique=True)
@@ -486,6 +726,12 @@ class Site(models.Model):
         from django.core.exceptions import ValidationError
         if self.floor_id and self.floor.branch_id != self.branch_id:
             raise ValidationError("Selected floor does not belong to the selected branch.")
+        if self.building_id and self.building.branch_id != self.branch_id:
+            raise ValidationError("Selected building does not belong to the selected branch.")
+        if self.floor_id and self.building_id and self.floor.building_id != self.building_id:
+            raise ValidationError("Selected floor does not belong to the selected building.")
+        if self.room_id and (not self.floor_id or self.room.floor_id != self.floor_id):
+            raise ValidationError("Selected room does not belong to the selected floor.")
 
 
 class UserManager(BaseUserManager):
@@ -914,3 +1160,148 @@ class TelemetryAggregate(models.Model):
 
     def __str__(self):
         return f"{self.device_id} @ {self.bucket_start.isoformat()}"
+
+# Generic, bank-configurable organisational hierarchy. The legacy Zone/Circle/
+# Region/Division tables above remain in place during the migration period.
+class OrgUnitType(models.Model):
+    code = models.SlugField(max_length=40, unique=True)
+    name = models.CharField(max_length=100)
+    description = models.CharField(max_length=255, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        db_table = "org_unit_types"
+
+    def __str__(self):
+        return self.name
+
+
+class BankOrgUnitType(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="org_type_configs")
+    unit_type = models.ForeignKey(OrgUnitType, on_delete=models.PROTECT, related_name="bank_configs")
+    display_name = models.CharField(max_length=100, blank=True, default="")
+    is_enabled = models.BooleanField(default=True)
+    is_terminal = models.BooleanField(default=False, help_text="True when this type is a leaf such as Branch.")
+
+    class Meta:
+        db_table = "bank_org_unit_types"
+        constraints = [models.UniqueConstraint(fields=["customer", "unit_type"], name="uniq_bank_org_unit_type")]
+        ordering = ["unit_type__sort_order", "unit_type__name"]
+
+    @property
+    def label(self):
+        return self.display_name or self.unit_type.name
+
+    def __str__(self):
+        return f"{self.customer}: {self.label}"
+
+
+class OrgHierarchyRule(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="org_hierarchy_rules")
+    # NULL parent_type means this type is allowed as a root.
+    parent_type = models.ForeignKey(OrgUnitType, on_delete=models.CASCADE, null=True, blank=True, related_name="child_rules")
+    child_type = models.ForeignKey(OrgUnitType, on_delete=models.CASCADE, related_name="parent_rules")
+    is_allowed = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "org_hierarchy_rules"
+        constraints = [models.UniqueConstraint(fields=["customer", "parent_type", "child_type"], name="uniq_org_hierarchy_rule")]
+
+
+class OrgUnit(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="org_units")
+    unit_type = models.ForeignKey(OrgUnitType, on_delete=models.PROTECT, related_name="units")
+    parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="children")
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=60)
+    is_active = models.BooleanField(default=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "org_units"
+        constraints = [models.UniqueConstraint(fields=["customer", "code"], name="uniq_org_unit_code_per_bank")]
+        ordering = ["name"]
+
+    def clean(self):
+        super().clean()
+        # This generic tree is strictly for ZONAL customers. GEOGRAPHICAL
+        # customers continue to use State -> District -> Taluka -> City -> Branch.
+        if self.customer_id and self.customer.hierarchy_type != HierarchyType.ZONAL:
+            raise ValidationError({"customer": "Generic organisational units are only available for Zonal customers. Geographical hierarchy is managed separately."})
+        if self.parent_id:
+            if self.parent.customer_id != self.customer_id:
+                raise ValidationError({"parent": "Parent must belong to the same bank."})
+            if self.pk and self.parent_id == self.pk:
+                raise ValidationError({"parent": "An organisational unit cannot be its own parent."})
+            ancestor = self.parent
+            visited = set()
+            while ancestor is not None:
+                if ancestor.pk == self.pk:
+                    raise ValidationError({"parent": "This parent assignment would create a hierarchy cycle."})
+                if ancestor.pk in visited:
+                    raise ValidationError({"parent": "The selected parent already belongs to a cyclic hierarchy."})
+                visited.add(ancestor.pk)
+                ancestor = ancestor.parent
+        rule = OrgHierarchyRule.objects.filter(
+            customer_id=self.customer_id,
+            parent_type_id=self.parent.unit_type_id if self.parent_id else None,
+            child_type_id=self.unit_type_id,
+            is_allowed=True,
+        ).exists()
+        if not rule:
+            raise ValidationError({"unit_type": "This unit type is not allowed under the selected parent."})
+        enabled = BankOrgUnitType.objects.filter(
+            customer_id=self.customer_id, unit_type_id=self.unit_type_id, is_enabled=True
+        ).exists()
+        if not enabled:
+            raise ValidationError({"unit_type": "This unit type is not enabled for this bank."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.unit_type.code})"
+
+
+class OrgUnitGeoCoverage(models.Model):
+    COVERAGE_CHOICES = [("ASSIGNED", "Assigned coverage"), ("LOCATED", "Physical location")]
+    org_unit = models.ForeignKey(OrgUnit, on_delete=models.CASCADE, related_name="geographical_coverage")
+    state = models.ForeignKey(State, on_delete=models.PROTECT, null=True, blank=True, related_name="org_unit_coverage")
+    district = models.ForeignKey(District, on_delete=models.PROTECT, null=True, blank=True, related_name="org_unit_coverage")
+    taluka = models.ForeignKey(Taluka, on_delete=models.PROTECT, null=True, blank=True, related_name="org_unit_coverage")
+    city = models.ForeignKey(City, on_delete=models.PROTECT, null=True, blank=True, related_name="org_unit_coverage")
+    coverage_type = models.CharField(max_length=12, choices=COVERAGE_CHOICES, default="ASSIGNED")
+
+    class Meta:
+        db_table = "org_unit_geo_coverage"
+
+    def clean(self):
+        super().clean()
+        # This table is an optional map-coverage overlay for ZONAL units only.
+        # It does not create, move, or alter State/District/Taluka/City records.
+        if self.org_unit_id and self.org_unit.customer.hierarchy_type != HierarchyType.ZONAL:
+            raise ValidationError({"org_unit": "Geographical customers cannot have organisational coverage overlays."})
+        geography = [self.state, self.district, self.taluka, self.city]
+        if not any(geography):
+            raise ValidationError("Select at least one geographical area.")
+        if self.state_id and self.state.customer_id != self.org_unit.customer_id:
+            raise ValidationError({"state": "State must belong to the same customer as the organisational unit."})
+        if self.district and self.district.state.customer_id != self.org_unit.customer_id:
+            raise ValidationError({"district": "District must belong to the same customer as the organisational unit."})
+        if self.taluka and self.taluka.district.state.customer_id != self.org_unit.customer_id:
+            raise ValidationError({"taluka": "Taluka must belong to the same customer as the organisational unit."})
+        if self.city and self.city.taluka.district.state.customer_id != self.org_unit.customer_id:
+            raise ValidationError({"city": "City must belong to the same customer as the organisational unit."})
+        if self.district and self.state_id and self.district.state_id != self.state_id:
+            raise ValidationError({"district": "District must belong to the selected state."})
+        if self.taluka and self.district_id and self.taluka.district_id != self.district_id:
+            raise ValidationError({"taluka": "Taluka must belong to the selected district."})
+        if self.city and self.taluka_id and self.city.taluka_id != self.taluka_id:
+            raise ValidationError({"city": "City must belong to the selected taluka."})

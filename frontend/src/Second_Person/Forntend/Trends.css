@@ -906,3 +906,17 @@ body:has(.trends-page .ac-dashboard-chart-expanded)::before {
 @media (max-width: 420px) {
   .trends-ac-info-grid { grid-template-columns: 1fr; }
 }
+
+.trends-time-range-display {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    min-height: 40px;
+    border: 1px solid var(--border-color, #dfe3e8);
+    border-radius: 8px;
+    background: var(--card-bg, #fff);
+    color: var(--text-color, #333);
+    font-size: 12px;
+}

@@ -1,8 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, MapPin, Building2 } from "lucide-react";
-import "./Locations.css";
 
-const API_BASE = "http://192.168.1.9:8000/api";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw, Search, MapPin, Building2, Pencil } from "lucide-react";
+import "./Locations.css";
+import SearchableSelect from "./SearchableSelect ";
+
+// const API_BASE = "http://192.168.1.9:8000/api";
+// const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL ||
+    `http://${window.location.hostname}:8000/api`;
+
 const FILTER_LOCATIONS_URL = `${API_BASE}/v1/filters/locations/`;
 const BRANCHES_URL = `${API_BASE}/branches/`;
 
@@ -102,6 +111,38 @@ const nodeId = (node, level) =>
 const nodeName = (node, level) =>
     String(node?.[`${level}_name`] ?? node?.name ?? node?.title ?? node?.code ?? "");
 
+const getIndiaNode = (tree) => {
+    const list = Array.isArray(tree) ? tree : [];
+    return list.find((item) => normalize(item?.country_name || item?.name) === "india") || list[0] || null;
+};
+
+const getStateOptions = (tree) => {
+    const india = getIndiaNode(tree);
+    const states = india?.states || india?.children || [];
+    return states.map((state) => ({
+        id: String(state?.state_id ?? state?.id ?? state?.code ?? ""),
+        name: String(state?.state_name ?? state?.name ?? ""),
+        raw: state,
+    })).filter((state) => state.id && state.name);
+};
+
+const getCitiesForState = (stateNode) => {
+    const cities = [];
+    const walk = (node) => {
+        if (!node || typeof node !== "object") return;
+        (node.cities || []).forEach((city) => {
+            cities.push({
+                id: String(city?.city_id ?? city?.id ?? city?.code ?? ""),
+                name: String(city?.city_name ?? city?.name ?? ""),
+            });
+        });
+        (node.districts || []).forEach(walk);
+        (node.talukas || []).forEach(walk);
+    };
+    walk(stateNode);
+    return cities.filter((city) => city.id && city.name);
+};
+
 function Locations () {
     const [branches, setBranches] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -111,13 +152,25 @@ function Locations () {
     const [currentUser, setCurrentUser] = useState(null);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState("");
+    const [selectedCustomerDetails, setSelectedCustomerDetails] = useState(null);
     const [customerHierarchy, setCustomerHierarchy] = useState("");
     const [customerLocationTree, setCustomerLocationTree] = useState([]);
+    const [zoneRecords, setZoneRecords] = useState([]);
+    const [geographicalMasterTree, setGeographicalMasterTree] = useState([]);
+    const [zoneGeographyMode, setZoneGeographyMode] = useState("");
+    const [geographicStateId, setGeographicStateId] = useState("");
+    const [geographicCityId, setGeographicCityId] = useState("");
     const [hierarchySelection, setHierarchySelection] = useState(EMPTY_SELECTION);
     const [showCreate, setShowCreate] = useState(false);
+    const [editingBranch, setEditingBranch] = useState(null);
+    const [editForm, setEditForm] = useState({ name: "", code: "", ifsc_code: "", address: "", pincode: "", latitude: "", longitude: "", is_active: true });
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState("");
     const [success, setSuccess] = useState("");
+    const [zonalParentModal, setZonalParentModal] = useState(null);
+    const [zonalParentName, setZonalParentName] = useState("");
+    const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+    const [customerSearchTerm, setCustomerSearchTerm] = useState("");
     const [branchForm, setBranchForm] = useState({
         name: "",
         code: "",
@@ -127,12 +180,6 @@ function Locations () {
         latitude: "",
         longitude: "",
     });
-
-    const MAX_FLOORS = 10;
-
-    const [hasFloor, setHasFloor] = useState("no");      // "" | "yes" | "no"
-    const [floorCount, setFloorCount] = useState("");  // string from the input
-    const [floors, setFloors] = useState([]);          // ["Floor 1", "Floor 2", ...]
 
     const loadBranches = useCallback(async (customerId = selectedCustomer, isRefresh = false) => {
         try {
@@ -153,39 +200,117 @@ function Locations () {
         }
     }, [selectedCustomer]);
 
+    // useEffect(() => {
+    //     let cancelled = false;
+    //     (async () => {
+    //     try {
+    //         const response = await fetchJSON(`${API_BASE}/auth/me/`);
+    //         const user = response?.user ?? response?.data ?? response;
+    //         if (cancelled) 
+    //             return;
+    //         setCurrentUser(user);
+    //         const role = String(user?.role ?? user?.user_role ?? "").toUpperCase();
+    //         if (role === "CUSTOMER") {
+    //             const customerId = user?.customer_id ?? user?.customer?.id ?? user?.customer;
+    //             if (!customerId) 
+    //                 throw new Error("Your login is not linked to a customer.");
+    //             setSelectedCustomer(String(customerId));
+    //         } else if (role === "ORG_SUPER_ADMIN") {
+    //         const customerResponse = await fetchJSON(`${API_BASE}/customers/`);
+    //         if (!cancelled) 
+    //             setCustomers(getList(customerResponse));
+    //         } else {
+    //             throw new Error("Your account does not have permission to manage branches.");
+    //         }
+    //     } catch (err) {
+    //         if (!cancelled) setError(err.message || "Unable to load user/customer context.");
+    //     }
+    //     })();
+    //     return () => { cancelled = true; };
+    // }, []);
+
     useEffect(() => {
         let cancelled = false;
+
         (async () => {
-        try {
-            const response = await fetchJSON(`${API_BASE}/auth/me/`);
-            const user = response?.user ?? response?.data ?? response;
-            if (cancelled) 
-                return;
-            setCurrentUser(user);
-            const role = String(user?.role ?? user?.user_role ?? "").toUpperCase();
-            if (role === "CUSTOMER") {
-                const customerId = user?.customer_id ?? user?.customer?.id ?? user?.customer;
-                if (!customerId) 
-                    throw new Error("Your login is not linked to a customer.");
-                setSelectedCustomer(String(customerId));
-            } else if (role === "ORG_SUPER_ADMIN") {
-            const customerResponse = await fetchJSON(`${API_BASE}/customers/`);
-            if (!cancelled) 
-                setCustomers(getList(customerResponse));
-            } else {
-                throw new Error("Your account does not have permission to manage branches.");
+            try {
+                const response = await fetchJSON(`${API_BASE}/auth/me/`);
+
+                // Support different API response structures
+                const user =
+                    response?.user?.user ??
+                    response?.user ??
+                    response?.data?.user ??
+                    response?.data ??
+                    response;
+
+                if (cancelled) return;
+
+                setCurrentUser(user);
+
+                const role = String(
+                    user?.role ??
+                    user?.user_role ??
+                    user?.role_name ??
+                    ""
+                ).trim().toUpperCase();
+
+                console.log("Current user:", user);
+                console.log("Current role:", role);
+
+                if (role === "CUSTOMER") {
+                    const customerId =
+                        user?.customer_id ??
+                        user?.customer?.id ??
+                        user?.customer;
+
+                    if (!customerId) {
+                        throw new Error(
+                            "Your login is not linked to a customer."
+                        );
+                    }
+
+                    setSelectedCustomer(String(customerId));
+
+                } else if (role === "ORG_SUPER_ADMIN") {
+
+                    const customerResponse = await fetchJSON(
+                        `${API_BASE}/customers/`
+                    );
+
+                    if (!cancelled) {
+                        setCustomers(getList(customerResponse));
+                    }
+
+                } else {
+                    throw new Error(
+                        `Unsupported account role: ${role || "ROLE NOT FOUND"}`
+                    );
+                }
+
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err.message || "Unable to load user/customer context.");
+                }
             }
-        } catch (err) {
-            if (!cancelled) setError(err.message || "Unable to load user/customer context.");
-        }
         })();
-        return () => { cancelled = true; };
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
+
 
     useEffect(() => {
         if (!selectedCustomer) {
+            setSelectedCustomerDetails(null);
             setCustomerHierarchy("");
             setCustomerLocationTree([]);
+            setZoneRecords([]);
+            setGeographicalMasterTree([]);
+            setZoneGeographyMode("");
+            setGeographicStateId("");
+            setGeographicCityId("");
 
             const role = String(
                 currentUser?.role ?? currentUser?.user_role ?? ""
@@ -216,6 +341,7 @@ function Locations () {
                     throw new Error("The selected customer has no valid hierarchy configured.");
                 }
                 if (cancelled) return;
+                setSelectedCustomerDetails(customer);
                 setCustomerHierarchy(type);
 
                 const params = new URLSearchParams({
@@ -226,6 +352,19 @@ function Locations () {
                 const tree = await fetchJSON(`${FILTER_LOCATIONS_URL}?${params.toString()}`);
                 if (cancelled) return;
                 setCustomerLocationTree(Array.isArray(tree?.data) ? tree.data : []);
+
+                if (type === "ZONAL") {
+                    const [zonesResponse, geoResponse] = await Promise.all([
+                        fetchJSON(`${API_BASE}/zones/?customer=${encodeURIComponent(selectedCustomer)}`),
+                        fetchJSON(`${FILTER_LOCATIONS_URL}?hierarchy=GEOGRAPHICAL&customer_id=${encodeURIComponent(selectedCustomer)}&t=${Date.now()}`),
+                    ]);
+                    if (cancelled) return;
+                    setZoneRecords(getList(zonesResponse));
+                    setGeographicalMasterTree(Array.isArray(geoResponse?.data) ? geoResponse.data : []);
+                } else {
+                    setZoneRecords([]);
+                    setGeographicalMasterTree([]);
+                }
                 await loadBranches(selectedCustomer);
             } catch (err) {
                 if (!cancelled) setError(err.message || "Unable to load customer hierarchy.");
@@ -235,67 +374,242 @@ function Locations () {
         return () => { cancelled = true; };
     }, [selectedCustomer, loadBranches, currentUser]);
 
+    // The customer's saved configuration is the source of truth for Zonal
+    // parent levels. Keep the canonical order, but omit levels not selected
+    // for this customer (for example Zone -> Branch or Zone -> Region -> Branch).
+    const zonalLevels = useMemo(() => {
+        const configured = selectedCustomerDetails?.zonal_hierarchy_config?.levels;
+        return Array.isArray(configured) && configured.length
+            ? configured
+            : ["zone", "circle", "branch", "floor"];
+    }, [selectedCustomerDetails]);
+    const zonalParentLevels = useMemo(() => {
+        const branchIndex = zonalLevels.indexOf("branch");
+        return branchIndex >= 0 ? zonalLevels.slice(0, branchIndex) : ["zone", "circle"];
+    }, [zonalLevels]);
+    const isDirectZoneBranch = customerHierarchy === "ZONAL" &&
+        zonalParentLevels.length === 1 && zonalParentLevels[0] === "zone";
+    const selectedZoneRecord = useMemo(() => zoneRecords.find(
+        (zone) => String(zone.id ?? zone.pk) === String(hierarchySelection.zone) || String(zone.code ?? "") === String(hierarchySelection.zone)
+    ) || null, [zoneRecords, hierarchySelection.zone]);
+    const geographicalStates = useMemo(
+        () => getStateOptions(geographicalMasterTree), [geographicalMasterTree]
+    );
+    const selectedGeographicalState = useMemo(() => geographicalStates.find(
+        (state) => state.id === String(geographicStateId)
+    ) || null, [geographicalStates, geographicStateId]);
+    const geographicalCities = useMemo(
+        () => getCitiesForState(selectedGeographicalState?.raw), [selectedGeographicalState]
+    );
+
+    useEffect(() => {
+        setZoneGeographyMode(selectedZoneRecord?.geography_mode || "");
+        setGeographicStateId("");
+        setGeographicCityId("");
+    }, [selectedZoneRecord?.id, selectedZoneRecord?.geography_mode]);
+    const hierarchyLabel = (level) => {
+        const configuredLabel = selectedCustomerDetails?.zonal_hierarchy_config?.labels?.[level];
+        if (customerHierarchy === "ZONAL" && typeof configuredLabel === "string" && configuredLabel.trim()) {
+            return configuredLabel.trim();
+        }
+        return ({
+            state: "State", district: "District", taluka: "Taluka",
+            zone: "Zone", circle: "Circle", region: "Region", division: "Division",
+            branch: "Branch", building: "Building", floor: "Floor", room: "Room",
+        }[level] || level.charAt(0).toUpperCase() + level.slice(1));
+    };
+    const childKeyFor = (level) => ({
+        state: "districts", district: "talukas", taluka: "cities",
+        zone: "zones", circle: "circles", region: "regions", division: "divisions",
+        branch: "branches",
+    }[level] || `${level}s`);
+
     const getHierarchyOptions = useCallback((targetLevel) => {
-        const config = HIERARCHY_CONFIG[customerHierarchy];
-        if (!config || !customerLocationTree.length) return [];
-        const firstKey = customerHierarchy === "GEOGRAPHICAL" ? "states" : "zones";
+        if (!customerLocationTree.length) return [];
+        const levels = customerHierarchy === "GEOGRAPHICAL"
+            ? HIERARCHY_CONFIG.GEOGRAPHICAL.map((item) => item.name)
+            : zonalParentLevels;
+        const rootKey = customerHierarchy === "GEOGRAPHICAL" ? "states" : "zones";
         let nodes = customerLocationTree;
         const country = nodes.find((n) => normalize(n?.country_name) === "india");
-        if (country?.[firstKey]) nodes = country[firstKey];
+        if (country?.[rootKey]) nodes = country[rootKey];
         else {
-        const wrapper = nodes.find((n) => Array.isArray(n?.[firstKey]));
-        if (wrapper) nodes = wrapper[firstKey];
+            const wrapper = nodes.find((n) => Array.isArray(n?.[rootKey]));
+            if (wrapper) nodes = wrapper[rootKey];
         }
-        for (const level of config) {
-        if (level.name === targetLevel) return Array.isArray(nodes) ? nodes : [];
-        const selectedId = hierarchySelection[level.name];
-        if (!selectedId) return [];
-        const selected = nodes.find((n) => nodeId(n, level.name) === String(selectedId));
-        if (!selected) return [];
-        nodes = selected[level.children] || [];
+        for (const level of levels) {
+            if (level === targetLevel) return Array.isArray(nodes) ? nodes : [];
+            const selectedId = hierarchySelection[level];
+            if (!selectedId) return [];
+            const selected = nodes.find((n) => nodeId(n, level) === String(selectedId));
+            if (!selected) return [];
+            const nextLevel = levels[levels.indexOf(level) + 1];
+            nodes = selected[childKeyFor(nextLevel)] || [];
         }
         return [];
-    }, [customerHierarchy, customerLocationTree, hierarchySelection]);
+    }, [customerHierarchy, customerLocationTree, hierarchySelection, zonalParentLevels]);
 
     const handleHierarchyChange = (level, value) => {
-        const config = HIERARCHY_CONFIG[customerHierarchy] || [];
-        const index = config.findIndex((item) => item.name === level);
+        const levels = customerHierarchy === "GEOGRAPHICAL"
+            ? HIERARCHY_CONFIG.GEOGRAPHICAL.map((item) => item.name)
+            : zonalParentLevels;
+        const index = levels.indexOf(level);
         setHierarchySelection((previous) => {
-        const next = { ...previous, [level]: value };
-        for (let i = index + 1; i < config.length; i++) next[config[i].name] = "";
-        return next;
-        });
-    };
-
-    const handleHasFloorChange = (value) => {
-        setHasFloor(value);
-        if (value !== "yes") {
-            setFloorCount("");
-            setFloors([]);
-        }
-    };
-
-    const handleFloorCountChange = (value) => {
-        const digits = String(value).replace(/\D/g, "").slice(0, 3);
-        setFloorCount(digits);
-        const count = digits === "" ? 0 : Math.min(Number(digits), MAX_FLOORS);
-        setFloors((previous) => {
-            const next = [];
-            for (let i = 0; i < count; i++) {
-                next.push(previous[i] ?? `Floor ${i + 1}`);
-            }
+            const next = { ...previous, [level]: value };
+            for (let i = index + 1; i < levels.length; i++) next[levels[i]] = "";
             return next;
         });
     };
 
-    const handleFloorNameChange = (index, value) => {
-        setFloors((previous) =>
-            previous.map((name, i) => (i === index ? value : name))
-        );
+    // Create a missing customer-specific Zonal parent directly from its dropdown.
+    // The new record is selected after the customer hierarchy tree is refreshed.
+    const addZonalParent = async (level) => {
+        if (customerHierarchy !== "ZONAL" || !selectedCustomer) return;
+        const levelIndex = zonalParentLevels.indexOf(level);
+        const parentLevel = levelIndex > 0 ? zonalParentLevels[levelIndex - 1] : null;
+        const parentId = parentLevel ? hierarchySelection[parentLevel] : "";
+        if (parentLevel && !parentId) {
+            setFormError(`Select ${hierarchyLabel(parentLevel)} before adding ${hierarchyLabel(level)}.`);
+            return;
+        }
+
+        setZonalParentName("");
+        setZonalParentModal({ level, parentId });
+        return;
+        // const code = name.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString().slice(-6);
+        // const payload = { name, code };
+        // if (level === "zone") payload.customer = selectedCustomer;
+        // if (level === "circle") payload.zone = parentId;
+        // if (level === "region") {
+        //     if (parentLevel === "circle") payload.circle = parentId;
+        //     else if (parentLevel === "zone") payload.zone = parentId;
+        // }
+        // if (level === "division") payload.region = parentId;
+
+        // const endpoint = ({ zone: "zones", circle: "circles", region: "regions", division: "divisions" })[level];
+        // try {
+        //     setFormError("");
+        //     setSuccess("");
+        //     const created = await fetchJSON(`${API_BASE}/${endpoint}/`, {
+        //         method: "POST",
+        //         body: JSON.stringify(payload),
+        //     });
+        //     const createdRecord = created?.data ?? created?.[level] ?? created;
+        //     const createdId = getItemId(createdRecord);
+        //     if (!createdId) throw new Error(`${hierarchyLabel(level)} was created, but the API did not return its ID.`);
+
+        //     const params = new URLSearchParams({
+        //         hierarchy: "ZONAL", customer_id: selectedCustomer, t: String(Date.now()),
+        //     });
+        //     const tree = await fetchJSON(`${FILTER_LOCATIONS_URL}?${params.toString()}`);
+        //     setCustomerLocationTree(Array.isArray(tree?.data) ? tree.data : []);
+        //     setHierarchySelection((previous) => {
+        //         const next = { ...previous, [level]: createdId };
+        //         const start = zonalParentLevels.indexOf(level);
+        //         for (let i = start + 1; i < zonalParentLevels.length; i++) next[zonalParentLevels[i]] = "";
+        //         return next;
+        //     });
+        //     if (level === "zone") {
+        //         const zones = await fetchJSON(`${API_BASE}/zones/?customer=${encodeURIComponent(selectedCustomer)}`);
+        //         setZoneRecords(getList(zones));
+        //     }
+        //     setSuccess(`${hierarchyLabel(level)} added and selected.`);
+        // } catch (err) {
+        //     setFormError(err.message || `Unable to add ${hierarchyLabel(level)}.`);
+        // }
+    };
+
+    const createZonalParent = async () => {
+        if (!zonalParentModal || !zonalParentName.trim()) return;
+
+        const { level, parentId } = zonalParentModal;
+        const name = zonalParentName.trim();
+
+        const code =
+            name.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "") +
+            "-" +
+            Date.now().toString().slice(-6);
+
+        const payload = { name, code };
+
+        if (level === "zone") payload.customer = selectedCustomer;
+        if (level === "circle") payload.zone = parentId;
+
+        if (level === "region") {
+            if (zonalParentLevels[zonalParentLevels.indexOf(level) - 1] === "circle")
+                payload.circle = parentId;
+            else
+                payload.zone = parentId;
+        }
+
+        if (level === "division") payload.region = parentId;
+
+        const endpoint = {
+            zone: "zones",
+            circle: "circles",
+            region: "regions",
+            division: "divisions",
+        }[level];
+
+        try {
+            setFormError("");
+            setSuccess("");
+
+            const created = await fetchJSON(`${API_BASE}/${endpoint}/`, {
+                method: "POST",
+                body: JSON.stringify(payload),
+            });
+
+            const createdRecord = created?.data ?? created?.[level] ?? created;
+            const createdId = getItemId(createdRecord);
+
+            if (!createdId) {
+                throw new Error(`${hierarchyLabel(level)} was created, but the API did not return its ID.`);
+            }
+
+            const params = new URLSearchParams({
+                hierarchy: "ZONAL",
+                customer_id: selectedCustomer,
+                t: String(Date.now()),
+            });
+
+            const tree = await fetchJSON(
+                `${FILTER_LOCATIONS_URL}?${params.toString()}`
+            );
+
+            setCustomerLocationTree(Array.isArray(tree?.data) ? tree.data : []);
+
+            setHierarchySelection((previous) => {
+                const next = { ...previous, [level]: createdId };
+                const start = zonalParentLevels.indexOf(level);
+
+                for (let i = start + 1; i < zonalParentLevels.length; i++) {
+                    next[zonalParentLevels[i]] = "";
+                }
+
+                return next;
+            });
+
+            if (level === "zone") {
+                const zones = await fetchJSON(
+                    `${API_BASE}/zones/?customer=${encodeURIComponent(selectedCustomer)}`
+                );
+                setZoneRecords(getList(zones));
+            }
+
+            setSuccess(`${hierarchyLabel(level)} added and selected.`);
+            setZonalParentModal(null);
+            setZonalParentName("");
+
+        } catch (err) {
+            setFormError(err.message || `Unable to add ${hierarchyLabel(level)}.`);
+        }
     };
 
     const resetForm = () => {
         setHierarchySelection(EMPTY_SELECTION);
+        setGeographicStateId("");
+        setGeographicCityId("");
         setBranchForm({
             name: "",
             code: "",
@@ -305,9 +619,6 @@ function Locations () {
             latitude: "",
             longitude: "",
         });
-        setHasFloor("");
-        setFloorCount("");
-        setFloors([]);
         setFormError("");
         setSuccess("");
     };
@@ -332,22 +643,6 @@ function Locations () {
             setFormError("Pincode must contain exactly 6 digits.");
             return;
         }
-        if (!hasFloor) {
-            setFormError("Please select whether the branch has floors.");
-            return;
-        }
-        if (hasFloor === "yes" && (!floorCount || Number(floorCount) < 1)) {
-            setFormError("Enter the number of floors (at least 1).");
-            return;
-        }
-
-        const floorPayload = hasFloor === "yes"
-            ? floors.map((name, index) => ({
-                floor_number: index + 1,
-                name: (name || `Floor ${index + 1}`).trim(),
-            }))
-            : [];
-
         const payload = {
             customer_id: selectedCustomer,
             hierarchy_type: customerHierarchy,
@@ -358,9 +653,6 @@ function Locations () {
             pincode: branchForm.pincode.trim(),
             latitude: branchForm.latitude === "" ? null : Number(branchForm.latitude),
             longitude: branchForm.longitude === "" ? null : Number(branchForm.longitude),
-            has_floor: hasFloor === "yes",
-            floor_count: floorPayload.length,
-            floors: floorPayload,
         };
         if (customerHierarchy === "GEOGRAPHICAL") {
             if (!hierarchySelection.state || !hierarchySelection.district || !hierarchySelection.taluka) {
@@ -371,15 +663,35 @@ function Locations () {
             payload.district_id = hierarchySelection.district;
             payload.taluka_id = hierarchySelection.taluka;
         } else {
-            if (!hierarchySelection.zone || !hierarchySelection.circle ||
-                !hierarchySelection.region || !hierarchySelection.division) {
-                setFormError("Select Zone, Circle, Region, and Division before creating the branch.");
+            const missingParent = zonalParentLevels.find((level) => !hierarchySelection[level]);
+            if (missingParent) {
+                setFormError(`Select ${hierarchyLabel(missingParent)} before creating the branch.`);
                 return;
             }
-            payload.zone_id = hierarchySelection.zone;
-            payload.circle_id = hierarchySelection.circle;
-            payload.region_id = hierarchySelection.region;
-            payload.division_id = hierarchySelection.division;
+            // Send only configured parent levels. The backend validates that
+            // these records belong to this customer and form the correct chain.
+            zonalParentLevels.forEach((level) => {
+                payload[`${level}_id`] = hierarchySelection[level];
+            });
+            if (isDirectZoneBranch) {
+                if (!zoneGeographyMode) {
+                    setFormError("Choose State-wise or City-wise classification for this Zone.");
+                    return;
+                }
+                if (!geographicStateId) {
+                    setFormError("Select a State for this branch.");
+                    return;
+                }
+                if (zoneGeographyMode === "CITY" && !geographicCityId) {
+                    setFormError("Select a City for this branch.");
+                    return;
+                }
+                payload.zone_geography_mode = zoneGeographyMode;
+                payload.geographic_state_id = geographicStateId;
+                if (zoneGeographyMode === "CITY") {
+                    payload.geographic_city_id = geographicCityId;
+                }
+            }
         }
 
         try {
@@ -392,6 +704,10 @@ function Locations () {
         resetForm();
         setShowCreate(false);
         await loadBranches(selectedCustomer, true);
+        if (isDirectZoneBranch) {
+            const refreshedZones = await fetchJSON(`${API_BASE}/zones/?customer=${encodeURIComponent(selectedCustomer)}`);
+            setZoneRecords(getList(refreshedZones));
+        }
         // Refresh hierarchy so the new branch appears in the hierarchy selectors.
         const params = new URLSearchParams({
             hierarchy: customerHierarchy, customer_id: selectedCustomer, t: String(Date.now()),
@@ -402,6 +718,66 @@ function Locations () {
         setFormError(err.message || "Unable to create branch.");
         } finally {
         setSaving(false);
+        }
+    };
+
+    const openEditBranch = (branch) => {
+        setEditingBranch(branch);
+        setEditForm({
+            name: branch.name || "",
+            code: branch.code || "",
+            ifsc_code: branch.ifsc_code || branch.ifsc || "",
+            address: branch.address || "",
+            pincode: branch.pincode || "",
+            latitude: branch.latitude ?? "",
+            longitude: branch.longitude ?? "",
+            is_active: branch.is_active !== false,
+        });
+        setFormError("");
+        setSuccess("");
+    };
+
+    const saveBranchChanges = async (event) => {
+        event.preventDefault();
+        if (!editingBranch) return;
+        setFormError("");
+        setSuccess("");
+        if (!editForm.name.trim() || !editForm.code.trim()) {
+            setFormError("Branch name and branch code are required.");
+            return;
+        }
+        if (editForm.ifsc_code && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(editForm.ifsc_code)) {
+            setFormError("IFSC code must be 11 characters (e.g. HDFC0001234).");
+            return;
+        }
+        if (editForm.pincode && !/^\d{6}$/.test(editForm.pincode)) {
+            setFormError("Pincode must contain exactly 6 digits.");
+            return;
+        }
+
+        const branchId = editingBranch.id || editingBranch.pk;
+        try {
+            setSaving(true);
+            await fetchJSON(`${BRANCHES_URL}${encodeURIComponent(branchId)}/`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    name: editForm.name.trim(),
+                    code: editForm.code.trim().toUpperCase(),
+                    ifsc_code: editForm.ifsc_code.trim().toUpperCase(),
+                    address: editForm.address.trim(),
+                    pincode: editForm.pincode.trim(),
+                    latitude: editForm.latitude === "" ? null : Number(editForm.latitude),
+                    longitude: editForm.longitude === "" ? null : Number(editForm.longitude),
+                    is_active: Boolean(editForm.is_active),
+                }),
+            });
+            setEditingBranch(null);
+            setSuccess("Branch information updated successfully.");
+            await loadBranches(selectedCustomer, true);
+        } catch (err) {
+            setFormError(err.message || "Unable to update branch information.");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -417,7 +793,21 @@ function Locations () {
             branch.tpt_branch_id,
         ].some((value) => normalize(value).includes(q));
         });
-    }, [branches, search]);
+        }, [branches, search]);
+        const filteredCustomers = useMemo(() => {
+        const q = normalize(customerSearchTerm);
+        return customers.filter((customer) =>
+            normalize(getItemLabel(customer)).includes(q)
+        );
+    }, [customers, customerSearchTerm]);
+
+    const selectedCustomerName = useMemo(() => {
+        if (!selectedCustomer) return "All Customers";
+        const customer = customers.find(
+            (item) => getItemId(item) === String(selectedCustomer)
+        );
+        return customer ? getItemLabel(customer) : "Select Customer";
+    }, [customers, selectedCustomer]);
 
     const totalStates = useMemo(
         () => new Set(branches.map((b) => normalize(b.state_name)).filter(Boolean)).size,
@@ -425,12 +815,8 @@ function Locations () {
     );
 
     const hierarchyFields = customerHierarchy === "GEOGRAPHICAL"
-        ? [
-            ["state", "State"], ["district", "District"], ["taluka", "Taluka"],
-        ]
-        : [
-            ["zone", "Zone"], ["circle", "Circle"], ["region", "Region"], ["division", "Division"],
-        ];
+        ? [["state", "State"], ["district", "District"], ["taluka", "Taluka"]]
+        : zonalParentLevels.map((level) => [level, hierarchyLabel(level)]);
 
     return (
         <div className="locations-page">
@@ -450,17 +836,101 @@ function Locations () {
                 </div>
             </div>
 
+            {/* {String(currentUser?.role ?? currentUser?.user_role ?? "").toUpperCase() === "ORG_SUPER_ADMIN" && (
+                <div className="branch-customer-search">
+                    <label>Customer</label>
+
+                    <div className="customer-search-wrapper">
+                        <button
+                            type="button"
+                            className="customer-search-trigger"
+                            onClick={() => {
+                                setCustomerSearchOpen((previous) => !previous);
+                                setCustomerSearchTerm("");
+                            }}
+                        >
+                            <span className="customer-search-selected">
+                                <Search size={17} />
+                                {selectedCustomerName}
+                            </span>
+
+                            <span className={`customer-search-arrow ${customerSearchOpen ? "open" : ""}`}>
+                                ▼
+                            </span>
+                        </button>
+
+                        {customerSearchOpen && (
+                            <div className="customer-search-dropdown">
+                                <div className="customer-search-input">
+                                    <Search size={16} />
+
+                                    <input
+                                        type="text"
+                                        placeholder="Search customer..."
+                                        value={customerSearchTerm}
+                                        onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div className="customer-search-options">
+                                    <button
+                                        type="button"
+                                        className={`customer-search-option ${!selectedCustomer ? "selected" : ""}`}
+                                        onClick={() => {
+                                            setSelectedCustomer("");
+                                            setCustomerSearchOpen(false);
+                                            setCustomerSearchTerm("");
+                                        }}
+                                    >
+                                        All Customers
+                                    </button>
+
+                                    {filteredCustomers.length > 0 ? (
+                                        filteredCustomers.map((customer) => {
+                                            const customerId = getItemId(customer);
+
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={customerId}
+                                                    className={`customer-search-option ${
+                                                        String(selectedCustomer) === customerId ? "selected" : ""
+                                                    }`}
+                                                    onClick={() => {
+                                                        setSelectedCustomer(customerId);
+                                                        setCustomerSearchOpen(false);
+                                                        setCustomerSearchTerm("");
+                                                    }}
+                                                >
+                                                    {getItemLabel(customer)}
+                                                </button>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="customer-search-empty">
+                                            No customers found.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )} */}
+
             {String(currentUser?.role ?? currentUser?.user_role ?? "").toUpperCase() === "ORG_SUPER_ADMIN" && (
-                <div className="form-group" style={{ maxWidth: 420, marginBottom: 18 }}>
-                    <label>Customer *</label>
-                    <select value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
-                        <option value="">All</option>
-                        {customers.map((customer) => (
-                            <option key={getItemId(customer)} value={getItemId(customer)}>
-                                {getItemLabel(customer)}
-                            </option>
-                        ))}
-                    </select>
+                <div className="branch-customer-search">
+                    <label>Customer</label>
+                    <SearchableSelect
+                        value={selectedCustomer}
+                        onChange={(val) => setSelectedCustomer(val)}
+                        placeholder="Select Customer"
+                        options={[
+                            { value: "", label: "All" },
+                            ...customers.map((c) => ({ value: getItemId(c), label: getItemLabel(c) }))
+                        ]}
+                    />
                 </div>
             )}
 
@@ -499,6 +969,7 @@ function Locations () {
                                 <th>Hierarchy</th>
                                 {/* <th>Parent</th> */}
                                 <th>Address</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
 
@@ -509,11 +980,35 @@ function Locations () {
                                 const sync = branch.tpt_sync_status || (branch.tpt_branch_id ? "SYNCED" : "UNKNOWN");
                                 return (
                                     <tr key={branch.id || branch.pk || branch.code}>
-                                    <td><strong>{branch.name || "—"}</strong></td>
+                                    {(() => {
+                                        const sameId = (a, b) =>
+                                            a !== null && a !== undefined && b !== null && b !== undefined && String(a) === String(b);
+                                        const headOfficeCityId = selectedCustomerDetails?.head_office_city;
+                                        const headOfficeDivisionId = selectedCustomerDetails?.head_office_division;
+                                        const headOfficeHierarchy = String(selectedCustomerDetails?.head_office_hierarchy || "").toLowerCase();
+                                        const isHeadOffice =
+                                            sameId(branch.city, headOfficeCityId) ||
+                                            sameId(branch.division, headOfficeDivisionId) ||
+                                            (Boolean(branch.city_name) && Boolean(selectedCustomerDetails?.city) && normalize(branch.city_name) === normalize(selectedCustomerDetails.city)) ||
+                                            (Boolean(branch.division_name) && Boolean(headOfficeHierarchy) && normalize(branch.division_name) === normalize(headOfficeHierarchy.split("→").pop()));
+                                        return (
+                                            <td>
+                                                <span className="branch-name-cell">
+                                                    {isHeadOffice && <span className="head-office-dot" title="Customer Head Office" aria-label="Customer Head Office" />}
+                                                    <strong>{branch.name || "—"}</strong>
+                                                </span>
+                                            </td>
+                                        );
+                                    })()}
                                     <td>{branch.code || "—"}</td>
                                     <td>{hierarchy}</td>
                                     {/* <td>{parent}</td> */}
                                     <td>{branch.address || "—"}</td>
+                                    <td>
+                                        <button type="button" className="branch-edit-btn" onClick={() => openEditBranch(branch)} title="Edit branch information">
+                                            <Pencil size={15} />
+                                        </button>
+                                    </td>
                                     </tr>
                                 );
                             })}
@@ -525,6 +1020,34 @@ function Locations () {
                     Showing <strong>{filteredBranches.length}</strong> of <strong>{branches.length}</strong> branches
                 </div>
             </div>
+
+            {editingBranch && (
+                <div className="site-modal-overlay" role="presentation">
+                    <div className="site-modal hierarchy-site-modal" role="dialog" aria-modal="true" aria-labelledby="edit-branch-title">
+                        <div className="site-modal-header">
+                            <div><h2 id="edit-branch-title">Edit Branch Information</h2><p>Update the selected branch details.</p></div>
+                            <button type="button" className="modal-close-btn" disabled={saving} onClick={() => setEditingBranch(null)}>×</button>
+                        </div>
+                        <form onSubmit={saveBranchChanges}>
+                            <div className="site-form-grid">
+                                <div className="form-group"><label>Branch Name *</label><input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required /></div>
+                                <div className="form-group"><label>Branch Code *</label><input value={editForm.code} onChange={(e) => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })} required /></div>
+                                <div className="form-group"><label>IFSC Code</label><input value={editForm.ifsc_code} onChange={(e) => setEditForm({ ...editForm, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11) })} maxLength={11} placeholder="e.g. HDFC0001234" /></div>
+                                <div className="form-group"><label>Pincode</label><input value={editForm.pincode} onChange={(e) => setEditForm({ ...editForm, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })} inputMode="numeric" maxLength={6} /></div>
+                                <div className="form-group full-width"><label>Address</label><textarea rows={3} value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} /></div>
+                                <div className="form-group"><label>Latitude</label><input type="number" step="any" min="-90" max="90" value={editForm.latitude} onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value })} /></div>
+                                <div className="form-group"><label>Longitude</label><input type="number" step="any" min="-180" max="180" value={editForm.longitude} onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value })} /></div>
+                                <div className="form-group"><label>Branch Status</label><select value={editForm.is_active ? "true" : "false"} onChange={(e) => setEditForm({ ...editForm, is_active: e.target.value === "true" })}><option value="true">Active</option><option value="false">Inactive</option></select></div>
+                            </div>
+                            {formError && <div className="location-error"><span>{formError}</span></div>}
+                            <div className="site-modal-footer">
+                                <button type="button" className="cancel-btn" disabled={saving} onClick={() => setEditingBranch(null)}>Cancel</button>
+                                <button type="submit" className="save-site-btn" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {showCreate && (
                 <div className="site-modal-overlay">
@@ -545,20 +1068,82 @@ function Locations () {
                         </div>
                         )}
                         <div className="form-group full-width">
-                        <label>Hierarchy Type</label>
-                        <input value={customerHierarchy || "Select a customer"} readOnly />
+                            <label>Hierarchy Type</label>
+                            <input value={customerHierarchy || "Select a customer"} readOnly />
                         </div>
                         {hierarchyFields.map(([key, label]) => (
                         <div className="form-group" key={key}>
                             <label>{label} *</label>
                             <select value={hierarchySelection[key]} onChange={(e) => handleHierarchyChange(key, e.target.value)} required>
                             <option value="">Select {label.toLowerCase()}</option>
-                            {getHierarchyOptions(key).map((item) => (
-                                <option key={nodeId(item, key)} value={nodeId(item, key)}>{nodeName(item, key)}</option>
-                            ))}
+                                {getHierarchyOptions(key).map((item) => (
+                                    <option key={nodeId(item, key)} value={nodeId(item, key)}>{nodeName(item, key)}</option>
+                                ))}
                             </select>
+                            {customerHierarchy === "ZONAL" && ["ORG_SUPER_ADMIN", "CUSTOMER"].includes(String(currentUser?.role ?? currentUser?.user_role ?? "").toUpperCase()) && (
+                                <button
+                                    type="button"
+                                    className="cancel-btn"
+                                    style={{ marginTop: 8, padding: "7px 12px" }}
+                                    onClick={() => addZonalParent(key)}
+                                    disabled={saving || (zonalParentLevels.indexOf(key) > 0 && !hierarchySelection[zonalParentLevels[zonalParentLevels.indexOf(key) - 1]])}
+                                >
+                                    + Add {label}
+                                </button>
+                            )}
                         </div>
                         ))}
+                        {isDirectZoneBranch && hierarchySelection.zone && (
+                            <>
+                                <div className="form-group full-width">
+                                    <label>Choose geographical classification for this Zone *</label>
+                                    <div className="zone-geography-radio-group" role="radiogroup" aria-label="Zone geographical classification">
+                                        <label className="zone-geography-radio-option">
+                                            <input
+                                                type="radio"
+                                                name="zoneGeographyMode"
+                                                value="STATE"
+                                                checked={zoneGeographyMode === "STATE"}
+                                                onChange={() => { setZoneGeographyMode("STATE"); setGeographicStateId(""); setGeographicCityId(""); }}
+                                                disabled={Boolean(selectedZoneRecord?.geography_mode)}
+                                                required
+                                            />
+                                            <span>State-wise</span>
+                                        </label>
+                                        <label className="zone-geography-radio-option">
+                                            <input
+                                                type="radio"
+                                                name="zoneGeographyMode"
+                                                value="CITY"
+                                                checked={zoneGeographyMode === "CITY"}
+                                                onChange={() => { setZoneGeographyMode("CITY"); setGeographicStateId(""); setGeographicCityId(""); }}
+                                                disabled={Boolean(selectedZoneRecord?.geography_mode)}
+                                            />
+                                            <span>City-wise</span>
+                                        </label>
+                                    </div>
+                                    {selectedZoneRecord?.geography_mode && <small>This Zone is already configured and its classification is locked.</small>}
+                                </div>
+                                {zoneGeographyMode && (
+                                    <div className="form-group">
+                                        <label>State *</label>
+                                        <select value={geographicStateId} onChange={(e) => { setGeographicStateId(e.target.value); setGeographicCityId(""); }} required>
+                                            <option value="">Select State</option>
+                                            {geographicalStates.map((state) => <option key={state.id} value={state.id}>{state.name}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                                {zoneGeographyMode === "CITY" && geographicStateId && (
+                                    <div className="form-group">
+                                        <label>City *</label>
+                                        <select value={geographicCityId} onChange={(e) => setGeographicCityId(e.target.value)} required>
+                                            <option value="">Select City</option>
+                                            {geographicalCities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                            </>
+                        )}
                         <div className="form-group"><label>Branch Name *</label><input value={branchForm.name} onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })} required placeholder="Enter branch name" /></div>
                         <div className="form-group"><label>Branch Code *</label><input value={branchForm.code} onChange={(e) => setBranchForm({ ...branchForm, code: e.target.value.toUpperCase() })} required placeholder="Unique branch code" /></div>
                         <div className="form-group">
@@ -582,51 +1167,6 @@ function Locations () {
                         <div className="form-group full-width"><label>Address</label><textarea value={branchForm.address} onChange={(e) => setBranchForm({ ...branchForm, address: e.target.value })} rows={3} placeholder="Enter branch address" /></div>
                         <div className="form-group"><label>Latitude</label><input type="number" step="any" min="-90" max="90" value={branchForm.latitude} onChange={(e) => setBranchForm({ ...branchForm, latitude: e.target.value })} /></div>
                         <div className="form-group"><label>Longitude</label><input type="number" step="any" min="-180" max="180" value={branchForm.longitude} onChange={(e) => setBranchForm({ ...branchForm, longitude: e.target.value })} /></div>
-                        <div className="form-group full-width">
-                            <label>Do you have branch building floor layout ? *</label>
-                            <select
-                                value={hasFloor}
-                                onChange={(e) => handleHasFloorChange(e.target.value)}
-                            >
-                                <option value="">Select</option>
-                                <option value="yes">Yes</option>
-                                <option value="no">No</option>
-                            </select>
-                        </div>
-
-                        {hasFloor === "yes" && (
-                            <>
-                                <div className="form-group">
-                                    <label>Number of Floors *</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max={MAX_FLOORS}
-                                        value={floorCount}
-                                        onChange={(e) => handleFloorCountChange(e.target.value)}
-                                        placeholder="e.g. 3"
-                                    />
-                                </div>
-
-                                {floors.length > 0 && (
-                                    <div className="form-group full-width">
-                                        <label>Floor Details</label>
-                                        <div className="floor-list">
-                                            {floors.map((floor, index) => (
-                                                <div className="floor-row" key={index}>
-                                                    <span className="floor-index">{index + 1}</span>
-                                                    <input
-                                                        value={floor}
-                                                        onChange={(e) => handleFloorNameChange(index, e.target.value)}
-                                                        placeholder={`Floor ${index + 1}`}
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
                     </div>
                     {formError && <div className="location-error"><span>{formError}</span></div>}
                     {success && <div className="location-success"><span>{success}</span></div>}
@@ -641,6 +1181,54 @@ function Locations () {
                 </div>
                 </div>
             )}
+            {zonalParentModal && (
+    <div className="zonal-parent-overlay">
+        <div className="zonal-parent-modal">
+            <div className="zonal-parent-header">
+                <h3>Add {hierarchyLabel(zonalParentModal.level)}</h3>
+                <button
+                    type="button"
+                    onClick={() => setZonalParentModal(null)}
+                >
+                    ×
+                </button>
+            </div>
+
+            <div className="zonal-parent-body">
+                <label>
+                    {hierarchyLabel(zonalParentModal.level)} Name
+                </label>
+
+                <input
+                    type="text"
+                    value={zonalParentName}
+                    onChange={(e) => setZonalParentName(e.target.value)}
+                    placeholder={`Enter ${hierarchyLabel(zonalParentModal.level)} name`}
+                    autoFocus
+                />
+            </div>
+
+            <div className="zonal-parent-footer">
+                <button
+                    type="button"
+                    className="zonal-cancel-btn"
+                    onClick={() => setZonalParentModal(null)}
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    className="zonal-save-btn"
+                    disabled={!zonalParentName.trim()}
+                    onClick={createZonalParent}
+                >
+                    Add {hierarchyLabel(zonalParentModal.level)}
+                </button>
+            </div>
+        </div>
+    </div>
+)}
         </div>
     );
 };

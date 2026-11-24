@@ -3005,7 +3005,7 @@ function ACCreation() {
                       </option>
                     ))}
                   </select>
-                  <small>Required: the device will be linked to this branch immediately and will appear in the matching geographical or zonal filters.</small>
+                  {/* <small>Required: the device will be linked to this branch immediately and will appear in the matching geographical or zonal filters.</small> */}
                 </label>
               )}
 

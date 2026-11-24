@@ -1,0 +1,45 @@
+.generic-hierarchy-page{width:100%;max-width:1200px;margin:0 auto;padding:4px 2px 28px;color:#334155;font-family:inherit;box-sizing:border-box}
+.generic-hierarchy-page *{box-sizing:border-box}
+.generic-hierarchy-page>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 18px}
+.generic-hierarchy-page>header h2{display:flex;align-items:center;gap:9px;margin:0;color:#17375e;font-size:22px;font-weight:700}
+.generic-hierarchy-page>header p{margin:6px 0 0;color:#64748b;font-size:13px;line-height:1.55}
+.gh-panel,.gh-info-panel{margin:0 0 14px;padding:18px;background:#fff;border:1px solid #e1e8f0;border-radius:10px;box-shadow:0 2px 6px rgba(30,64,175,.04)}
+.gh-info-panel{display:flex;align-items:flex-start;gap:11px;background:#f5f9ff;border-color:#d7e6fa;color:#31557e}
+.gh-info-panel>svg{flex:0 0 auto;margin-top:2px}
+.gh-info-panel strong{display:block;font-size:13px;color:#17375e}
+.gh-info-panel p,.gh-panel>p{margin:5px 0 0;color:#64748b;font-size:12px;line-height:1.6}
+.gh-panel h3{margin:0 0 6px;color:#17375e;font-size:16px;font-weight:700}
+.gh-panel h4{margin:18px 0 9px;color:#17375e;font-size:13px}
+.gh-field{display:grid;gap:6px;min-width:0;color:#334155;font-size:12px;font-weight:600}
+.gh-field input,.gh-field select{width:100%;min-width:0;min-height:38px;padding:8px 10px;color:#334155;background:#fff;border:1px solid #cbd5e1;border-radius:7px;font:inherit;font-weight:400;outline:none}
+.gh-field input:focus,.gh-field select:focus{border-color:#1677ff;box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.gh-panel>small{display:block;margin-top:7px;color:#94a3b8;font-size:11px}
+.gh-type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:14px}
+.gh-type-card{display:grid;gap:8px;align-content:start;padding:12px;background:#fbfdff;border:1px solid #e1e8f0;border-radius:8px;color:#334155;font-size:12px}
+.gh-type-card span{display:flex;align-items:center;gap:7px}
+.gh-type-card strong{color:#17375e;font-size:13px}
+.gh-type-card small{color:#94a3b8;font-size:11px}
+.gh-type-card input{accent-color:#1677ff}
+.gh-rule-builder{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr)) auto;align-items:end;gap:12px;margin-top:14px}
+.gh-rule-list{margin:12px 0 16px;border-top:1px solid #edf2f7}
+.gh-rule-row{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid #edf2f7;color:#475569;font-size:12px}
+.gh-rule-row strong{color:#17375e}
+.gh-rule-arrow{color:#1677ff}
+.gh-link-button{margin-left:auto;padding:5px 9px;border:1px solid #fee2e2;border-radius:6px;background:#fff;color:#dc2626;font-size:11px;cursor:pointer}
+.gh-form{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:13px;margin-top:14px}
+.gh-form-actions{grid-column:1/-1}
+.gh-primary-button,.gh-secondary-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:37px;padding:8px 13px;border:1px solid #1677ff;border-radius:7px;background:#1677ff;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.gh-primary-button:hover:not(:disabled){background:#0f62d6;border-color:#0f62d6}
+.gh-secondary-button{background:#fff;color:#31557e;border-color:#d6e0ec}
+.gh-secondary-button:hover:not(:disabled){background:#f5f9ff}
+.gh-primary-button:disabled,.gh-secondary-button:disabled{opacity:.55;cursor:not-allowed}
+.gh-table-wrap{width:100%;overflow:auto}
+.gh-table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #e1e8f0;border-radius:8px;font-size:12px}
+.gh-table th{padding:11px 13px;text-align:left;color:#64748b;background:#f8fbff;border-bottom:1px solid #e1e8f0;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.gh-table td{padding:11px 13px;color:#334155;border-bottom:1px solid #f1f5f9}
+.gh-table tr:last-child td{border-bottom:0}
+.gh-empty{padding:16px!important;text-align:center;color:#94a3b8!important}
+.gh-notice,.gh-error{margin:12px 0;padding:11px 13px;border-radius:7px;font-size:12px;overflow-wrap:anywhere}
+.gh-notice{color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0}
+.gh-error{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca}
+@media(max-width:720px){.generic-hierarchy-page{padding:2px 0 20px}.generic-hierarchy-page>header{align-items:stretch}.gh-secondary-button{width:100%}.gh-panel{padding:14px}.gh-rule-builder,.gh-form{grid-template-columns:1fr}.gh-form-actions{grid-column:auto}.gh-table{min-width:560px}}

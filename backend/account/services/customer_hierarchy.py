@@ -142,6 +142,9 @@ def initialize_customer_hierarchy(customer: Customer, *, force: bool = False) ->
             counts["floors"] = len(floors)
 
         else:
+            # Keep the complete canonical zonal catalogue in the database for
+            # every Zonal customer. The customer configuration controls which
+            # levels are exposed in the UI and which level owns new branches.
             zone_data = country_data.get("zones") or []
             zones = [Zone(customer=customer, country=country, name=item["zone_name"],
                           code=_unique_code(item.get("zone_id") or item["zone_name"], customer.pk))
@@ -151,9 +154,9 @@ def initialize_customer_hierarchy(customer: Customer, *, force: bool = False) ->
             counts["zones"] = len(zones)
 
             circle_data = []
-            for item in zone_data:
-                zone_obj = zone_map[id(item)]
-                for child in item.get("circles") or []:
+            for zone_item in zone_data:
+                zone_obj = zone_map[id(zone_item)]
+                for child in zone_item.get("circles") or []:
                     circle_data.append((child, zone_obj))
             circles = [Circle(zone=parent, name=item["circle_name"],
                               code=_unique_code(item.get("circle_id") or item["circle_name"], customer.pk))
@@ -163,12 +166,12 @@ def initialize_customer_hierarchy(customer: Customer, *, force: bool = False) ->
             counts["circles"] = len(circles)
 
             region_data = []
-            for item in zone_data:
-                for circle in item.get("circles") or []:
-                    circle_obj = circle_map[id(circle)]
-                    for child in circle.get("regions") or []:
+            for zone_item in zone_data:
+                for circle_item in zone_item.get("circles") or []:
+                    circle_obj = circle_map[id(circle_item)]
+                    for child in circle_item.get("regions") or []:
                         region_data.append((child, circle_obj))
-            regions = [Region(circle=parent, name=item["region_name"],
+            regions = [Region(circle=parent, zone=None, name=item["region_name"],
                               code=_unique_code(item.get("region_id") or item["region_name"], customer.pk))
                        for item, parent in region_data]
             Region.objects.bulk_create(regions, batch_size=1000)
@@ -176,43 +179,21 @@ def initialize_customer_hierarchy(customer: Customer, *, force: bool = False) ->
             counts["regions"] = len(regions)
 
             division_data = []
-            for item in zone_data:
-                for circle in item.get("circles") or []:
-                    for region in circle.get("regions") or []:
-                        region_obj = region_map[id(region)]
-                        for child in region.get("divisions") or []:
+            for zone_item in zone_data:
+                for circle_item in zone_item.get("circles") or []:
+                    for region_item in circle_item.get("regions") or []:
+                        region_obj = region_map[id(region_item)]
+                        for child in region_item.get("divisions") or []:
                             division_data.append((child, region_obj))
             divisions = [Division(region=parent, name=item["division_name"],
                                   code=_unique_code(item.get("division_id") or item["division_name"], customer.pk))
                          for item, parent in division_data]
             Division.objects.bulk_create(divisions, batch_size=1000)
-            division_map = {id(item): obj for (item, _), obj in zip(division_data, divisions)}
             counts["divisions"] = len(divisions)
 
-            branch_data = []
-            for item in zone_data:
-                for circle in item.get("circles") or []:
-                    for region in circle.get("regions") or []:
-                        for division in region.get("divisions") or []:
-                            division_obj = division_map[id(division)]
-                            for child in division.get("branches") or []:
-                                branch_data.append((child, division_obj))
-            branches = [Branch(customer=customer, division=parent, name=item["branch_name"],
-                               code=_unique_code(item.get("branch_id") or item["branch_name"], customer.pk))
-                        for item, parent in branch_data]
-            Branch.objects.bulk_create(branches, batch_size=1000)
-            branch_map = {id(item): obj for (item, _), obj in zip(branch_data, branches)}
-            counts["branches"] = len(branches)
-
-            floor_data = []
-            for item, _division_obj in branch_data:
-                branch_obj = branch_map[id(item)]
-                for child in item.get("floors") or []:
-                    floor_data.append((child, branch_obj))
-            floors = [Floor(branch=parent, name=item["floor_name"],
-                            code=_unique_code(item.get("floor_id") or item["floor_name"], customer.pk))
-                      for item, parent in floor_data]
-            Floor.objects.bulk_create(floors, batch_size=1000)
-            counts["floors"] = len(floors)
+            # Branches, buildings, floors and rooms are operational records;
+            # they are created through the existing branch/site workflows.
+            counts["branches"] = 0
+            counts["floors"] = 0
 
     return {"created": True, "hierarchy_type": hierarchy, **counts}

@@ -61,6 +61,7 @@ def accessible_branches(user):
         "customer",
         "city",
         "division",
+        "circle", "circle__zone", "region", "region__zone", "zone",
     )
 
     if user.role == Role.ORG_SUPER_ADMIN:
@@ -90,8 +91,15 @@ def accessible_branches(user):
             )
         if hierarchy == "ZONAL" and user.zone_id:
             return qs.filter(
-                customer_id=user.customer_id,
-                division__region__circle__zone_id=user.zone_id,
+                Q(customer_id=user.customer_id)
+                & (
+                    Q(zone_id=user.zone_id)
+                    | Q(division__region__circle__zone_id=user.zone_id)
+                    | Q(circle__zone_id=user.zone_id)
+                    | Q(region__zone_id=user.zone_id)
+                    | Q(region__circle__zone_id=user.zone_id)
+                    | Q(division__region__zone_id=user.zone_id)
+                )
             )
         if user.branch_id:
             return qs.filter(pk=user.branch_id, customer_id=user.customer_id)
