@@ -43,12 +43,27 @@ def tree_file(hierarchy):
 
 
 def all_branch_nodes():
-    """Yield (hierarchy, branch_node, context) for both trees."""
+    """Yield branch nodes from the authoritative source for each hierarchy.
+
+    Geographical compatibility still reads its existing master tree. Zonal
+    branches are assembled from customer-scoped database rows and never from
+    locationData_zonal.json.
+    """
     v = _views()
-    for hierarchy in ("GEOGRAPHICAL", "ZONAL"):
-        tree = v.load_location_tree(tree_file(hierarchy))
-        for node, ctx in v.iter_branches(tree, hierarchy):
-            yield hierarchy, node, ctx
+    geo_tree = v.load_location_tree(tree_file("GEOGRAPHICAL"))
+    for node, ctx in v.iter_branches(geo_tree, "GEOGRAPHICAL"):
+        yield "GEOGRAPHICAL", node, ctx
+
+    from .hierarchy_tree_sync import db_location_tree
+    for customer in Customer.objects.filter(
+        is_active=True, hierarchy_type="ZONAL"
+    ).select_related("organization").order_by("id"):
+        tree = db_location_tree("ZONAL", customer)
+        for zone in (tree[0].get("zones", []) if tree else []):
+            zone["customer_id"] = str(customer.pk)
+            zone["customer_name"] = customer.company
+        for node, ctx in v.iter_branches(tree, "ZONAL"):
+            yield "ZONAL", node, ctx
 
 
 def build_branch_index():

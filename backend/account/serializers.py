@@ -1,3 +1,4477 @@
+# # # import re
+
+# # # from rest_framework import serializers
+# # # from django.contrib.auth import authenticate
+# # # from django.db import transaction
+# # # from django.db.models import Q
+# # # from django.core.exceptions import ValidationError as DjangoValidationError
+# # # from .models import (
+# # #     ACData, Country, DashboardPreference, User, Organization, Customer,
+# # #     HierarchyType, Zone, Circle, Region, Division, State, District, Taluka,
+# # #     City, Branch, Building, Floor, Room, Site, ACDevice, CustomerSiteMapping, SiteDeviceMapping,
+# # #     CustomerDeviceMapping, Role, zonal_branch_parent_level,
+# # # )
+
+
+# # # class ACDataSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = ACData
+# # #         fields = [
+# # #             "id", "timestamp", "ac_id", "indoor_temperature", "outdoor_temperature",
+# # #             "indoor_humidity", "outdoor_humidity", "voltage", "current",
+# # #         ]
+
+
+# # # class OrganizationSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Organization
+# # #         fields = "__all__"
+
+
+# # # # class CustomerSerializer(serializers.ModelSerializer):
+# # # #     password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=6)
+# # # #     login_email = serializers.SerializerMethodField()
+# # # #     head_office_hierarchy = serializers.SerializerMethodField()
+
+# # # #     class Meta:
+# # # #         model = Customer
+# # # #         fields = "__all__"
+# # # #         read_only_fields = ["organization", "tpt_customer_id", "created_at", "updated_at"]
+# # # #         validators = []
+
+# # # #     # LOGIN EMAIL
+# # # #     def get_login_email(self, obj):
+# # # #         return (
+# # # #             User.objects
+# # # #             .filter(customer=obj, role=Role.CUSTOMER)
+# # # #             .values_list("email", flat=True)
+# # # #             .first()
+# # # #         )
+
+# # # #     @staticmethod
+# # # #     def _login_email_for(customer):
+# # # #         return (customer.contact_person_email or customer.company_email or "").strip().lower()
+
+# # # #     # CREATE CUSTOMER LOGIN
+# # # #     def _ensure_login(self, customer, password):
+# # # #         """Create or update the Bank Customer login."""
+# # # #         login = User.objects.filter(customer=customer, role=Role.CUSTOMER).first()
+
+# # # #         # Existing login
+# # # #         if login:
+# # # #             if password:
+# # # #                 login.set_password(password)
+            
+# # # #             login.email = self._login_email_for(customer)
+# # # #             login.name = customer.contact_person or customer.company
+# # # #             # login.phone = customer.admin_mobile or customer.phone
+# # # #             login.phone = customer.phone or ""
+# # # #             login.is_active = customer.is_active
+# # # #             login.save()
+# # # #             return login
+
+# # # #         # New login
+# # # #         email = self._login_email_for(customer)
+# # # #         if not email:
+# # # #             raise serializers.ValidationError({
+# # # #                 "contact_person_email": "An email is required to create the bank login."
+# # # #             })
+# # # #         if User.objects.filter(email__iexact=email).exists():
+# # # #             raise serializers.ValidationError({
+# # # #                 "contact_person_email": "A user with this email already exists."
+# # # #             })
+
+# # # #         login = User(
+# # # #             email=email,
+# # # #             name=customer.contact_person or customer.company,
+# # # #             # phone=customer.admin_mobile or customer.phone,
+# # # #             phone=customer.phone or "",
+# # # #             role=Role.CUSTOMER,
+# # # #             organization=customer.organization,
+# # # #             customer=customer,
+# # # #             is_active=customer.is_active,
+# # # #         )
+# # # #         login.set_password(password)
+# # # #         login.save()
+# # # #         return login
+
+# # # #     # ============================================================
+# # # #     # VALIDATION
+# # # #     # ============================================================
+
+# # # #     def validate_company(self, value):
+# # # #         value = value.strip()
+# # # #         if not value:
+# # # #             raise serializers.ValidationError("Bank name is required.")
+# # # #         return value
+
+# # # #     def validate_code(self, value):
+# # # #         value = value.strip().upper()
+# # # #         if not value:
+# # # #             raise serializers.ValidationError("Bank code is required.")
+# # # #         return value
+
+# # # #     def validate_bank_short_name(self, value):
+# # # #         return value.strip().upper()
+
+# # # #     def validate_company_email(self, value):
+# # # #         return value.strip().lower()
+
+# # # #     def validate_contact_person_email(self, value):
+# # # #         return value.strip().lower()
+
+# # # #     # def validate_pan(self, value):
+# # # #     #     value = value.strip().upper()
+# # # #     #     if value and not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]$", value):
+# # # #     #         raise serializers.ValidationError("Enter a valid PAN number.")
+# # # #     #     return value
+
+# # # #     # def validate_gstin(self, value):
+# # # #     #     value = value.strip().upper()
+# # # #     #     if value and len(value) != 15:
+# # # #     #         raise serializers.ValidationError("GSTIN must contain 15 characters.")
+# # # #     #     return value
+
+# # # #     def get_head_office_hierarchy(self, obj):
+# # # #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# # # #             city = obj.head_office_city
+
+# # # #             if not city:
+# # # #                 return ""
+
+# # # #             taluka = city.taluka
+# # # #             district = taluka.district if taluka else None
+# # # #             state = district.state if district else None
+# # # #             country = state.country if state else None
+
+# # # #             parts = [
+# # # #                 country.name if country else None,
+# # # #                 state.name if state else None,
+# # # #                 district.name if district else None,
+# # # #                 taluka.name if taluka else None,
+# # # #                 city.name,
+# # # #             ]
+
+# # # #             return " → ".join(part for part in parts if part)
+
+# # # #         if obj.hierarchy_type == "ZONAL":
+# # # #             division = obj.head_office_division
+
+# # # #             if not division:
+# # # #                 return ""
+
+# # # #             region = division.region
+# # # #             circle = region.circle if region else None
+# # # #             zone = circle.zone if circle else None
+# # # #             country = zone.country if zone else None
+
+# # # #             parts = [
+# # # #                 country.name if country else None,
+# # # #                 zone.name if zone else None,
+# # # #                 circle.name if circle else None,
+# # # #                 region.name if region else None,
+# # # #                 division.name,
+# # # #             ]
+
+# # # #             return " → ".join(part for part in parts if part)
+
+# # # #         return ""
+
+        
+# # # #     def validate(self, attrs):
+# # # #         attrs = super().validate(attrs)
+
+# # # #         request = self.context.get("request")
+# # # #         user = getattr(request, "user", None)
+
+# # # #         # Resolve organization.
+# # # #         organization = (
+# # # #             self.instance.organization
+# # # #             if self.instance
+# # # #             else getattr(user, "organization", None)
+# # # #         )
+
+# # # #         if not organization:
+# # # #             raise serializers.ValidationError({
+# # # #                 "organization": "Could not determine organization."
+# # # #             })
+
+# # # #         # Ensure bank code is unique within the organization.
+# # # #         code = attrs.get("code") or getattr(self.instance, "code", None)
+
+# # # #         if code:
+# # # #             duplicates = Customer.objects.filter(
+# # # #                 organization=organization,
+# # # #                 code=code,
+# # # #             )
+
+# # # #             if self.instance:
+# # # #                 duplicates = duplicates.exclude(pk=self.instance.pk)
+
+# # # #             if duplicates.exists():
+# # # #                 raise serializers.ValidationError({
+# # # #                     "code": "A bank with this code already exists in your organization."
+# # # #                 })
+
+# # # #         # Validate hierarchy selection and changes.
+# # # #         hierarchy_type = attrs.get(
+# # # #             "hierarchy_type",
+# # # #             getattr(self.instance, "hierarchy_type", None),
+# # # #         )
+
+# # # #         if self.instance is None:
+# # # #             if not hierarchy_type:
+# # # #                 raise serializers.ValidationError({
+# # # #                     "hierarchy_type": "Select Geographical or Zonal."
+# # # #                 })
+# # # #         elif (
+# # # #             hierarchy_type
+# # # #             and hierarchy_type != self.instance.hierarchy_type
+# # # #             and self.instance.branches.exists()
+# # # #         ):
+# # # #             raise serializers.ValidationError({
+# # # #                 "hierarchy_type": (
+# # # #                     "This bank already has branches. "
+# # # #                     "Hierarchy type cannot be changed."
+# # # #                 )
+# # # #             })
+
+# # # #         # Validate head-office location against the selected hierarchy.
+# # # #         city = attrs.get(
+# # # #             "head_office_city",
+# # # #             getattr(self.instance, "head_office_city", None),
+# # # #         )
+
+# # # #         division = attrs.get(
+# # # #             "head_office_division",
+# # # #             getattr(self.instance, "head_office_division", None),
+# # # #         )
+
+# # # #         if hierarchy_type == "GEOGRAPHICAL" and division:
+# # # #             raise serializers.ValidationError({
+# # # #                 "head_office_division": (
+# # # #                     "Select a City for a Geographical customer."
+# # # #                 )
+# # # #             })
+
+# # # #         if hierarchy_type == "ZONAL" and city:
+# # # #             raise serializers.ValidationError({
+# # # #                 "head_office_city": (
+# # # #                     "Select a Division for a Zonal customer."
+# # # #                 )
+# # # #             })
+
+# # # #         return attrs
+
+# # # #     def validate_pincode(self, value):
+# # # #         value = value.strip()
+# # # #         if value and not re.match(r"^\d{6}$", value):
+# # # #             raise serializers.ValidationError("PIN code must contain exactly 6 digits.")
+# # # #         return value
+
+
+# # # #     # CREATE
+# # # #     # def create(self, validated_data):
+# # # #     #     password = validated_data.pop("password", "")
+# # # #     #     with transaction.atomic():
+# # # #     #         customer = super().create(validated_data)
+# # # #     #         if password:
+# # # #     #             self._ensure_login(customer, password)
+# # # #     #     return customer
+
+# # # #     def create(self, validated_data):
+# # # #         validated_data.pop("password", None)
+# # # #         return super().create(validated_data)
+
+# # # #     # UPDATE
+# # # #     def update(self, instance, validated_data):
+# # # #         password = validated_data.pop("password", "")
+# # # #         with transaction.atomic():
+# # # #             customer = super().update(instance, validated_data)
+# # # #             login = User.objects.filter(customer=customer, role=Role.CUSTOMER).first()
+# # # #             if login:
+# # # #                 login.email = (customer.contact_person_email or customer.company_email).strip().lower()
+# # # #                 login.name = customer.contact_person or customer.company
+# # # #                 # login.phone = customer.admin_mobile or customer.phone
+# # # #                 login.phone = customer.phone or ""
+# # # #                 login.is_active = customer.is_active
+# # # #                 if password:
+# # # #                     login.set_password(password)
+# # # #                 login.save()
+# # # #             elif password:
+# # # #                 self._ensure_login(customer, password)
+# # # #         return customer
+
+# # # # class CustomerSerializer(serializers.ModelSerializer):
+# # # #     password = serializers.CharField(
+# # # #         write_only=True,
+# # # #         required=False,
+# # # #         allow_blank=True,
+# # # #         min_length=6,
+# # # #     )
+# # # #     login_email = serializers.SerializerMethodField()
+# # # #     head_office_hierarchy = serializers.SerializerMethodField()
+# # # #     filter_defaults = serializers.SerializerMethodField()
+    
+# # # #     state = serializers.CharField(required=False, allow_blank=True)
+# # # #     district = serializers.CharField(required=False, allow_blank=True)
+# # # #     taluka = serializers.CharField(required=False, allow_blank=True)
+
+# # # #     class Meta:
+# # # #         model = Customer
+# # # #         fields = "__all__"
+# # # #         read_only_fields = [
+# # # #             "organization",
+# # # #             "tpt_customer_id",
+# # # #             "created_at",
+# # # #             "updated_at",
+# # # #         ]
+# # # #         validators = []
+
+# # # #     def get_head_office_hierarchy(self, obj):
+# # # #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# # # #             city = obj.head_office_city
+
+# # # #             if not city:
+# # # #                 return ""
+
+# # # #             taluka = city.taluka
+# # # #             district = taluka.district if taluka else None
+# # # #             state = district.state if district else None
+# # # #             country = state.country if state else None
+
+# # # #             parts = [
+# # # #                 country.name if country else None,
+# # # #                 state.name if state else None,
+# # # #                 district.name if district else None,
+# # # #                 taluka.name if taluka else None,
+# # # #                 city.name,
+# # # #             ]
+
+# # # #             return " → ".join(part for part in parts if part)
+
+# # # #         elif obj.hierarchy_type == "ZONAL":
+# # # #             division = obj.head_office_division
+
+# # # #             if not division:
+# # # #                 return ""
+
+# # # #             region = division.region
+# # # #             circle = region.circle if region else None
+# # # #             zone = circle.zone if circle else None
+# # # #             country = zone.country if zone else None
+
+# # # #             parts = [
+# # # #                 country.name if country else None,
+# # # #                 zone.name if zone else None,
+# # # #                 circle.name if circle else None,
+# # # #                 region.name if region else None,
+# # # #                 division.name,
+# # # #             ]
+
+# # # #             return " → ".join(part for part in parts if part)
+
+# # # #         return ""
+
+# # # #     def get_login_email(self, obj):
+# # # #         return (
+# # # #             User.objects
+# # # #             .filter(customer=obj, role=Role.CUSTOMER)
+# # # #             .values_list("email", flat=True)
+# # # #             .first()
+# # # #         )
+
+# # # #     def create(self, validated_data):
+# # # #         password = validated_data.pop("password", "")
+
+# # # #         # These are UI location names, not Customer model fields.
+# # # #         state_name = validated_data.pop("state", "")
+# # # #         district_name = validated_data.pop("district", "")
+# # # #         taluka_name = validated_data.pop("taluka", "")
+
+# # # #         with transaction.atomic():
+# # # #             customer = super().create(validated_data)
+
+# # # #             if password:
+# # # #                 self._ensure_login(customer, password)
+
+# # # #         return customer
+
+
+# # # #     def update(self, instance, validated_data):
+# # # #         password = validated_data.pop("password", "")
+
+# # # #         # Prevent non-model fields from reaching Customer.objects.update().
+# # # #         validated_data.pop("state", None)
+# # # #         validated_data.pop("district", None)
+# # # #         validated_data.pop("taluka", None)
+
+# # # #         with transaction.atomic():
+# # # #             customer = super().update(instance, validated_data)
+
+# # # #             login = User.objects.filter(
+# # # #                 customer=customer,
+# # # #                 role=Role.CUSTOMER,
+# # # #             ).first()
+
+# # # #             if login:
+# # # #                 login.email = (
+# # # #                     customer.contact_person_email or customer.company_email
+# # # #                 ).strip().lower()
+# # # #                 login.name = customer.contact_person or customer.company
+# # # #                 login.phone = customer.admin_mobile or customer.phone
+# # # #                 login.is_active = customer.is_active
+
+# # # #                 if password:
+# # # #                     login.set_password(password)
+
+# # # #                 login.save()
+
+# # # #             elif password:
+# # # #                 self._ensure_login(customer, password)
+
+# # # #         return customer
+
+# # # #     def get_filter_defaults(self, obj):
+# # # #         """
+# # # #         Return the default dashboard filters for this customer.
+# # # #         Values must match the names used in the filter location tree.
+# # # #         """
+# # # #         defaults = {
+# # # #             "hierarchy": obj.hierarchy_type,
+# # # #             "country": "India",
+# # # #             "state": "",
+# # # #             "district": "",
+# # # #             "taluka": "",
+# # # #             "branch": "",
+# # # #             "floor": "",
+# # # #         }
+
+# # # #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# # # #             city = obj.head_office_city
+
+# # # #             if city:
+# # # #                 taluka = city.taluka
+# # # #                 district = taluka.district if taluka else None
+# # # #                 state = district.state if district else None
+# # # #                 country = state.country if state else None
+
+# # # #                 defaults.update({
+# # # #                     "country": country.name if country else "India",
+# # # #                     "state": state.name if state else "",
+# # # #                     "district": district.name if district else "",
+# # # #                     "taluka": taluka.name if taluka else "",
+# # # #                 })
+
+# # # #         elif obj.hierarchy_type == "ZONAL":
+# # # #             division = obj.head_office_division
+
+# # # #             if division:
+# # # #                 region = division.region
+# # # #                 circle = region.circle if region else None
+# # # #                 zone = circle.zone if circle else None
+# # # #                 country = zone.country if zone else None
+
+# # # #                 defaults.update({
+# # # #                     "country": country.name if country else "India",
+# # # #                     "zone": zone.name if zone else "",
+# # # #                     "circle": circle.name if circle else "",
+# # # #                     "region": region.name if region else "",
+# # # #                     "division": division.name,
+# # # #                 })
+
+# # # #         return defaults
+
+# # # # imports your file already has (User, Role, Customer, serializers, …)
+# # # # add if missing:
+# # # #   from django.db import transaction
+# # # from django.core.exceptions import ValidationError as DjangoValidationError
+# # # #   from .models import City          # adjust to your actual import
+
+
+# # # class CustomerSerializer(serializers.ModelSerializer):
+# # #     password = serializers.CharField(
+# # #         write_only=True,
+# # #         required=False,
+# # #         allow_blank=True,
+# # #         min_length=6,
+# # #     )
+# # #     login_email = serializers.SerializerMethodField()
+# # #     head_office_hierarchy = serializers.SerializerMethodField()
+# # #     filter_defaults = serializers.SerializerMethodField()
+
+# # #     # Name-strings the React form sends (used to populate flat fields
+# # #     # and/or resolve the head_office_city FK).
+# # #     state = serializers.CharField(required=False, allow_blank=True)
+# # #     district = serializers.CharField(required=False, allow_blank=True)
+# # #     taluka = serializers.CharField(required=False, allow_blank=True)
+# # #     city = serializers.CharField(required=False, allow_blank=True)
+
+# # #     class Meta:
+# # #         model = Customer
+# # #         fields = "__all__"
+# # #         read_only_fields = [
+# # #             "organization",
+# # #             "tpt_customer_id",
+# # #             "created_at",
+# # #             "updated_at",
+# # #         ]
+# # #         validators = []
+
+# # #     def validate_zonal_hierarchy_config(self, value):
+# # #         from .models import validate_zonal_hierarchy_config
+# # #         try:
+# # #             validate_zonal_hierarchy_config(value)
+# # #         except DjangoValidationError as exc:
+# # #             raise serializers.ValidationError(getattr(exc, "message_dict", str(exc)))
+# # #         return value
+
+# # #     def validate(self, attrs):
+# # #         attrs = super().validate(attrs)
+# # #         hierarchy_type = attrs.get("hierarchy_type", getattr(self.instance, "hierarchy_type", None))
+# # #         config = attrs.get(
+# # #             "zonal_hierarchy_config",
+# # #             getattr(self.instance, "zonal_hierarchy_config", None),
+# # #         )
+# # #         if hierarchy_type == "ZONAL":
+# # #             self.validate_zonal_hierarchy_config(config)
+# # #             if self.instance and "zonal_hierarchy_config" in attrs:
+# # #                 levels = config.get("levels", [])
+# # #                 expected_parent = zonal_branch_parent_level(config)
+# # #                 existing_styles = []
+# # #                 for field in ("division", "circle", "region", "zone"):
+# # #                     if self.instance.branches.filter(**{f"{field}__isnull": False}).exists():
+# # #                         existing_styles.append(field)
+# # #                 if existing_styles and any(style != expected_parent for style in existing_styles):
+# # #                     raise serializers.ValidationError({
+# # #                         "zonal_hierarchy_config": (
+# # #                             "The selected administrative path does not match existing branch parents. "
+# # #                             "Re-parent existing branches before changing this setting."
+# # #                         )
+# # #                     })
+# # #                 if "circle" in levels and expected_parent in ("region", "division"):
+# # #                     direct_zone_regions = Branch.objects.filter(customer=self.instance).filter(
+# # #                         Q(region__zone__isnull=False) | Q(division__region__zone__isnull=False)
+# # #                     ).exists()
+# # #                     if direct_zone_regions:
+# # #                         raise serializers.ValidationError({
+# # #                             "zonal_hierarchy_config": (
+# # #                                 "This configuration includes Circle, but existing Region/Division records are directly under Zone. "
+# # #                                 "Re-parent them under a Circle before enabling Circle."
+# # #                             )
+# # #                         })
+# # #                 existing_locations = {
+# # #                     "building": Building.objects.filter(branch__customer=self.instance).exists(),
+# # #                     "floor": Floor.objects.filter(branch__customer=self.instance).exists(),
+# # #                     "room": Room.objects.filter(floor__branch__customer=self.instance).exists(),
+# # #                 }
+# # #                 removed_in_use = [level for level, exists in existing_locations.items() if exists and level not in levels]
+# # #                 if removed_in_use:
+# # #                     raise serializers.ValidationError({
+# # #                         "zonal_hierarchy_config": (
+# # #                             "Cannot disable existing physical levels with saved records: "
+# # #                             + ", ".join(removed_in_use)
+# # #                             + ". Remove or migrate those records first."
+# # #                         )
+# # #                     })
+# # #                 if (
+# # #                     "building" in levels
+# # #                     and not Building.objects.filter(branch__customer=self.instance).exists()
+# # #                     and Floor.objects.filter(branch__customer=self.instance, building__isnull=True).exists()
+# # #                 ):
+# # #                     raise serializers.ValidationError({
+# # #                         "zonal_hierarchy_config": (
+# # #                             "Existing floors are linked directly to branches. Assign them to Buildings before enabling Building."
+# # #                         )
+# # #                     })
+# # #         return attrs
+
+# # #     # ------------------------------------------------------------------
+# # #     # READ-ONLY OUTPUT
+# # #     # ------------------------------------------------------------------
+# # #     def get_head_office_hierarchy(self, obj):
+# # #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# # #             city = getattr(obj, "head_office_city", None)
+# # #             if not city:
+# # #                 return ""
+# # #             taluka = city.taluka
+# # #             district = taluka.district if taluka else None
+# # #             state = district.state if district else None
+# # #             country = state.country if state else None
+# # #             parts = [
+# # #                 country.name if country else None,
+# # #                 state.name if state else None,
+# # #                 district.name if district else None,
+# # #                 taluka.name if taluka else None,
+# # #                 city.name,
+# # #             ]
+# # #             return " → ".join(p for p in parts if p)
+
+# # #         if obj.hierarchy_type == "ZONAL":
+# # #             division = getattr(obj, "head_office_division", None)
+# # #             if not division:
+# # #                 return ""
+# # #             region = division.region
+# # #             circle = region.circle if region else None
+# # #             zone = circle.zone if circle else None
+# # #             country = zone.country if zone else None
+# # #             parts = [
+# # #                 country.name if country else None,
+# # #                 zone.name if zone else None,
+# # #                 circle.name if circle else None,
+# # #                 region.name if region else None,
+# # #                 division.name,
+# # #             ]
+# # #             return " → ".join(p for p in parts if p)
+
+# # #         return ""
+
+# # #     def get_login_email(self, obj):
+# # #         return (
+# # #             User.objects
+# # #             .filter(customer=obj, role=Role.CUSTOMER)
+# # #             .values_list("email", flat=True)
+# # #             .first()
+# # #         )
+
+# # #     def get_filter_defaults(self, obj):
+# # #         defaults = {
+# # #             "hierarchy": obj.hierarchy_type,
+# # #             "country": "India",
+# # #             "state": "",
+# # #             "district": "",
+# # #             "taluka": "",
+# # #             "branch": "",
+# # #             "floor": "",
+# # #         }
+
+# # #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# # #             city = getattr(obj, "head_office_city", None)
+# # #             if city:
+# # #                 taluka = city.taluka
+# # #                 district = taluka.district if taluka else None
+# # #                 state = district.state if district else None
+# # #                 country = state.country if state else None
+# # #                 defaults.update({
+# # #                     "country": country.name if country else "India",
+# # #                     "state": state.name if state else "",
+# # #                     "district": district.name if district else "",
+# # #                     "taluka": taluka.name if taluka else "",
+# # #                 })
+
+# # #         elif obj.hierarchy_type == "ZONAL":
+# # #             division = getattr(obj, "head_office_division", None)
+# # #             if division:
+# # #                 region = division.region
+# # #                 circle = region.circle if region else None
+# # #                 zone = circle.zone if circle else None
+# # #                 country = zone.country if zone else None
+# # #                 defaults.update({
+# # #                     "country": country.name if country else "India",
+# # #                     "zone": zone.name if zone else "",
+# # #                     "circle": circle.name if circle else "",
+# # #                     "region": region.name if region else "",
+# # #                     "division": division.name,
+# # #                 })
+
+# # #         return defaults
+
+# # #     # ------------------------------------------------------------------
+# # #     # LOGIN USER (kept for any endpoint that calls it)
+# # #     # ------------------------------------------------------------------
+# # #     def _ensure_login(self, customer):
+# # #         email = (
+# # #             customer.contact_person_email
+# # #             or customer.company_email
+# # #             or self.initial_data.get("contact_person_email")
+# # #             or self.initial_data.get("company_email")
+# # #         )
+# # #         password = self.initial_data.get("password") or None
+# # #         if not email:
+# # #             return None
+
+# # #         user = User.objects.filter(email__iexact=email).first()
+# # #         if user is None:
+# # #             user = User(
+# # #                 email=email,
+# # #                 customer=customer,
+# # #                 role=Role.CUSTOMER,
+# # #                 is_active=True,
+# # #             )
+# # #             if hasattr(user, "username"):
+# # #                 user.username = email
+# # #             if password:
+# # #                 user.set_password(password)
+# # #             else:
+# # #                 user.set_unusable_password()
+# # #             user.save()
+# # #         else:
+# # #             user.customer = customer
+# # #             user.role = Role.CUSTOMER
+# # #             if password:
+# # #                 user.set_password(password)
+# # #             user.save()
+# # #         return user
+
+# # #     # ------------------------------------------------------------------
+# # #     # Helpers
+# # #     # ------------------------------------------------------------------
+# # #     def _model_field_names(self):
+# # #         return {f.name for f in Customer._meta.get_fields()}
+
+# # #     def _resolve_city(self, state_name, district_name, taluka_name, city_name):
+# # #         if not all([state_name, district_name, taluka_name, city_name]):
+# # #             return None
+# # #         city = City.objects.filter(
+# # #             name__iexact=city_name,
+# # #             taluka__name__iexact=taluka_name,
+# # #             taluka__district__name__iexact=district_name,
+# # #             taluka__district__state__name__iexact=state_name,
+# # #         ).first()
+# # #         if city is None:
+# # #             raise serializers.ValidationError(
+# # #                 {"city": "Could not resolve the selected location."}
+# # #             )
+# # #         return city
+
+# # #     def _apply_location_fields(self, validated_data, instance=None):
+# # #         """
+# # #         Pop the name strings, then restore only those flat fields the
+# # #         Customer model actually declares, and resolve head_office_city
+# # #         if the model uses it. Works for both create and update.
+# # #         """
+# # #         state_name    = validated_data.pop("state", "") or ""
+# # #         district_name = validated_data.pop("district", "") or ""
+# # #         taluka_name   = validated_data.pop("taluka", "") or ""
+# # #         city_name     = validated_data.pop("city", "") or ""
+
+# # #         model_fields = self._model_field_names()
+# # #         target = validated_data if instance is None else {}
+# # #         target_data = validated_data  # alias for clarity
+
+# # #         # Only assign a flat field if the model declares it. This is the
+# # #         # exact spot where "taluka" used to blow up.
+# # #         for name, value in (
+# # #             ("state", state_name),
+# # #             ("district", district_name),
+# # #             ("taluka", taluka_name),
+# # #             ("city", city_name),
+# # #         ):
+# # #             if name in model_fields:
+# # #                 if instance is None:
+# # #                     target_data[name] = value
+# # #                 else:
+# # #                     setattr(instance, name, value)
+
+# # #         # If the model stores the location as a City FK, resolve it.
+# # #         if "head_office_city" in model_fields:
+# # #             resolved = self._resolve_city(
+# # #                 state_name, district_name, taluka_name, city_name
+# # #             )
+# # #             if resolved is not None:
+# # #                 if instance is None:
+# # #                     target_data["head_office_city"] = resolved
+# # #                 else:
+# # #                     instance.head_office_city = resolved
+
+# # #     # CREATE / UPDATE
+# # #     @transaction.atomic
+# # #     def create(self, validated_data):
+# # #         validated_data.pop("password", None)
+# # #         self._apply_location_fields(validated_data, instance=None)
+# # #         return Customer.objects.create(**validated_data)
+
+# # #     @transaction.atomic
+# # #     def update(self, instance, validated_data):
+# # #         validated_data.pop("password", None)
+
+# # #         # Apply location values directly to the instance (create-safe path)
+# # #         self._apply_location_fields(validated_data, instance=instance)
+
+# # #         for attr, value in validated_data.items():
+# # #             setattr(instance, attr, value)
+
+# # #         instance.save()
+# # #         return instance
+
+
+# # # class CountrySerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Country
+# # #         fields = ["id", "name", "code", "is_active"]
+# # #         read_only_fields = ["id"]
+
+# # # class ZoneSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Zone
+# # #         fields = "__all__"
+
+# # #     def validate_customer(self, customer):
+# # #         if customer.hierarchy_type != "ZONAL":
+# # #             raise serializers.ValidationError("Zone is only available for Zonal customers.")
+# # #         return customer
+
+# # #     def validate(self, attrs):
+# # #         config = attrs.get("hierarchy_config", getattr(self.instance, "hierarchy_config", {})) or {}
+# # #         zone_type = attrs.get("zone_type", getattr(self.instance, "zone_type", None))
+# # #         if zone_type and zone_type not in {choice[0] for choice in Zone.ZONE_TYPE_CHOICES}:
+# # #             raise serializers.ValidationError({"zone_type": "Select a valid Zone classification."})
+# # #         if config:
+# # #             levels = config.get("levels")
+# # #             allowed = ["zone", "circle", "region", "division", "branch"]
+# # #             if not isinstance(levels, list) or not levels or levels[0] != "zone" or levels[-1] != "branch":
+# # #                 raise serializers.ValidationError({"hierarchy_config": "Hierarchy must start with Zone and end with Branch."})
+# # #             if len(levels) != len(set(levels)) or any(level not in allowed for level in levels):
+# # #                 raise serializers.ValidationError({"hierarchy_config": "Use each supported hierarchy level once."})
+# # #             if levels != [level for level in allowed if level in levels]:
+# # #                 raise serializers.ValidationError({"hierarchy_config": "Keep levels in Zone → Circle → Region → Division → Branch order."})
+# # #             labels = config.get("labels", {})
+# # #             if not isinstance(labels, dict) or any(k not in allowed or not isinstance(v, str) or not v.strip() or len(v.strip()) > 60 for k, v in labels.items()):
+# # #                 raise serializers.ValidationError({"hierarchy_config": "Each custom level label must be a non-empty string of at most 60 characters."})
+# # #             coverage = config.get("coverage_type", "NONE")
+# # #             if coverage not in {"STATE", "CITY", "MULTI_STATE", "MULTI_CITY", "CUSTOM", "NONE"}:
+# # #                 raise serializers.ValidationError({"hierarchy_config": "Invalid geographical coverage type."})
+# # #         return attrs
+
+# # # class CircleSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Circle
+# # #         fields = "__all__"
+
+# # #     def validate_zone(self, zone):
+# # #         if zone.customer.hierarchy_type != "ZONAL":
+# # #             raise serializers.ValidationError("Circle is only available for Zonal customers.")
+# # #         levels = (zone.hierarchy_config or zone.customer.zonal_hierarchy_config or {}).get("levels", [])
+# # #         if "circle" not in levels:
+# # #             raise serializers.ValidationError("Circle is not enabled in this customer's hierarchy.")
+# # #         return zone
+
+
+# # # class RegionSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Region
+# # #         fields = "__all__"
+
+# # #     def validate(self, attrs):
+# # #         circle = attrs.get("circle", getattr(self.instance, "circle", None))
+# # #         zone = attrs.get("zone", getattr(self.instance, "zone", None))
+# # #         if bool(circle) == bool(zone):
+# # #             raise serializers.ValidationError("A Region must belong to exactly one parent: Circle or Zone.")
+# # #         customer = circle.zone.customer if circle else zone.customer
+# # #         parent_zone = zone if zone else (circle.zone if circle else None)
+# # #         levels = (parent_zone.hierarchy_config if parent_zone and parent_zone.hierarchy_config else customer.zonal_hierarchy_config or {}).get("levels", [])
+# # #         if zone and "region" not in levels:
+# # #             raise serializers.ValidationError({"zone": "Region is not enabled in this customer's hierarchy."})
+# # #         if zone and "circle" in levels:
+# # #             raise serializers.ValidationError({"circle": "This customer's configuration requires Region to be under Circle."})
+# # #         if circle and "division" not in levels and "region" not in levels:
+# # #             raise serializers.ValidationError({"circle": "Circle → Region is not enabled for this customer."})
+# # #         return attrs
+
+# # # class DivisionSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Division
+# # #         fields = "__all__"
+
+# # #     def validate_region(self, region):
+# # #         if not region:
+# # #             raise serializers.ValidationError("Region is required for a Division.")
+# # #         customer = region.zone.customer if region.zone_id else region.circle.zone.customer
+# # #         zone = region.zone if region.zone_id else region.circle.zone
+# # #         levels = (zone.hierarchy_config or customer.zonal_hierarchy_config or {}).get("levels", [])
+# # #         if customer.hierarchy_type != "ZONAL" or "division" not in levels:
+# # #             raise serializers.ValidationError("Division is not enabled in this customer's hierarchy configuration.")
+# # #         if "circle" in levels and not region.circle_id:
+# # #             raise serializers.ValidationError("This customer's Division must belong to a Region under a Circle.")
+# # #         return region
+
+# # # class StateSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = State
+# # #         fields = "__all__"
+
+# # # class DistrictSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = District
+# # #         fields = "__all__"
+
+# # # class TalukaSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Taluka
+# # #         fields = "__all__"
+
+# # # class CitySerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = City
+# # #         fields = "__all__"
+
+# # # class BranchSerializer(serializers.ModelSerializer):
+# # #     city_name = serializers.SerializerMethodField()
+# # #     taluka_name = serializers.SerializerMethodField()
+# # #     district_name = serializers.SerializerMethodField()
+# # #     state_name = serializers.SerializerMethodField()
+# # #     division_name = serializers.CharField(source="division.name", read_only=True, default=None)
+# # #     circle_name = serializers.SerializerMethodField()
+# # #     region_name = serializers.SerializerMethodField()
+# # #     zone_name = serializers.SerializerMethodField()
+# # #     customer_name = serializers.CharField(source="customer.company", read_only=True, default=None)
+# # #     ifsc_code = serializers.CharField(max_length=11, required=False, allow_blank=True, trim_whitespace=True)
+
+# # #     class Meta:
+# # #         model = Branch
+# # #         fields = "__all__"
+# # #         read_only_fields = [
+# # #             "city_name", "taluka_name", "district_name", "state_name",
+# # #             "division_name", "circle_name", "region_name", "zone_name", "customer_name",
+# # #         ]
+
+# # #     def get_city_name(self, obj):
+# # #         if obj.geographic_city_id:
+# # #             return obj.geographic_city.name
+# # #         return obj.city.name if obj.city_id else None
+
+# # #     def get_taluka_name(self, obj):
+# # #         return obj.taluka.name if obj.taluka_id else (obj.city.taluka.name if obj.city_id else None)
+
+# # #     def get_district_name(self, obj):
+# # #         taluka = obj.taluka if obj.taluka_id else (obj.city.taluka if obj.city_id else None)
+# # #         return taluka.district.name if taluka else None
+
+# # #     def get_state_name(self, obj):
+# # #         if obj.geographic_state_id:
+# # #             return obj.geographic_state.name
+# # #         taluka = obj.taluka if obj.taluka_id else (obj.city.taluka if obj.city_id else None)
+# # #         return taluka.district.state.name if taluka else None
+
+# # #     def get_circle_name(self, obj):
+# # #         levels = (obj.customer.zonal_hierarchy_config or {}).get("levels", []) if obj.customer_id else []
+# # #         if obj.customer_id and obj.customer.hierarchy_type == "ZONAL" and "circle" not in levels:
+# # #             return None
+# # #         if obj.circle_id:
+# # #             return obj.circle.name
+# # #         if obj.region_id and obj.region.circle_id:
+# # #             return obj.region.circle.name
+# # #         if obj.division_id and obj.division.region.circle_id:
+# # #             return obj.division.region.circle.name
+# # #         return None
+
+# # #     def get_region_name(self, obj):
+# # #         levels = (obj.customer.zonal_hierarchy_config or {}).get("levels", []) if obj.customer_id else []
+# # #         if obj.customer_id and obj.customer.hierarchy_type == "ZONAL" and "region" not in levels:
+# # #             return None
+# # #         if obj.region_id:
+# # #             return obj.region.name
+# # #         if obj.division_id:
+# # #             return obj.division.region.name
+# # #         return None
+
+# # #     def get_zone_name(self, obj):
+# # #         if obj.zone_id:
+# # #             return obj.zone.name
+# # #         if obj.circle_id:
+# # #             return obj.circle.zone.name
+# # #         if obj.region_id:
+# # #             return obj.region.zone.name if obj.region.zone_id else (obj.region.circle.zone.name if obj.region.circle_id else None)
+# # #         if obj.division_id:
+# # #             region = obj.division.region
+# # #             return region.zone.name if region.zone_id else (region.circle.zone.name if region.circle_id else None)
+# # #         return None
+
+# # #     def validate(self, attrs):
+# # #         customer = attrs.get("customer") or getattr(self.instance, "customer", None)
+# # #         parents = {
+# # #             "city": attrs.get("city", getattr(self.instance, "city", None)),
+# # #             "taluka": attrs.get("taluka", getattr(self.instance, "taluka", None)),
+# # #             "division": attrs.get("division", getattr(self.instance, "division", None)),
+# # #             "circle": attrs.get("circle", getattr(self.instance, "circle", None)),
+# # #             "region": attrs.get("region", getattr(self.instance, "region", None)),
+# # #             "zone": attrs.get("zone", getattr(self.instance, "zone", None)),
+# # #         }
+# # #         if not customer:
+# # #             raise serializers.ValidationError({"customer": "Customer is required."})
+
+# # #         org_unit = attrs.get("org_unit", getattr(self.instance, "org_unit", None))
+# # #         if org_unit:
+# # #             if customer.hierarchy_type != "ZONAL":
+# # #                 raise serializers.ValidationError({"org_unit": "Organisational hierarchy links are disabled for Geographical customers. Their State → District → Taluka → City → Branch structure remains unchanged."})
+# # #             if org_unit.customer_id != customer.pk:
+# # #                 raise serializers.ValidationError({"org_unit": "The organisational unit must belong to this customer."})
+# # #             if org_unit.unit_type.code != "BO":
+# # #                 raise serializers.ValidationError({"org_unit": "A Branch record can only link to an organisational unit of type BO (Branch)."})
+# # #             duplicate = Branch.objects.filter(org_unit=org_unit)
+# # #             if self.instance:
+# # #                 duplicate = duplicate.exclude(pk=self.instance.pk)
+# # #             if duplicate.exists():
+# # #                 raise serializers.ValidationError({"org_unit": "This organisational Branch unit is already linked to another Branch record."})
+
+# # #         geographic_state = attrs.get("geographic_state", getattr(self.instance, "geographic_state", None))
+# # #         geographic_city = attrs.get("geographic_city", getattr(self.instance, "geographic_city", None))
+# # #         if geographic_city:
+# # #             city_state = geographic_city.taluka.district.state
+# # #             if geographic_state and geographic_state.pk != city_state.pk:
+# # #                 raise serializers.ValidationError({"geographic_city": "The selected City does not belong to the selected State."})
+# # #             geographic_state = city_state
+# # #         if geographic_state and geographic_state.customer_id != customer.pk:
+# # #             raise serializers.ValidationError({"geographic_state": "The selected State does not belong to this customer."})
+# # #         if geographic_city and geographic_city.taluka.district.state.customer_id != customer.pk:
+# # #             raise serializers.ValidationError({"geographic_city": "The selected City does not belong to this customer."})
+
+# # #         if sum(bool(value) for value in parents.values()) != 1:
+# # #             raise serializers.ValidationError("A branch must belong to exactly one hierarchy parent.")
+# # #         if customer.hierarchy_type == "GEOGRAPHICAL":
+# # #             if not (parents["city"] or parents["taluka"]) or any(parents[k] for k in ("division", "circle", "region", "zone")):
+# # #                 raise serializers.ValidationError("Geographical branches must be under City or Taluka.")
+# # #         elif customer.hierarchy_type == "ZONAL":
+# # #             selected_zone = parents.get("zone")
+# # #             selected_parent = next((parent for key, parent in parents.items() if key != "zone" and parent), None)
+# # #             if not selected_zone and selected_parent:
+# # #                 if hasattr(selected_parent, "zone_id"):
+# # #                     selected_zone = selected_parent.zone if selected_parent.zone_id else None
+# # #                 if not selected_zone and hasattr(selected_parent, "circle_id") and selected_parent.circle_id:
+# # #                     selected_zone = selected_parent.circle.zone
+# # #                 if not selected_zone and hasattr(selected_parent, "region"):
+# # #                     region = selected_parent.region
+# # #                     selected_zone = region.zone if region.zone_id else region.circle.zone
+# # #             zone_config = selected_zone.hierarchy_config if selected_zone and selected_zone.hierarchy_config else customer.zonal_hierarchy_config
+# # #             expected = zonal_branch_parent_level(zone_config)
+# # #             if expected not in parents or not parents[expected]:
+# # #                 raise serializers.ValidationError({str(expected or "parent"): "Select the direct Branch parent required by this customer's hierarchy."})
+# # #             forbidden = [key for key in ("city", "taluka", "division", "circle", "region", "zone") if key != expected]
+# # #             if any(parents[k] for k in forbidden):
+# # #                 raise serializers.ValidationError("This customer configuration does not allow the selected parent.")
+
+# # #             parent = parents[expected]
+# # #             if expected == "zone":
+# # #                 if parent.geography_mode == "STATE" and (not geographic_state or geographic_city):
+# # #                     raise serializers.ValidationError({"geographic_state": "This Zone requires a State and does not accept a City."})
+# # #                 if parent.geography_mode == "CITY" and not geographic_city:
+# # #                     raise serializers.ValidationError({"geographic_city": "This Zone requires a City."})
+# # #                 parent_customer_id = parent.customer_id
+# # #             elif expected == "circle":
+# # #                 parent_customer_id = parent.zone.customer_id
+# # #             elif expected == "region":
+# # #                 parent_customer_id = parent.zone.customer_id if parent.zone_id else parent.circle.zone.customer_id
+# # #                 if "circle" in (zone_config or {}).get("levels", []) and not parent.circle_id:
+# # #                     raise serializers.ValidationError({"region": "This customer's Region must belong to a Circle."})
+# # #             else:
+# # #                 region = parent.region
+# # #                 parent_customer_id = region.zone.customer_id if region.zone_id else region.circle.zone.customer_id
+# # #                 if "circle" in (zone_config or {}).get("levels", []) and not region.circle_id:
+# # #                     raise serializers.ValidationError({"division": "This customer's Division must belong to a Region under a Circle."})
+# # #             if parent_customer_id != customer.pk:
+# # #                 raise serializers.ValidationError({expected: f"The selected {expected.title()} does not belong to this customer."})
+# # #         else:
+# # #             raise serializers.ValidationError({"customer": "Customer hierarchy is not configured."})
+# # #         return attrs
+
+
+# # # class BuildingSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Building
+# # #         fields = "__all__"
+
+# # #     def validate_branch(self, branch):
+# # #         return branch
+
+
+# # # class RoomSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = Room
+# # #         fields = "__all__"
+
+# # #     def validate_floor(self, floor):
+# # #         return floor
+
+# # # class FloorSerializer(serializers.ModelSerializer):
+# # #     branch_name = serializers.CharField(source="branch.name", read_only=True)
+# # #     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True)
+
+# # #     class Meta:
+# # #         model = Floor
+# # #         fields = ["id", "name", "code", "branch", "building", "branch_name", "customer_id", "is_active", "created_at"]
+
+# # #     def validate(self, attrs):
+# # #         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+# # #         building = attrs.get("building", getattr(self.instance, "building", None))
+# # #         if not branch:
+# # #             raise serializers.ValidationError({"branch": "Select a branch."})
+# # #         if building and building.branch_id != branch.pk:
+# # #             raise serializers.ValidationError({"building": "Building must belong to the selected branch."})
+# # #         return attrs
+
+
+# # # class SiteSerializer(serializers.ModelSerializer):
+# # #     branch_name = serializers.CharField(source="branch.name", read_only=True)
+# # #     floor_name = serializers.CharField(source="floor.name", read_only=True, default=None)
+# # #     building_name = serializers.CharField(source="building.name", read_only=True, default=None)
+# # #     room_name = serializers.CharField(source="room.name", read_only=True, default=None)
+# # #     tpt_site_id = serializers.CharField(read_only=True, allow_null=True)
+
+# # #     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True, allow_null=True)
+# # #     customer_name = serializers.CharField(source="branch.customer.company", read_only=True, allow_null=True)
+# # #     organization_id = serializers.UUIDField(source="branch.customer.organization_id", read_only=True, allow_null=True)
+
+# # #     admins = serializers.SerializerMethodField()
+# # #     engineers = serializers.SerializerMethodField()
+
+# # #     class Meta:
+# # #         model = Site
+# # #         fields = [
+# # #             "id", "name", "code", "address", "latitude", "longitude", "tpt_site_id",
+# # #             "branch", "branch_name", "building", "building_name", "floor", "floor_name", "room", "room_name",
+# # #             "customer_id", "customer_name", "organization_id",
+# # #             "admins", "engineers", "is_active", "created_at",
+# # #         ]
+# # #         read_only_fields = [
+# # #             "id", "branch_name", "floor_name", "building_name", "room_name", "customer_id", "customer_name",
+# # #             "organization_id", "admins", "engineers", "created_at",
+# # #         ]
+
+# # #     def get_admins(self, obj):
+# # #         return list(
+# # #             obj.users.filter(role=Role.BR_ADMIN, is_active=True)
+# # #             .values("id", "name", "email", "phone", "role", "branch_id", "site_id")
+# # #         )
+
+# # #     def get_engineers(self, obj):
+# # #         return list(
+# # #             obj.users.filter(role=Role.ENGINEER, is_active=True)
+# # #             .values("id", "name", "email", "phone", "role", "branch_id", "site_id")
+# # #         )
+
+# # #     def validate(self, attrs):
+# # #         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+# # #         floor = attrs.get("floor", getattr(self.instance, "floor", None))
+# # #         building = attrs.get("building", getattr(self.instance, "building", None))
+# # #         room = attrs.get("room", getattr(self.instance, "room", None))
+
+# # #         if not branch:
+# # #             raise serializers.ValidationError({"branch": "A site must belong to a branch."})
+# # #         if not branch.customer_id:
+# # #             raise serializers.ValidationError({"branch": "The selected branch is not assigned to a customer."})
+# # #         if floor and floor.branch_id != branch.id:
+# # #             raise serializers.ValidationError({"floor": "Selected floor does not belong to the selected branch."})
+# # #         if building and building.branch_id != branch.id:
+# # #             raise serializers.ValidationError({"building": "Selected building does not belong to the selected branch."})
+# # #         if floor and building and floor.building_id != building.id:
+# # #             raise serializers.ValidationError({"floor": "Selected floor does not belong to the selected building."})
+# # #         if room and (not floor or room.floor_id != floor.id):
+# # #             raise serializers.ValidationError({"room": "Selected room must belong to the selected floor."})
+# # #         if branch.customer.hierarchy_type == "ZONAL":
+# # #             levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", [])
+# # #             if building and "building" not in levels:
+# # #                 raise serializers.ValidationError({"building": "Building is not enabled in this customer's hierarchy."})
+# # #             if floor and "building" in levels and not building:
+# # #                 raise serializers.ValidationError({"building": "Select the Building for this Floor."})
+# # #             if floor and "floor" not in levels:
+# # #                 raise serializers.ValidationError({"floor": "Floor is not enabled in this customer's hierarchy."})
+# # #             if room and "room" not in levels:
+# # #                 raise serializers.ValidationError({"room": "Room is not enabled in this customer's hierarchy."})
+
+# # #         request = self.context.get("request")
+# # #         user = getattr(request, "user", None)
+
+# # #         if user and user.is_authenticated:
+# # #             if user.role == Role.CUSTOMER:
+# # #                 if branch.customer_id != user.customer_id:
+# # #                     raise serializers.ValidationError({
+# # #                         "branch": "You can only use sites belonging to your customer."
+# # #                     })
+# # #             elif user.role == Role.BR_ADMIN:
+# # #                 if branch.id != user.branch_id:
+# # #                     raise serializers.ValidationError({
+# # #                         "branch": "You can only use sites belonging to your branch."
+# # #                     })
+# # #             elif user.role == Role.ENGINEER:
+# # #                 if self.instance is None or self.instance.id != user.site_id:
+# # #                     raise serializers.ValidationError({"branch": "You can only use your assigned site."})
+# # #             elif user.role == Role.ORG_SUPER_ADMIN:
+# # #                 if branch.customer.organization_id != user.organization_id:
+# # #                     raise serializers.ValidationError({"branch": "This site is outside your organization."})
+
+# # #         return attrs
+
+
+# # # class ACDeviceSerializer(serializers.ModelSerializer):
+# # #     branch_id = serializers.UUIDField(source="branch.id", read_only=True, allow_null=True)
+# # #     branch_name = serializers.CharField(source="branch.name", read_only=True, allow_null=True)
+# # #     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True, allow_null=True)
+# # #     customer_name = serializers.CharField(source="branch.customer.company", read_only=True, allow_null=True)
+# # #     assignment_status = serializers.SerializerMethodField()
+
+# # #     class Meta:
+# # #         model = ACDevice
+# # #         fields = [
+# # #             "id", "ac_id", "device_name", "branch", "branch_id", "branch_name",
+# # #             "customer_id", "customer_name", "assignment_status",
+# # #             "status", "capacity_ton", "installation_date", "last_maintenance_date", "assigned_by", "assigned_admin",
+# # #             "tpt_device_id", "tpt_sync_status", "tpt_sync_error", "created_at", "updated_at",
+# # #             "is_simulated",
+# # #         ]
+# # #         read_only_fields = [
+# # #             "id", "branch_id", "branch_name", "customer_id", "customer_name",
+# # #             "assignment_status", "assigned_by", "assigned_admin", "tpt_device_id",
+# # #             "tpt_sync_status", "tpt_sync_error", "created_at", "updated_at",
+# # #             "is_simulated",
+# # #         ]
+
+# # #     def get_assignment_status(self, obj):
+# # #         return "ASSIGNED" if obj.branch_id else "UNASSIGNED"
+
+# # #     def validate(self, attrs):
+# # #         branch = attrs.get("branch", getattr(self.instance, "branch", None))
+# # #         request = self.context.get("request")
+# # #         user = getattr(request, "user", None)
+# # #         if branch and user and getattr(user, "is_authenticated", False):
+# # #             if getattr(user, "role", None) == Role.CUSTOMER:
+# # #                 if branch.customer_id != user.customer_id:
+# # #                     raise serializers.ValidationError({
+# # #                         "branch": "You can only assign a device to a branch belonging to your customer."
+# # #                     })
+# # #             elif getattr(user, "role", None) == Role.ORG_SUPER_ADMIN:
+# # #                 if branch.customer.organization_id != user.organization_id:
+# # #                     raise serializers.ValidationError({"branch": "This branch is outside your organization."})
+# # #         return attrs
+
+
+# # # class CustomerSiteMappingSerializer(serializers.ModelSerializer):
+# # #     customer_name = serializers.CharField(source="customer.company", read_only=True)
+# # #     site_name = serializers.CharField(source="site.name", read_only=True)
+
+# # #     class Meta:
+# # #         model = CustomerSiteMapping
+# # #         fields = ["id", "customer", "customer_name", "site", "site_name", "is_active", "created_at", "updated_at"]
+# # #         read_only_fields = ["id", "customer_name", "site_name", "created_at", "updated_at"]
+
+# # #     def validate(self, attrs):
+# # #         customer = attrs["customer"]
+# # #         site = attrs["site"]
+
+# # #         # Site must belong to the same customer
+# # #         if site.branch_id and site.branch.customer_id and site.branch.customer_id != customer.id:
+# # #             raise serializers.ValidationError({"site": "This site belongs to another customer."})
+
+# # #         if not site.branch_id:
+# # #             raise serializers.ValidationError({"site": "Site is not assigned to a branch."})
+
+# # #         return attrs
+
+
+# # # # ============================================================
+# # # # SITE → DEVICE
+# # # # ============================================================
+
+# # # class SiteDeviceMappingSerializer(serializers.ModelSerializer):
+# # #     site_name = serializers.CharField(source="site.name", read_only=True)
+# # #     device_name = serializers.CharField(source="device.device_name", read_only=True)
+# # #     ac_id = serializers.CharField(source="device.ac_id", read_only=True)
+
+# # #     class Meta:
+# # #         model = SiteDeviceMapping
+# # #         fields = [
+# # #             "id", "site", "site_name", "device", "device_name", "ac_id",
+# # #             "is_active", "created_at", "updated_at",
+# # #         ]
+# # #         read_only_fields = ["id", "site_name", "device_name", "ac_id", "created_at", "updated_at"]
+
+# # #     def validate(self, attrs):
+# # #         site = attrs["site"]
+# # #         device = attrs["device"]
+
+# # #         if not site.branch_id:
+# # #             raise serializers.ValidationError({"site": "Site is not assigned to a branch."})
+# # #         if not site.branch.customer_id:
+# # #             raise serializers.ValidationError({"site": "Site is not assigned to a customer."})
+
+# # #         return attrs
+
+
+# # # # ============================================================
+# # # # CUSTOMER → DEVICE
+# # # # ============================================================
+
+# # # class CustomerDeviceMappingSerializer(serializers.ModelSerializer):
+# # #     customer_name = serializers.CharField(source="customer.company", read_only=True)
+# # #     device_name = serializers.CharField(source="device.device_name", read_only=True)
+# # #     ac_id = serializers.CharField(source="device.ac_id", read_only=True)
+
+# # #     class Meta:
+# # #         model = CustomerDeviceMapping
+# # #         fields = [
+# # #             "id", "customer", "customer_name", "device", "device_name", "ac_id",
+# # #             "is_active", "created_at", "updated_at",
+# # #         ]
+# # #         read_only_fields = ["id", "customer_name", "device_name", "ac_id", "created_at", "updated_at"]
+
+# # #     def validate(self, attrs):
+# # #         customer = attrs["customer"]
+# # #         device = attrs["device"]
+
+# # #         if device.site_id:
+# # #             site_customer_id = device.site.branch.customer_id
+# # #             if site_customer_id != customer.id:
+# # #                 raise serializers.ValidationError({
+# # #                     "device": "This device belongs to a site of another customer."
+# # #                 })
+
+# # #         return attrs
+
+
+# # # class UserSerializer(serializers.ModelSerializer):
+# # #     scope_name = serializers.CharField(read_only=True)
+# # #     scope_id = serializers.SerializerMethodField()
+# # #     customer_hierarchy_type = serializers.SerializerMethodField()
+# # #     zone_name = serializers.CharField(source="zone.name", read_only=True, default=None)
+# # #     circle_name = serializers.CharField(source="circle.name", read_only=True, default=None)
+# # #     state_name = serializers.CharField(source="state.name", read_only=True, default=None)
+# # #     district_name = serializers.CharField(source="district.name", read_only=True, default=None)
+    
+# # #     head_office_state = serializers.SerializerMethodField()
+# # #     head_office_district = serializers.SerializerMethodField()
+
+# # #     class Meta:
+# # #         model = User
+# # #         fields = [
+# # #             "id", "email", "name", "phone", "role",
+# # #             "organization", "customer", "zone", "circle", "state", "district", "branch", "site",
+# # #             "scope_name", "scope_id", "customer_hierarchy_type",
+# # #             "zone_name", "circle_name", "state_name", "district_name",
+# # #             "is_active", "date_joined", "last_login",
+# # #             "head_office_state",
+# # #             "head_office_district",
+# # #         ]
+# # #         read_only_fields = ["id", "date_joined", "last_login"]
+
+# # #     def get_scope_id(self, obj):
+# # #         _, scope_id = obj.get_scope()
+# # #         return str(scope_id) if scope_id else None
+
+# # #     def get_customer_hierarchy_type(self, obj):
+# # #         return obj.customer.hierarchy_type if obj.customer_id and obj.customer else None
+
+# # #     def get_head_office_state(self, obj):
+# # #         customer = obj.customer
+
+# # #         if not customer:
+# # #             return ""
+
+# # #         city = customer.head_office_city
+# # #         if city:
+# # #             taluka = city.taluka
+# # #             district = taluka.district if taluka else None
+# # #             state = district.state if district else None
+
+# # #             if state:
+# # #                 return state.name
+
+# # #         return customer.state or ""
+
+
+# # #     def get_head_office_district(self, obj):
+# # #         customer = obj.customer
+
+# # #         if not customer:
+# # #             return ""
+
+# # #         city = customer.head_office_city
+# # #         if city:
+# # #             taluka = city.taluka
+# # #             district = taluka.district if taluka else None
+
+# # #             if district:
+# # #                 return district.name
+
+# # #         return customer.district or ""
+
+# # # class LoginSerializer(serializers.Serializer):
+# # #     email = serializers.EmailField()
+# # #     password = serializers.CharField(write_only=True, min_length=6)
+# # #     role = serializers.ChoiceField(choices=Role.choices)
+
+# # #     def validate(self, data):
+# # #         user = authenticate(
+# # #             request=self.context.get("request"),
+# # #             username=data["email"],
+# # #             password=data["password"],
+# # #         )
+# # #         if not user:
+# # #             raise serializers.ValidationError("Invalid email or password.")
+# # #         if not user.is_active:
+# # #             raise serializers.ValidationError("This account is disabled.")
+# # #         if user.role != data["role"]:
+# # #             raise serializers.ValidationError(
+# # #                 f"This account belongs to '{user.get_role_display()}'. Please select the correct role."
+# # #             )
+# # #         data["user"] = user
+# # #         return data
+
+
+# # # class AdminSerializer(serializers.ModelSerializer):
+# # #     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+# # #     scope_name = serializers.CharField(read_only=True)
+# # #     scope_id = serializers.SerializerMethodField()
+# # #     customer_hierarchy_type = serializers.SerializerMethodField()
+# # #     zone_name = serializers.CharField(source="zone.name", read_only=True, default=None)
+# # #     circle_name = serializers.CharField(source="circle.name", read_only=True, default=None)
+# # #     state_name = serializers.CharField(source="state.name", read_only=True, default=None)
+# # #     district_name = serializers.CharField(source="district.name", read_only=True, default=None)
+
+# # #     class Meta:
+# # #         model = User
+# # #         fields = [
+# # #             "id", "email", "name", "phone", "role",
+# # #             "organization", "customer", "zone", "circle", "state", "district", "branch", "site",
+# # #             "scope_name", "scope_id", "customer_hierarchy_type",
+# # #             "zone_name", "circle_name", "state_name", "district_name",
+# # #             "password", "is_active", "date_joined", "last_login",
+# # #         ]
+# # #         read_only_fields = ["id", "date_joined", "last_login", "scope_name", "scope_id"]
+# # #         extra_kwargs = {
+# # #             "organization": {"required": False},
+# # #             "customer": {"required": False},
+# # #             "zone": {"required": False},
+# # #             "circle": {"required": False},
+# # #             "region": {"required": False},
+# # #             "division": {"required": False},
+# # #             "state": {"required": False},
+# # #             "district": {"required": False},
+# # #             "taluka": {"required": False},
+# # #             "city": {"required": False},
+# # #             "branch": {"required": False},
+# # #             "site": {"required": False},
+# # #         }
+
+# # #     def get_scope_id(self, obj):
+# # #         _, scope_id = obj.get_scope()
+# # #         return str(scope_id) if scope_id else None
+
+# # #     def get_customer_hierarchy_type(self, obj):
+# # #         return obj.customer.hierarchy_type if obj.customer_id and obj.customer else None
+
+# # #     CREATABLE_ROLES = (Role.BR_ADMIN, Role.ENGINEER)
+
+# # #     def validate_role(self, value):
+# # #         if self.instance is not None and self.instance.role == value:
+# # #             return value
+# # #         if value not in self.CREATABLE_ROLES:
+# # #             raise serializers.ValidationError(
+# # #                 "Only Branch Admin and Engineer accounts can be created here. "
+# # #                 "Customers are created from the Customers page."
+# # #             )
+# # #         return value
+
+# # #     def validate_customer(self, value):
+# # #         request = self.context.get("request")
+# # #         acting = getattr(request, "user", None)
+# # #         if value is None or acting is None:
+# # #             return value
+# # #         if acting.role == Role.ORG_SUPER_ADMIN and value.organization_id != acting.organization_id:
+# # #             raise serializers.ValidationError("Customer does not belong to your organization.")
+# # #         if acting.role == Role.CUSTOMER and value.pk != acting.customer_id:
+# # #             raise serializers.ValidationError("You can only assign users to your own customer.")
+# # #         return value
+
+# # #     def validate(self, attrs):
+# # #         attrs = super().validate(attrs)
+# # #         customer = attrs.get("customer") or getattr(self.instance, "customer", None)
+# # #         zone = attrs.get("zone") if "zone" in attrs else getattr(self.instance, "zone", None)
+# # #         circle = attrs.get("circle") if "circle" in attrs else getattr(self.instance, "circle", None)
+# # #         state = attrs.get("state") if "state" in attrs else getattr(self.instance, "state", None)
+# # #         district = attrs.get("district") if "district" in attrs else getattr(self.instance, "district", None)
+
+# # #         if not customer:
+# # #             return attrs
+
+# # #         if zone and zone.customer_id != customer.pk:
+# # #             raise serializers.ValidationError({"zone": "Selected zone does not belong to the selected customer."})
+# # #         if circle and (not zone or circle.zone_id != zone.pk):
+# # #             raise serializers.ValidationError({"circle": "Selected circle must belong to the selected zone."})
+# # #         if state and state.customer_id != customer.pk:
+# # #             raise serializers.ValidationError({"state": "Selected state does not belong to the selected customer."})
+# # #         if district and (not state or district.state_id != state.pk):
+# # #             raise serializers.ValidationError({"district": "Selected district must belong to the selected state."})
+
+# # #         site = attrs.get("site") if "site" in attrs else getattr(self.instance, "site", None)
+# # #         branch = attrs.get("branch") if "branch" in attrs else getattr(self.instance, "branch", None)
+
+# # #         if site:
+# # #             if not site.branch_id:
+# # #                 raise serializers.ValidationError({"site": "Selected site has no branch."})
+# # #             if branch and site.branch_id != branch.pk:
+# # #                 raise serializers.ValidationError({"site": "Selected site does not belong to the selected branch."})
+# # #             if customer and site.branch.customer_id != customer.pk:
+# # #                 raise serializers.ValidationError({"site": "Selected site does not belong to the selected customer."})
+# # #             # A site is the most specific scope. Keep branch/customer in sync.
+# # #             attrs["branch"] = site.branch
+# # #             attrs["customer"] = site.branch.customer
+
+# # #         if customer.hierarchy_type == HierarchyType.GEOGRAPHICAL and (zone or circle):
+# # #             raise serializers.ValidationError({
+# # #                 "zone": "This customer uses the Geographical hierarchy; assign State/District instead."
+# # #             })
+# # #         if customer.hierarchy_type == HierarchyType.ZONAL and (state or district):
+# # #             raise serializers.ValidationError({
+# # #                 "state": "This customer uses the Zonal hierarchy; assign Zone/Circle instead."
+# # #             })
+
+# # #         return attrs
+
+# # #         geo_chain = ["state", "district", "taluka", "city"]
+# # #         zon_chain = ["zone", "circle", "region", "division"]
+
+# # #         def _chain_ok(chain, attrs_or_instance, expected_hierarchy):
+# # #             filled = [
+# # #                 (name, attrs_or_instance.get(name)
+# # #                     if isinstance(attrs_or_instance, dict)
+# # #                     else getattr(attrs_or_instance, name, None))
+# # #                 for name in chain
+# # #             ]
+# # #             # Drop nulls, keep order
+# # #             filled = [(n, v) for n, v in filled if v is not None]
+# # #             # The chain must be contiguous from the top (no gaps)
+# # #             if not filled:
+# # #                 return
+# # #             # Verify each step links to the previous
+# # #             for i in range(1, len(filled)):
+# # #                 prev_name, prev_obj = filled[i - 1]
+# # #                 name, obj = filled[i]
+# # #                 parent_attr = {
+# # #                     "district": "state",
+# # #                     "taluka": "district",
+# # #                     "city": "taluka",
+# # #                     "circle": "zone",
+# # #                     "region": "circle",
+# # #                     "division": "region",
+# # #                 }[name]
+# # #                 if getattr(obj, f"{parent_attr}_id") != prev_obj.pk:
+# # #                     raise serializers.ValidationError(
+# # #                         {name: f"Selected {name} does not belong to the selected {parent_attr}."}
+# # #                     )
+# # #             # Verify the top of the chain belongs to the customer
+# # #             top_name, top_obj = filled[0]
+# # #             if top_obj.customer_id != customer.pk:
+# # #                 raise serializers.ValidationError({top_name: "Does not belong to the selected customer."})
+
+# # #         # Get values for whichever fields the request actually sends
+# # #         payload = {}
+# # #         for name in geo_chain + zon_chain:
+# # #             if name in attrs:
+# # #                 payload[name] = attrs[name]
+# # #             elif self.instance is not None:
+# # #                 payload[name] = getattr(self.instance, name, None)
+
+# # #         # Hierarchy must match the customer
+# # #         if customer.hierarchy_type == HierarchyType.GEOGRAPHICAL:
+# # #             if any(payload.get(n) for n in zon_chain):
+# # #                 raise serializers.ValidationError({
+# # #                     "zone": "This customer uses the Geographical hierarchy; assign State/District/Taluka/City instead."
+# # #                 })
+# # #             _chain_ok(geo_chain, payload, "GEOGRAPHICAL")
+# # #         elif customer.hierarchy_type == HierarchyType.ZONAL:
+# # #             if any(payload.get(n) for n in geo_chain):
+# # #                 raise serializers.ValidationError({
+# # #                     "state": "This customer uses the Zonal hierarchy; assign Zone/Circle/Region/Division instead."
+# # #                 })
+# # #             _chain_ok(zon_chain, payload, "ZONAL")
+
+# # #     def create(self, validated_data):
+# # #         password = validated_data.pop("password", "") or "Admin@123"
+# # #         user = User(**validated_data)
+# # #         user.set_password(password)
+# # #         user._skip_scope_check = True  # ← bypass scope check on this save
+# # #         user.save()
+# # #         return user
+
+# # #     def update(self, instance, validated_data):
+# # #         password = validated_data.pop("password", None)
+# # #         instance = super().update(instance, validated_data)
+# # #         if password:
+# # #             instance.set_password(password)
+
+# # #         # Activate the user once the required scope is present.
+# # #         scope_field = {
+# # #             "ORG_SUPER_ADMIN": "organization",
+# # #             "CUSTOMER": "customer",
+# # #             "BR_ADMIN": "branch",
+# # #             "ENGINEER": "site",
+# # #             # "ZONAL_ADMIN": "zone",
+# # #             # "CIRCLE_ADMIN": "circle",
+# # #         }.get(instance.role)
+
+# # #         if instance.role == "ORG_SUPER_ADMIN" or (scope_field and getattr(instance, f"{scope_field}_id")):
+# # #             instance.is_active = True
+
+# # #         instance.save()
+# # #         return instance
+
+
+# # # class DashboardPreferenceSerializer(serializers.ModelSerializer):
+# # #     class Meta:
+# # #         model = DashboardPreference
+# # #         fields = [
+# # #             "id", "name", "customer", "main_filters", "card_filters",
+# # #             "visible_widgets", "is_default", "created_at", "updated_at",
+# # #         ]
+# # #         read_only_fields = ["id", "customer", "created_at", "updated_at"]
+
+
+
+# # import re
+
+# # from rest_framework import serializers
+# # from django.contrib.auth import authenticate
+# # from django.db import transaction
+# # from django.db.models import Q
+# # from django.core.exceptions import ValidationError as DjangoValidationError
+# # from .models import (
+# #     ACData, Country, DashboardPreference, User, Organization, Customer,
+# #     HierarchyType, Zone, Circle, Region, Division, State, District, Taluka,
+# #     City, Branch, Building, Floor, Room, Site, ACDevice, CustomerSiteMapping, SiteDeviceMapping,
+# #     CustomerDeviceMapping, Role, zonal_branch_parent_level,
+# # )
+
+
+# # class ACDataSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = ACData
+# #         fields = [
+# #             "id", "timestamp", "ac_id", "indoor_temperature", "outdoor_temperature",
+# #             "indoor_humidity", "outdoor_humidity", "voltage", "current",
+# #         ]
+
+
+# # class OrganizationSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Organization
+# #         fields = "__all__"
+
+
+# # # class CustomerSerializer(serializers.ModelSerializer):
+# # #     password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=6)
+# # #     login_email = serializers.SerializerMethodField()
+# # #     head_office_hierarchy = serializers.SerializerMethodField()
+
+# # #     class Meta:
+# # #         model = Customer
+# # #         fields = "__all__"
+# # #         read_only_fields = ["organization", "tpt_customer_id", "created_at", "updated_at"]
+# # #         validators = []
+
+# # #     # LOGIN EMAIL
+# # #     def get_login_email(self, obj):
+# # #         return (
+# # #             User.objects
+# # #             .filter(customer=obj, role=Role.CUSTOMER)
+# # #             .values_list("email", flat=True)
+# # #             .first()
+# # #         )
+
+# # #     @staticmethod
+# # #     def _login_email_for(customer):
+# # #         return (customer.contact_person_email or customer.company_email or "").strip().lower()
+
+# # #     # CREATE CUSTOMER LOGIN
+# # #     def _ensure_login(self, customer, password):
+# # #         """Create or update the Bank Customer login."""
+# # #         login = User.objects.filter(customer=customer, role=Role.CUSTOMER).first()
+
+# # #         # Existing login
+# # #         if login:
+# # #             if password:
+# # #                 login.set_password(password)
+            
+# # #             login.email = self._login_email_for(customer)
+# # #             login.name = customer.contact_person or customer.company
+# # #             # login.phone = customer.admin_mobile or customer.phone
+# # #             login.phone = customer.phone or ""
+# # #             login.is_active = customer.is_active
+# # #             login.save()
+# # #             return login
+
+# # #         # New login
+# # #         email = self._login_email_for(customer)
+# # #         if not email:
+# # #             raise serializers.ValidationError({
+# # #                 "contact_person_email": "An email is required to create the bank login."
+# # #             })
+# # #         if User.objects.filter(email__iexact=email).exists():
+# # #             raise serializers.ValidationError({
+# # #                 "contact_person_email": "A user with this email already exists."
+# # #             })
+
+# # #         login = User(
+# # #             email=email,
+# # #             name=customer.contact_person or customer.company,
+# # #             # phone=customer.admin_mobile or customer.phone,
+# # #             phone=customer.phone or "",
+# # #             role=Role.CUSTOMER,
+# # #             organization=customer.organization,
+# # #             customer=customer,
+# # #             is_active=customer.is_active,
+# # #         )
+# # #         login.set_password(password)
+# # #         login.save()
+# # #         return login
+
+# # #     # ============================================================
+# # #     # VALIDATION
+# # #     # ============================================================
+
+# # #     def validate_company(self, value):
+# # #         value = value.strip()
+# # #         if not value:
+# # #             raise serializers.ValidationError("Bank name is required.")
+# # #         return value
+
+# # #     def validate_code(self, value):
+# # #         value = value.strip().upper()
+# # #         if not value:
+# # #             raise serializers.ValidationError("Bank code is required.")
+# # #         return value
+
+# # #     def validate_bank_short_name(self, value):
+# # #         return value.strip().upper()
+
+# # #     def validate_company_email(self, value):
+# # #         return value.strip().lower()
+
+# # #     def validate_contact_person_email(self, value):
+# # #         return value.strip().lower()
+
+# # #     # def validate_pan(self, value):
+# # #     #     value = value.strip().upper()
+# # #     #     if value and not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]$", value):
+# # #     #         raise serializers.ValidationError("Enter a valid PAN number.")
+# # #     #     return value
+
+# # #     # def validate_gstin(self, value):
+# # #     #     value = value.strip().upper()
+# # #     #     if value and len(value) != 15:
+# # #     #         raise serializers.ValidationError("GSTIN must contain 15 characters.")
+# # #     #     return value
+
+# # #     def get_head_office_hierarchy(self, obj):
+# # #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# # #             city = obj.head_office_city
+
+# # #             if not city:
+# # #                 return ""
+
+# # #             taluka = city.taluka
+# # #             district = taluka.district if taluka else None
+# # #             state = district.state if district else None
+# # #             country = state.country if state else None
+
+# # #             parts = [
+# # #                 country.name if country else None,
+# # #                 state.name if state else None,
+# # #                 district.name if district else None,
+# # #                 taluka.name if taluka else None,
+# # #                 city.name,
+# # #             ]
+
+# # #             return " → ".join(part for part in parts if part)
+
+# # #         if obj.hierarchy_type == "ZONAL":
+# # #             division = obj.head_office_division
+
+# # #             if not division:
+# # #                 return ""
+
+# # #             region = division.region
+# # #             circle = region.circle if region else None
+# # #             zone = circle.zone if circle else None
+# # #             country = zone.country if zone else None
+
+# # #             parts = [
+# # #                 country.name if country else None,
+# # #                 zone.name if zone else None,
+# # #                 circle.name if circle else None,
+# # #                 region.name if region else None,
+# # #                 division.name,
+# # #             ]
+
+# # #             return " → ".join(part for part in parts if part)
+
+# # #         return ""
+
+        
+# # #     def validate(self, attrs):
+# # #         attrs = super().validate(attrs)
+
+# # #         request = self.context.get("request")
+# # #         user = getattr(request, "user", None)
+
+# # #         # Resolve organization.
+# # #         organization = (
+# # #             self.instance.organization
+# # #             if self.instance
+# # #             else getattr(user, "organization", None)
+# # #         )
+
+# # #         if not organization:
+# # #             raise serializers.ValidationError({
+# # #                 "organization": "Could not determine organization."
+# # #             })
+
+# # #         # Ensure bank code is unique within the organization.
+# # #         code = attrs.get("code") or getattr(self.instance, "code", None)
+
+# # #         if code:
+# # #             duplicates = Customer.objects.filter(
+# # #                 organization=organization,
+# # #                 code=code,
+# # #             )
+
+# # #             if self.instance:
+# # #                 duplicates = duplicates.exclude(pk=self.instance.pk)
+
+# # #             if duplicates.exists():
+# # #                 raise serializers.ValidationError({
+# # #                     "code": "A bank with this code already exists in your organization."
+# # #                 })
+
+# # #         # Validate hierarchy selection and changes.
+# # #         hierarchy_type = attrs.get(
+# # #             "hierarchy_type",
+# # #             getattr(self.instance, "hierarchy_type", None),
+# # #         )
+
+# # #         if self.instance is None:
+# # #             if not hierarchy_type:
+# # #                 raise serializers.ValidationError({
+# # #                     "hierarchy_type": "Select Geographical or Zonal."
+# # #                 })
+# # #         elif (
+# # #             hierarchy_type
+# # #             and hierarchy_type != self.instance.hierarchy_type
+# # #             and self.instance.branches.exists()
+# # #         ):
+# # #             raise serializers.ValidationError({
+# # #                 "hierarchy_type": (
+# # #                     "This bank already has branches. "
+# # #                     "Hierarchy type cannot be changed."
+# # #                 )
+# # #             })
+
+# # #         # Validate head-office location against the selected hierarchy.
+# # #         city = attrs.get(
+# # #             "head_office_city",
+# # #             getattr(self.instance, "head_office_city", None),
+# # #         )
+
+# # #         division = attrs.get(
+# # #             "head_office_division",
+# # #             getattr(self.instance, "head_office_division", None),
+# # #         )
+
+# # #         if hierarchy_type == "GEOGRAPHICAL" and division:
+# # #             raise serializers.ValidationError({
+# # #                 "head_office_division": (
+# # #                     "Select a City for a Geographical customer."
+# # #                 )
+# # #             })
+
+# # #         if hierarchy_type == "ZONAL" and city:
+# # #             raise serializers.ValidationError({
+# # #                 "head_office_city": (
+# # #                     "Select a Division for a Zonal customer."
+# # #                 )
+# # #             })
+
+# # #         return attrs
+
+# # #     def validate_pincode(self, value):
+# # #         value = value.strip()
+# # #         if value and not re.match(r"^\d{6}$", value):
+# # #             raise serializers.ValidationError("PIN code must contain exactly 6 digits.")
+# # #         return value
+
+
+# # #     # CREATE
+# # #     # def create(self, validated_data):
+# # #     #     password = validated_data.pop("password", "")
+# # #     #     with transaction.atomic():
+# # #     #         customer = super().create(validated_data)
+# # #     #         if password:
+# # #     #             self._ensure_login(customer, password)
+# # #     #     return customer
+
+# # #     def create(self, validated_data):
+# # #         validated_data.pop("password", None)
+# # #         return super().create(validated_data)
+
+# # #     # UPDATE
+# # #     def update(self, instance, validated_data):
+# # #         password = validated_data.pop("password", "")
+# # #         with transaction.atomic():
+# # #             customer = super().update(instance, validated_data)
+# # #             login = User.objects.filter(customer=customer, role=Role.CUSTOMER).first()
+# # #             if login:
+# # #                 login.email = (customer.contact_person_email or customer.company_email).strip().lower()
+# # #                 login.name = customer.contact_person or customer.company
+# # #                 # login.phone = customer.admin_mobile or customer.phone
+# # #                 login.phone = customer.phone or ""
+# # #                 login.is_active = customer.is_active
+# # #                 if password:
+# # #                     login.set_password(password)
+# # #                 login.save()
+# # #             elif password:
+# # #                 self._ensure_login(customer, password)
+# # #         return customer
+
+# # # class CustomerSerializer(serializers.ModelSerializer):
+# # #     password = serializers.CharField(
+# # #         write_only=True,
+# # #         required=False,
+# # #         allow_blank=True,
+# # #         min_length=6,
+# # #     )
+# # #     login_email = serializers.SerializerMethodField()
+# # #     head_office_hierarchy = serializers.SerializerMethodField()
+# # #     filter_defaults = serializers.SerializerMethodField()
+    
+# # #     state = serializers.CharField(required=False, allow_blank=True)
+# # #     district = serializers.CharField(required=False, allow_blank=True)
+# # #     taluka = serializers.CharField(required=False, allow_blank=True)
+
+# # #     class Meta:
+# # #         model = Customer
+# # #         fields = "__all__"
+# # #         read_only_fields = [
+# # #             "organization",
+# # #             "tpt_customer_id",
+# # #             "created_at",
+# # #             "updated_at",
+# # #         ]
+# # #         validators = []
+
+# # #     def get_head_office_hierarchy(self, obj):
+# # #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# # #             city = obj.head_office_city
+
+# # #             if not city:
+# # #                 return ""
+
+# # #             taluka = city.taluka
+# # #             district = taluka.district if taluka else None
+# # #             state = district.state if district else None
+# # #             country = state.country if state else None
+
+# # #             parts = [
+# # #                 country.name if country else None,
+# # #                 state.name if state else None,
+# # #                 district.name if district else None,
+# # #                 taluka.name if taluka else None,
+# # #                 city.name,
+# # #             ]
+
+# # #             return " → ".join(part for part in parts if part)
+
+# # #         elif obj.hierarchy_type == "ZONAL":
+# # #             division = obj.head_office_division
+
+# # #             if not division:
+# # #                 return ""
+
+# # #             region = division.region
+# # #             circle = region.circle if region else None
+# # #             zone = circle.zone if circle else None
+# # #             country = zone.country if zone else None
+
+# # #             parts = [
+# # #                 country.name if country else None,
+# # #                 zone.name if zone else None,
+# # #                 circle.name if circle else None,
+# # #                 region.name if region else None,
+# # #                 division.name,
+# # #             ]
+
+# # #             return " → ".join(part for part in parts if part)
+
+# # #         return ""
+
+# # #     def get_login_email(self, obj):
+# # #         return (
+# # #             User.objects
+# # #             .filter(customer=obj, role=Role.CUSTOMER)
+# # #             .values_list("email", flat=True)
+# # #             .first()
+# # #         )
+
+# # #     def create(self, validated_data):
+# # #         password = validated_data.pop("password", "")
+
+# # #         # These are UI location names, not Customer model fields.
+# # #         state_name = validated_data.pop("state", "")
+# # #         district_name = validated_data.pop("district", "")
+# # #         taluka_name = validated_data.pop("taluka", "")
+
+# # #         with transaction.atomic():
+# # #             customer = super().create(validated_data)
+
+# # #             if password:
+# # #                 self._ensure_login(customer, password)
+
+# # #         return customer
+
+
+# # #     def update(self, instance, validated_data):
+# # #         password = validated_data.pop("password", "")
+
+# # #         # Prevent non-model fields from reaching Customer.objects.update().
+# # #         validated_data.pop("state", None)
+# # #         validated_data.pop("district", None)
+# # #         validated_data.pop("taluka", None)
+
+# # #         with transaction.atomic():
+# # #             customer = super().update(instance, validated_data)
+
+# # #             login = User.objects.filter(
+# # #                 customer=customer,
+# # #                 role=Role.CUSTOMER,
+# # #             ).first()
+
+# # #             if login:
+# # #                 login.email = (
+# # #                     customer.contact_person_email or customer.company_email
+# # #                 ).strip().lower()
+# # #                 login.name = customer.contact_person or customer.company
+# # #                 login.phone = customer.admin_mobile or customer.phone
+# # #                 login.is_active = customer.is_active
+
+# # #                 if password:
+# # #                     login.set_password(password)
+
+# # #                 login.save()
+
+# # #             elif password:
+# # #                 self._ensure_login(customer, password)
+
+# # #         return customer
+
+# # #     def get_filter_defaults(self, obj):
+# # #         """
+# # #         Return the default dashboard filters for this customer.
+# # #         Values must match the names used in the filter location tree.
+# # #         """
+# # #         defaults = {
+# # #             "hierarchy": obj.hierarchy_type,
+# # #             "country": "India",
+# # #             "state": "",
+# # #             "district": "",
+# # #             "taluka": "",
+# # #             "branch": "",
+# # #             "floor": "",
+# # #         }
+
+# # #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# # #             city = obj.head_office_city
+
+# # #             if city:
+# # #                 taluka = city.taluka
+# # #                 district = taluka.district if taluka else None
+# # #                 state = district.state if district else None
+# # #                 country = state.country if state else None
+
+# # #                 defaults.update({
+# # #                     "country": country.name if country else "India",
+# # #                     "state": state.name if state else "",
+# # #                     "district": district.name if district else "",
+# # #                     "taluka": taluka.name if taluka else "",
+# # #                 })
+
+# # #         elif obj.hierarchy_type == "ZONAL":
+# # #             division = obj.head_office_division
+
+# # #             if division:
+# # #                 region = division.region
+# # #                 circle = region.circle if region else None
+# # #                 zone = circle.zone if circle else None
+# # #                 country = zone.country if zone else None
+
+# # #                 defaults.update({
+# # #                     "country": country.name if country else "India",
+# # #                     "zone": zone.name if zone else "",
+# # #                     "circle": circle.name if circle else "",
+# # #                     "region": region.name if region else "",
+# # #                     "division": division.name,
+# # #                 })
+
+# # #         return defaults
+
+# # # imports your file already has (User, Role, Customer, serializers, …)
+# # # add if missing:
+# # #   from django.db import transaction
+# # from django.core.exceptions import ValidationError as DjangoValidationError
+# # #   from .models import City          # adjust to your actual import
+
+
+# # class CustomerSerializer(serializers.ModelSerializer):
+# #     password = serializers.CharField(
+# #         write_only=True,
+# #         required=False,
+# #         allow_blank=True,
+# #         min_length=6,
+# #     )
+# #     login_email = serializers.SerializerMethodField()
+# #     head_office_hierarchy = serializers.SerializerMethodField()
+# #     filter_defaults = serializers.SerializerMethodField()
+
+# #     # Name-strings the React form sends (used to populate flat fields
+# #     # and/or resolve the head_office_city FK).
+# #     state = serializers.CharField(required=False, allow_blank=True)
+# #     district = serializers.CharField(required=False, allow_blank=True)
+# #     taluka = serializers.CharField(required=False, allow_blank=True)
+# #     city = serializers.CharField(required=False, allow_blank=True)
+
+# #     class Meta:
+# #         model = Customer
+# #         fields = "__all__"
+# #         read_only_fields = [
+# #             "organization",
+# #             "tpt_customer_id",
+# #             "created_at",
+# #             "updated_at",
+# #         ]
+# #         validators = []
+
+# #     def validate_zonal_hierarchy_config(self, value):
+# #         from .models import validate_zonal_hierarchy_config
+# #         try:
+# #             validate_zonal_hierarchy_config(value)
+# #         except DjangoValidationError as exc:
+# #             raise serializers.ValidationError(getattr(exc, "message_dict", str(exc)))
+# #         return value
+
+# #     def validate(self, attrs):
+# #         attrs = super().validate(attrs)
+# #         hierarchy_type = attrs.get("hierarchy_type", getattr(self.instance, "hierarchy_type", None))
+# #         config = attrs.get(
+# #             "zonal_hierarchy_config",
+# #             getattr(self.instance, "zonal_hierarchy_config", None),
+# #         )
+# #         if hierarchy_type == "ZONAL":
+# #             self.validate_zonal_hierarchy_config(config)
+# #             if self.instance and "zonal_hierarchy_config" in attrs:
+# #                 levels = config.get("levels", [])
+# #                 expected_parent = zonal_branch_parent_level(config)
+# #                 existing_styles = []
+# #                 for field in ("division", "circle", "region", "zone"):
+# #                     if self.instance.branches.filter(**{f"{field}__isnull": False}).exists():
+# #                         existing_styles.append(field)
+# #                 if existing_styles and any(style != expected_parent for style in existing_styles):
+# #                     raise serializers.ValidationError({
+# #                         "zonal_hierarchy_config": (
+# #                             "The selected administrative path does not match existing branch parents. "
+# #                             "Re-parent existing branches before changing this setting."
+# #                         )
+# #                     })
+# #                 if "circle" in levels and expected_parent in ("region", "division"):
+# #                     direct_zone_regions = Branch.objects.filter(customer=self.instance).filter(
+# #                         Q(region__zone__isnull=False) | Q(division__region__zone__isnull=False)
+# #                     ).exists()
+# #                     if direct_zone_regions:
+# #                         raise serializers.ValidationError({
+# #                             "zonal_hierarchy_config": (
+# #                                 "This configuration includes Circle, but existing Region/Division records are directly under Zone. "
+# #                                 "Re-parent them under a Circle before enabling Circle."
+# #                             )
+# #                         })
+# #                 existing_locations = {
+# #                     "building": Building.objects.filter(branch__customer=self.instance).exists(),
+# #                     "floor": Floor.objects.filter(branch__customer=self.instance).exists(),
+# #                     "room": Room.objects.filter(floor__branch__customer=self.instance).exists(),
+# #                 }
+# #                 removed_in_use = [level for level, exists in existing_locations.items() if exists and level not in levels]
+# #                 if removed_in_use:
+# #                     raise serializers.ValidationError({
+# #                         "zonal_hierarchy_config": (
+# #                             "Cannot disable existing physical levels with saved records: "
+# #                             + ", ".join(removed_in_use)
+# #                             + ". Remove or migrate those records first."
+# #                         )
+# #                     })
+# #                 if (
+# #                     "building" in levels
+# #                     and not Building.objects.filter(branch__customer=self.instance).exists()
+# #                     and Floor.objects.filter(branch__customer=self.instance, building__isnull=True).exists()
+# #                 ):
+# #                     raise serializers.ValidationError({
+# #                         "zonal_hierarchy_config": (
+# #                             "Existing floors are linked directly to branches. Assign them to Buildings before enabling Building."
+# #                         )
+# #                     })
+# #         return attrs
+
+# #     # ------------------------------------------------------------------
+# #     # READ-ONLY OUTPUT
+# #     # ------------------------------------------------------------------
+# #     def get_head_office_hierarchy(self, obj):
+# #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# #             city = getattr(obj, "head_office_city", None)
+# #             if not city:
+# #                 return ""
+# #             taluka = city.taluka
+# #             district = taluka.district if taluka else None
+# #             state = district.state if district else None
+# #             country = state.country if state else None
+# #             parts = [
+# #                 country.name if country else None,
+# #                 state.name if state else None,
+# #                 district.name if district else None,
+# #                 taluka.name if taluka else None,
+# #                 city.name,
+# #             ]
+# #             return " → ".join(p for p in parts if p)
+
+# #         if obj.hierarchy_type == "ZONAL":
+# #             division = getattr(obj, "head_office_division", None)
+# #             if not division:
+# #                 return ""
+# #             region = division.region
+# #             circle = region.circle if region else None
+# #             zone = circle.zone if circle else None
+# #             country = zone.country if zone else None
+# #             parts = [
+# #                 country.name if country else None,
+# #                 zone.name if zone else None,
+# #                 circle.name if circle else None,
+# #                 region.name if region else None,
+# #                 division.name,
+# #             ]
+# #             return " → ".join(p for p in parts if p)
+
+# #         return ""
+
+# #     def get_login_email(self, obj):
+# #         return (
+# #             User.objects
+# #             .filter(customer=obj, role=Role.CUSTOMER)
+# #             .values_list("email", flat=True)
+# #             .first()
+# #         )
+
+# #     def get_filter_defaults(self, obj):
+# #         defaults = {
+# #             "hierarchy": obj.hierarchy_type,
+# #             "country": "India",
+# #             "state": "",
+# #             "district": "",
+# #             "taluka": "",
+# #             "branch": "",
+# #             "floor": "",
+# #         }
+
+# #         if obj.hierarchy_type == "GEOGRAPHICAL":
+# #             city = getattr(obj, "head_office_city", None)
+# #             if city:
+# #                 taluka = city.taluka
+# #                 district = taluka.district if taluka else None
+# #                 state = district.state if district else None
+# #                 country = state.country if state else None
+# #                 defaults.update({
+# #                     "country": country.name if country else "India",
+# #                     "state": state.name if state else "",
+# #                     "district": district.name if district else "",
+# #                     "taluka": taluka.name if taluka else "",
+# #                 })
+
+# #         elif obj.hierarchy_type == "ZONAL":
+# #             division = getattr(obj, "head_office_division", None)
+# #             if division:
+# #                 region = division.region
+# #                 circle = region.circle if region else None
+# #                 zone = circle.zone if circle else None
+# #                 country = zone.country if zone else None
+# #                 defaults.update({
+# #                     "country": country.name if country else "India",
+# #                     "zone": zone.name if zone else "",
+# #                     "circle": circle.name if circle else "",
+# #                     "region": region.name if region else "",
+# #                     "division": division.name,
+# #                 })
+
+# #         return defaults
+
+# #     # ------------------------------------------------------------------
+# #     # LOGIN USER (kept for any endpoint that calls it)
+# #     # ------------------------------------------------------------------
+# #     def _ensure_login(self, customer):
+# #         email = (
+# #             customer.contact_person_email
+# #             or customer.company_email
+# #             or self.initial_data.get("contact_person_email")
+# #             or self.initial_data.get("company_email")
+# #         )
+# #         password = self.initial_data.get("password") or None
+# #         if not email:
+# #             return None
+
+# #         user = User.objects.filter(email__iexact=email).first()
+# #         if user is None:
+# #             user = User(
+# #                 email=email,
+# #                 customer=customer,
+# #                 role=Role.CUSTOMER,
+# #                 is_active=True,
+# #             )
+# #             if hasattr(user, "username"):
+# #                 user.username = email
+# #             if password:
+# #                 user.set_password(password)
+# #             else:
+# #                 user.set_unusable_password()
+# #             user.save()
+# #         else:
+# #             user.customer = customer
+# #             user.role = Role.CUSTOMER
+# #             if password:
+# #                 user.set_password(password)
+# #             user.save()
+# #         return user
+
+# #     # ------------------------------------------------------------------
+# #     # Helpers
+# #     # ------------------------------------------------------------------
+# #     def _model_field_names(self):
+# #         return {f.name for f in Customer._meta.get_fields()}
+
+# #     def _resolve_city(self, state_name, district_name, taluka_name, city_name):
+# #         if not all([state_name, district_name, taluka_name, city_name]):
+# #             return None
+# #         city = City.objects.filter(
+# #             name__iexact=city_name,
+# #             taluka__name__iexact=taluka_name,
+# #             taluka__district__name__iexact=district_name,
+# #             taluka__district__state__name__iexact=state_name,
+# #         ).first()
+# #         if city is None:
+# #             raise serializers.ValidationError(
+# #                 {"city": "Could not resolve the selected location."}
+# #             )
+# #         return city
+
+# #     def _apply_location_fields(self, validated_data, instance=None):
+# #         """
+# #         Pop the name strings, then restore only those flat fields the
+# #         Customer model actually declares, and resolve head_office_city
+# #         if the model uses it. Works for both create and update.
+# #         """
+# #         state_name    = validated_data.pop("state", "") or ""
+# #         district_name = validated_data.pop("district", "") or ""
+# #         taluka_name   = validated_data.pop("taluka", "") or ""
+# #         city_name     = validated_data.pop("city", "") or ""
+
+# #         model_fields = self._model_field_names()
+# #         target = validated_data if instance is None else {}
+# #         target_data = validated_data  # alias for clarity
+
+# #         # Only assign a flat field if the model declares it. This is the
+# #         # exact spot where "taluka" used to blow up.
+# #         for name, value in (
+# #             ("state", state_name),
+# #             ("district", district_name),
+# #             ("taluka", taluka_name),
+# #             ("city", city_name),
+# #         ):
+# #             if name in model_fields:
+# #                 if instance is None:
+# #                     target_data[name] = value
+# #                 else:
+# #                     setattr(instance, name, value)
+
+# #         # If the model stores the location as a City FK, resolve it.
+# #         if "head_office_city" in model_fields:
+# #             resolved = self._resolve_city(
+# #                 state_name, district_name, taluka_name, city_name
+# #             )
+# #             if resolved is not None:
+# #                 if instance is None:
+# #                     target_data["head_office_city"] = resolved
+# #                 else:
+# #                     instance.head_office_city = resolved
+
+# #     # CREATE / UPDATE
+# #     @transaction.atomic
+# #     def create(self, validated_data):
+# #         validated_data.pop("password", None)
+# #         self._apply_location_fields(validated_data, instance=None)
+# #         return Customer.objects.create(**validated_data)
+
+# #     @transaction.atomic
+# #     def update(self, instance, validated_data):
+# #         validated_data.pop("password", None)
+
+# #         # Apply location values directly to the instance (create-safe path)
+# #         self._apply_location_fields(validated_data, instance=instance)
+
+# #         for attr, value in validated_data.items():
+# #             setattr(instance, attr, value)
+
+# #         instance.save()
+# #         return instance
+
+
+# # class CountrySerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Country
+# #         fields = ["id", "name", "code", "is_active"]
+# #         read_only_fields = ["id"]
+
+# # class ZoneSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Zone
+# #         fields = "__all__"
+
+# #     def validate_customer(self, customer):
+# #         if customer.hierarchy_type != "ZONAL":
+# #             raise serializers.ValidationError("Zone is only available for Zonal customers.")
+# #         return customer
+
+# #     def validate(self, attrs):
+# #         config = attrs.get("hierarchy_config", getattr(self.instance, "hierarchy_config", {})) or {}
+# #         zone_type = attrs.get("zone_type", getattr(self.instance, "zone_type", None))
+# #         if zone_type and zone_type not in {choice[0] for choice in Zone.ZONE_TYPE_CHOICES}:
+# #             raise serializers.ValidationError({"zone_type": "Select a valid Zone classification."})
+# #         if config:
+# #             levels = config.get("levels")
+# #             allowed = ["zone", "circle", "region", "division", "branch"]
+# #             if not isinstance(levels, list) or not levels or levels[0] != "zone" or levels[-1] != "branch":
+# #                 raise serializers.ValidationError({"hierarchy_config": "Hierarchy must start with Zone and end with Branch."})
+# #             if len(levels) != len(set(levels)) or any(level not in allowed for level in levels):
+# #                 raise serializers.ValidationError({"hierarchy_config": "Use each supported hierarchy level once."})
+# #             if levels != [level for level in allowed if level in levels]:
+# #                 raise serializers.ValidationError({"hierarchy_config": "Keep levels in Zone → Circle → Region → Division → Branch order."})
+# #             labels = config.get("labels", {})
+# #             if not isinstance(labels, dict) or any(k not in allowed or not isinstance(v, str) or not v.strip() or len(v.strip()) > 60 for k, v in labels.items()):
+# #                 raise serializers.ValidationError({"hierarchy_config": "Each custom level label must be a non-empty string of at most 60 characters."})
+# #             coverage = config.get("coverage_type", "NONE")
+# #             if coverage not in {"STATE", "CITY", "MULTI_STATE", "MULTI_CITY", "CUSTOM", "NONE"}:
+# #                 raise serializers.ValidationError({"hierarchy_config": "Invalid geographical coverage type."})
+# #         return attrs
+
+# # class CircleSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Circle
+# #         fields = "__all__"
+
+# #     def validate_zone(self, zone):
+# #         if zone.customer.hierarchy_type != "ZONAL":
+# #             raise serializers.ValidationError("Circle is only available for Zonal customers.")
+# #         levels = (zone.hierarchy_config or zone.customer.zonal_hierarchy_config or {}).get("levels", [])
+# #         if "circle" not in levels:
+# #             raise serializers.ValidationError("Circle is not enabled in this customer's hierarchy.")
+# #         return zone
+
+
+# # class RegionSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Region
+# #         fields = "__all__"
+
+# #     def validate(self, attrs):
+# #         circle = attrs.get("circle", getattr(self.instance, "circle", None))
+# #         zone = attrs.get("zone", getattr(self.instance, "zone", None))
+# #         if bool(circle) == bool(zone):
+# #             raise serializers.ValidationError("A Region must belong to exactly one parent: Circle or Zone.")
+# #         customer = circle.zone.customer if circle else zone.customer
+# #         parent_zone = zone if zone else (circle.zone if circle else None)
+# #         levels = (parent_zone.hierarchy_config if parent_zone and parent_zone.hierarchy_config else customer.zonal_hierarchy_config or {}).get("levels", [])
+# #         if zone and "region" not in levels:
+# #             raise serializers.ValidationError({"zone": "Region is not enabled in this customer's hierarchy."})
+# #         if zone and "circle" in levels:
+# #             raise serializers.ValidationError({"circle": "This customer's configuration requires Region to be under Circle."})
+# #         if circle and "division" not in levels and "region" not in levels:
+# #             raise serializers.ValidationError({"circle": "Circle → Region is not enabled for this customer."})
+# #         return attrs
+
+# # class DivisionSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Division
+# #         fields = "__all__"
+
+# #     def validate_region(self, region):
+# #         if not region:
+# #             raise serializers.ValidationError("Region is required for a Division.")
+# #         customer = region.zone.customer if region.zone_id else region.circle.zone.customer
+# #         zone = region.zone if region.zone_id else region.circle.zone
+# #         levels = (zone.hierarchy_config or customer.zonal_hierarchy_config or {}).get("levels", [])
+# #         if customer.hierarchy_type != "ZONAL" or "division" not in levels:
+# #             raise serializers.ValidationError("Division is not enabled in this customer's hierarchy configuration.")
+# #         if "circle" in levels and not region.circle_id:
+# #             raise serializers.ValidationError("This customer's Division must belong to a Region under a Circle.")
+# #         return region
+
+# # class StateSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = State
+# #         fields = "__all__"
+
+# # class DistrictSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = District
+# #         fields = "__all__"
+
+# # class TalukaSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Taluka
+# #         fields = "__all__"
+
+# # class CitySerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = City
+# #         fields = "__all__"
+
+# # class BranchSerializer(serializers.ModelSerializer):
+# #     city_name = serializers.SerializerMethodField()
+# #     taluka_name = serializers.SerializerMethodField()
+# #     district_name = serializers.SerializerMethodField()
+# #     state_name = serializers.SerializerMethodField()
+# #     division_name = serializers.CharField(source="division.name", read_only=True, default=None)
+# #     circle_name = serializers.SerializerMethodField()
+# #     region_name = serializers.SerializerMethodField()
+# #     zone_name = serializers.SerializerMethodField()
+# #     customer_name = serializers.CharField(source="customer.company", read_only=True, default=None)
+# #     ifsc_code = serializers.CharField(max_length=11, required=False, allow_blank=True, trim_whitespace=True)
+
+# #     class Meta:
+# #         model = Branch
+# #         fields = "__all__"
+# #         read_only_fields = [
+# #             "city_name", "taluka_name", "district_name", "state_name",
+# #             "division_name", "circle_name", "region_name", "zone_name", "customer_name",
+# #         ]
+
+# #     def get_city_name(self, obj):
+# #         if obj.geographic_city_id:
+# #             return obj.geographic_city.name
+# #         return obj.city.name if obj.city_id else None
+
+# #     def get_taluka_name(self, obj):
+# #         return obj.taluka.name if obj.taluka_id else (obj.city.taluka.name if obj.city_id else None)
+
+# #     def get_district_name(self, obj):
+# #         taluka = obj.taluka if obj.taluka_id else (obj.city.taluka if obj.city_id else None)
+# #         return taluka.district.name if taluka else None
+
+# #     def get_state_name(self, obj):
+# #         if obj.geographic_state_id:
+# #             return obj.geographic_state.name
+# #         taluka = obj.taluka if obj.taluka_id else (obj.city.taluka if obj.city_id else None)
+# #         return taluka.district.state.name if taluka else None
+
+# #     def get_circle_name(self, obj):
+# #         levels = (obj.customer.zonal_hierarchy_config or {}).get("levels", []) if obj.customer_id else []
+# #         if obj.customer_id and obj.customer.hierarchy_type == "ZONAL" and "circle" not in levels:
+# #             return None
+# #         if obj.circle_id:
+# #             return obj.circle.name
+# #         if obj.region_id and obj.region.circle_id:
+# #             return obj.region.circle.name
+# #         if obj.division_id and obj.division.region.circle_id:
+# #             return obj.division.region.circle.name
+# #         return None
+
+# #     def get_region_name(self, obj):
+# #         levels = (obj.customer.zonal_hierarchy_config or {}).get("levels", []) if obj.customer_id else []
+# #         if obj.customer_id and obj.customer.hierarchy_type == "ZONAL" and "region" not in levels:
+# #             return None
+# #         if obj.region_id:
+# #             return obj.region.name
+# #         if obj.division_id:
+# #             return obj.division.region.name
+# #         return None
+
+# #     def get_zone_name(self, obj):
+# #         if obj.zone_id:
+# #             return obj.zone.name
+# #         if obj.circle_id:
+# #             return obj.circle.zone.name
+# #         if obj.region_id:
+# #             return obj.region.zone.name if obj.region.zone_id else (obj.region.circle.zone.name if obj.region.circle_id else None)
+# #         if obj.division_id:
+# #             region = obj.division.region
+# #             return region.zone.name if region.zone_id else (region.circle.zone.name if region.circle_id else None)
+# #         return None
+
+# #     def validate(self, attrs):
+# #         customer = attrs.get("customer") or getattr(self.instance, "customer", None)
+# #         parents = {
+# #             "city": attrs.get("city", getattr(self.instance, "city", None)),
+# #             "taluka": attrs.get("taluka", getattr(self.instance, "taluka", None)),
+# #             "division": attrs.get("division", getattr(self.instance, "division", None)),
+# #             "circle": attrs.get("circle", getattr(self.instance, "circle", None)),
+# #             "region": attrs.get("region", getattr(self.instance, "region", None)),
+# #             "zone": attrs.get("zone", getattr(self.instance, "zone", None)),
+# #         }
+# #         if not customer:
+# #             raise serializers.ValidationError({"customer": "Customer is required."})
+
+# #         org_unit = attrs.get("org_unit", getattr(self.instance, "org_unit", None))
+# #         if org_unit:
+# #             if customer.hierarchy_type != "ZONAL":
+# #                 raise serializers.ValidationError({"org_unit": "Organisational hierarchy links are disabled for Geographical customers. Their State → District → Taluka → City → Branch structure remains unchanged."})
+# #             if org_unit.customer_id != customer.pk:
+# #                 raise serializers.ValidationError({"org_unit": "The organisational unit must belong to this customer."})
+# #             if org_unit.unit_type.code != "BO":
+# #                 raise serializers.ValidationError({"org_unit": "A Branch record can only link to an organisational unit of type BO (Branch)."})
+# #             duplicate = Branch.objects.filter(org_unit=org_unit)
+# #             if self.instance:
+# #                 duplicate = duplicate.exclude(pk=self.instance.pk)
+# #             if duplicate.exists():
+# #                 raise serializers.ValidationError({"org_unit": "This organisational Branch unit is already linked to another Branch record."})
+
+# #         geographic_state = attrs.get("geographic_state", getattr(self.instance, "geographic_state", None))
+# #         geographic_city = attrs.get("geographic_city", getattr(self.instance, "geographic_city", None))
+# #         if geographic_city:
+# #             city_state = geographic_city.taluka.district.state
+# #             if geographic_state and geographic_state.pk != city_state.pk:
+# #                 raise serializers.ValidationError({"geographic_city": "The selected City does not belong to the selected State."})
+# #             geographic_state = city_state
+# #         if geographic_state and geographic_state.customer_id != customer.pk:
+# #             raise serializers.ValidationError({"geographic_state": "The selected State does not belong to this customer."})
+# #         if geographic_city and geographic_city.taluka.district.state.customer_id != customer.pk:
+# #             raise serializers.ValidationError({"geographic_city": "The selected City does not belong to this customer."})
+
+# #         if sum(bool(value) for value in parents.values()) != 1:
+# #             raise serializers.ValidationError("A branch must belong to exactly one hierarchy parent.")
+# #         if customer.hierarchy_type == "GEOGRAPHICAL":
+# #             if not (parents["city"] or parents["taluka"]) or any(parents[k] for k in ("division", "circle", "region", "zone")):
+# #                 raise serializers.ValidationError("Geographical branches must be under City or Taluka.")
+# #         elif customer.hierarchy_type == "ZONAL":
+# #             selected_zone = parents.get("zone")
+# #             selected_parent = next((parent for key, parent in parents.items() if key != "zone" and parent), None)
+# #             if not selected_zone and selected_parent:
+# #                 if hasattr(selected_parent, "zone_id"):
+# #                     selected_zone = selected_parent.zone if selected_parent.zone_id else None
+# #                 if not selected_zone and hasattr(selected_parent, "circle_id") and selected_parent.circle_id:
+# #                     selected_zone = selected_parent.circle.zone
+# #                 if not selected_zone and hasattr(selected_parent, "region"):
+# #                     region = selected_parent.region
+# #                     selected_zone = region.zone if region.zone_id else region.circle.zone
+# #             zone_config = selected_zone.hierarchy_config if selected_zone and selected_zone.hierarchy_config else customer.zonal_hierarchy_config
+# #             expected = zonal_branch_parent_level(zone_config)
+# #             if expected not in parents or not parents[expected]:
+# #                 raise serializers.ValidationError({str(expected or "parent"): "Select the direct Branch parent required by this customer's hierarchy."})
+# #             forbidden = [key for key in ("city", "taluka", "division", "circle", "region", "zone") if key != expected]
+# #             if any(parents[k] for k in forbidden):
+# #                 raise serializers.ValidationError("This customer configuration does not allow the selected parent.")
+
+# #             parent = parents[expected]
+# #             if expected == "zone":
+# #                 if parent.geography_mode == "STATE" and (not geographic_state or geographic_city):
+# #                     raise serializers.ValidationError({"geographic_state": "This Zone requires a State and does not accept a City."})
+# #                 if parent.geography_mode == "CITY" and not geographic_city:
+# #                     raise serializers.ValidationError({"geographic_city": "This Zone requires a City."})
+# #                 parent_customer_id = parent.customer_id
+# #             elif expected == "circle":
+# #                 parent_customer_id = parent.zone.customer_id
+# #             elif expected == "region":
+# #                 parent_customer_id = parent.zone.customer_id if parent.zone_id else parent.circle.zone.customer_id
+# #                 if "circle" in (zone_config or {}).get("levels", []) and not parent.circle_id:
+# #                     raise serializers.ValidationError({"region": "This customer's Region must belong to a Circle."})
+# #             else:
+# #                 region = parent.region
+# #                 parent_customer_id = region.zone.customer_id if region.zone_id else region.circle.zone.customer_id
+# #                 if "circle" in (zone_config or {}).get("levels", []) and not region.circle_id:
+# #                     raise serializers.ValidationError({"division": "This customer's Division must belong to a Region under a Circle."})
+# #             if parent_customer_id != customer.pk:
+# #                 raise serializers.ValidationError({expected: f"The selected {expected.title()} does not belong to this customer."})
+# #         else:
+# #             raise serializers.ValidationError({"customer": "Customer hierarchy is not configured."})
+# #         return attrs
+
+
+# # def _physical_levels(branch):
+# #     """Physical levels (building/floor/room) the branch's customer has in its hierarchy.
+
+# #     Zonal customers: taken from zonal_hierarchy_config.levels.
+# #     Geographical customers: floor and room only (no buildings).
+# #     """
+# #     customer = branch.customer
+# #     if str(getattr(customer, "hierarchy_type", "")).upper() == "ZONAL":
+# #         levels = (customer.zonal_hierarchy_config or {}).get("levels") or ["zone", "circle", "branch", "floor"]
+# #         return {x for x in levels if x in ("building", "floor", "room")}
+# #     return {"floor", "room"}
+
+
+# # def _require_level(branch, level):
+# #     if level not in _physical_levels(branch):
+# #         raise serializers.ValidationError(
+# #             {"non_field_errors": [f"{level.title()} is not part of this customer's hierarchy."]}
+# #         )
+
+
+# # class BuildingSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Building
+# #         fields = "__all__"
+
+# #     def validate(self, attrs):
+# #         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+# #         if branch:
+# #             _require_level(branch, "building")
+# #         return attrs
+
+
+# # class RoomSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Room
+# #         fields = "__all__"
+
+# #     def validate(self, attrs):
+# #         floor = attrs.get("floor") or getattr(self.instance, "floor", None)
+# #         if floor:
+# #             _require_level(floor.branch, "room")
+# #         return attrs
+
+
+# # class FloorSerializer(serializers.ModelSerializer):
+# #     branch_name = serializers.CharField(source="branch.name", read_only=True)
+# #     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True)
+
+# #     class Meta:
+# #         model = Floor
+# #         fields = ["id", "name", "code", "branch", "building", "branch_name", "customer_id", "is_active", "created_at"]
+
+# #     def validate(self, attrs):
+# #         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+# #         building = attrs.get("building", getattr(self.instance, "building", None))
+# #         if not branch:
+# #             raise serializers.ValidationError({"branch": "Select a branch."})
+# #         levels = _physical_levels(branch)
+# #         if "floor" not in levels:
+# #             raise serializers.ValidationError({"non_field_errors": ["Floor is not part of this customer's hierarchy."]})
+# #         if building and "building" not in levels:
+# #             raise serializers.ValidationError({"building": "Building is not part of this customer's hierarchy."})
+# #         if "building" in levels and not building:
+# #             raise serializers.ValidationError({"building": "Select a building for this floor."})
+# #         if building and building.branch_id != branch.pk:
+# #             raise serializers.ValidationError({"building": "Building must belong to the selected branch."})
+# #         return attrs
+
+
+# # class SiteSerializer(serializers.ModelSerializer):
+# #     branch_name = serializers.CharField(source="branch.name", read_only=True)
+# #     floor_name = serializers.CharField(source="floor.name", read_only=True, default=None)
+# #     building_name = serializers.CharField(source="building.name", read_only=True, default=None)
+# #     room_name = serializers.CharField(source="room.name", read_only=True, default=None)
+# #     tpt_site_id = serializers.CharField(read_only=True, allow_null=True)
+
+# #     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True, allow_null=True)
+# #     customer_name = serializers.CharField(source="branch.customer.company", read_only=True, allow_null=True)
+# #     organization_id = serializers.UUIDField(source="branch.customer.organization_id", read_only=True, allow_null=True)
+
+# #     admins = serializers.SerializerMethodField()
+# #     engineers = serializers.SerializerMethodField()
+
+# #     class Meta:
+# #         model = Site
+# #         fields = [
+# #             "id", "name", "code", "address", "latitude", "longitude", "tpt_site_id",
+# #             "branch", "branch_name", "building", "building_name", "floor", "floor_name", "room", "room_name",
+# #             "customer_id", "customer_name", "organization_id",
+# #             "admins", "engineers", "is_active", "created_at",
+# #         ]
+# #         read_only_fields = [
+# #             "id", "branch_name", "floor_name", "building_name", "room_name", "customer_id", "customer_name",
+# #             "organization_id", "admins", "engineers", "created_at",
+# #         ]
+
+# #     def get_admins(self, obj):
+# #         return list(
+# #             obj.users.filter(role=Role.BR_ADMIN, is_active=True)
+# #             .values("id", "name", "email", "phone", "role", "branch_id", "site_id")
+# #         )
+
+# #     def get_engineers(self, obj):
+# #         return list(
+# #             obj.users.filter(role=Role.ENGINEER, is_active=True)
+# #             .values("id", "name", "email", "phone", "role", "branch_id", "site_id")
+# #         )
+
+# #     def validate(self, attrs):
+# #         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+# #         floor = attrs.get("floor", getattr(self.instance, "floor", None))
+# #         building = attrs.get("building", getattr(self.instance, "building", None))
+# #         room = attrs.get("room", getattr(self.instance, "room", None))
+
+# #         if not branch:
+# #             raise serializers.ValidationError({"branch": "A site must belong to a branch."})
+# #         if not branch.customer_id:
+# #             raise serializers.ValidationError({"branch": "The selected branch is not assigned to a customer."})
+# #         if floor and floor.branch_id != branch.id:
+# #             raise serializers.ValidationError({"floor": "Selected floor does not belong to the selected branch."})
+# #         if building and building.branch_id != branch.id:
+# #             raise serializers.ValidationError({"building": "Selected building does not belong to the selected branch."})
+# #         if floor and building and floor.building_id != building.id:
+# #             raise serializers.ValidationError({"floor": "Selected floor does not belong to the selected building."})
+# #         if room and (not floor or room.floor_id != floor.id):
+# #             raise serializers.ValidationError({"room": "Selected room must belong to the selected floor."})
+# #         if branch.customer.hierarchy_type == "ZONAL":
+# #             levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", [])
+# #             if building and "building" not in levels:
+# #                 raise serializers.ValidationError({"building": "Building is not enabled in this customer's hierarchy."})
+# #             if floor and "building" in levels and not building:
+# #                 raise serializers.ValidationError({"building": "Select the Building for this Floor."})
+# #             if floor and "floor" not in levels:
+# #                 raise serializers.ValidationError({"floor": "Floor is not enabled in this customer's hierarchy."})
+# #             if room and "room" not in levels:
+# #                 raise serializers.ValidationError({"room": "Room is not enabled in this customer's hierarchy."})
+
+# #         request = self.context.get("request")
+# #         user = getattr(request, "user", None)
+
+# #         if user and user.is_authenticated:
+# #             if user.role == Role.CUSTOMER:
+# #                 if branch.customer_id != user.customer_id:
+# #                     raise serializers.ValidationError({
+# #                         "branch": "You can only use sites belonging to your customer."
+# #                     })
+# #             elif user.role == Role.BR_ADMIN:
+# #                 if branch.id != user.branch_id:
+# #                     raise serializers.ValidationError({
+# #                         "branch": "You can only use sites belonging to your branch."
+# #                     })
+# #             elif user.role == Role.ENGINEER:
+# #                 if self.instance is None or self.instance.id != user.site_id:
+# #                     raise serializers.ValidationError({"branch": "You can only use your assigned site."})
+# #             elif user.role == Role.ORG_SUPER_ADMIN:
+# #                 if branch.customer.organization_id != user.organization_id:
+# #                     raise serializers.ValidationError({"branch": "This site is outside your organization."})
+
+# #         return attrs
+
+
+# # class ACDeviceSerializer(serializers.ModelSerializer):
+# #     branch_id = serializers.UUIDField(source="branch.id", read_only=True, allow_null=True)
+# #     branch_name = serializers.CharField(source="branch.name", read_only=True, allow_null=True)
+# #     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True, allow_null=True)
+# #     customer_name = serializers.CharField(source="branch.customer.company", read_only=True, allow_null=True)
+# #     assignment_status = serializers.SerializerMethodField()
+
+# #     class Meta:
+# #         model = ACDevice
+# #         fields = [
+# #             "id", "ac_id", "device_name", "branch", "branch_id", "branch_name",
+# #             "customer_id", "customer_name", "assignment_status",
+# #             "status", "capacity_ton", "installation_date", "last_maintenance_date", "assigned_by", "assigned_admin",
+# #             "tpt_device_id", "tpt_sync_status", "tpt_sync_error", "created_at", "updated_at",
+# #             "is_simulated",
+# #         ]
+# #         read_only_fields = [
+# #             "id", "branch_id", "branch_name", "customer_id", "customer_name",
+# #             "assignment_status", "assigned_by", "assigned_admin", "tpt_device_id",
+# #             "tpt_sync_status", "tpt_sync_error", "created_at", "updated_at",
+# #             "is_simulated",
+# #         ]
+
+# #     def get_assignment_status(self, obj):
+# #         return "ASSIGNED" if obj.branch_id else "UNASSIGNED"
+
+# #     def validate(self, attrs):
+# #         branch = attrs.get("branch", getattr(self.instance, "branch", None))
+# #         request = self.context.get("request")
+# #         user = getattr(request, "user", None)
+# #         if branch and user and getattr(user, "is_authenticated", False):
+# #             if getattr(user, "role", None) == Role.CUSTOMER:
+# #                 if branch.customer_id != user.customer_id:
+# #                     raise serializers.ValidationError({
+# #                         "branch": "You can only assign a device to a branch belonging to your customer."
+# #                     })
+# #             elif getattr(user, "role", None) == Role.ORG_SUPER_ADMIN:
+# #                 if branch.customer.organization_id != user.organization_id:
+# #                     raise serializers.ValidationError({"branch": "This branch is outside your organization."})
+# #         return attrs
+
+
+# # class CustomerSiteMappingSerializer(serializers.ModelSerializer):
+# #     customer_name = serializers.CharField(source="customer.company", read_only=True)
+# #     site_name = serializers.CharField(source="site.name", read_only=True)
+
+# #     class Meta:
+# #         model = CustomerSiteMapping
+# #         fields = ["id", "customer", "customer_name", "site", "site_name", "is_active", "created_at", "updated_at"]
+# #         read_only_fields = ["id", "customer_name", "site_name", "created_at", "updated_at"]
+
+# #     def validate(self, attrs):
+# #         customer = attrs["customer"]
+# #         site = attrs["site"]
+
+# #         # Site must belong to the same customer
+# #         if site.branch_id and site.branch.customer_id and site.branch.customer_id != customer.id:
+# #             raise serializers.ValidationError({"site": "This site belongs to another customer."})
+
+# #         if not site.branch_id:
+# #             raise serializers.ValidationError({"site": "Site is not assigned to a branch."})
+
+# #         return attrs
+
+
+# # # ============================================================
+# # # SITE → DEVICE
+# # # ============================================================
+
+# # class SiteDeviceMappingSerializer(serializers.ModelSerializer):
+# #     site_name = serializers.CharField(source="site.name", read_only=True)
+# #     device_name = serializers.CharField(source="device.device_name", read_only=True)
+# #     ac_id = serializers.CharField(source="device.ac_id", read_only=True)
+
+# #     class Meta:
+# #         model = SiteDeviceMapping
+# #         fields = [
+# #             "id", "site", "site_name", "device", "device_name", "ac_id",
+# #             "is_active", "created_at", "updated_at",
+# #         ]
+# #         read_only_fields = ["id", "site_name", "device_name", "ac_id", "created_at", "updated_at"]
+
+# #     def validate(self, attrs):
+# #         site = attrs["site"]
+# #         device = attrs["device"]
+
+# #         if not site.branch_id:
+# #             raise serializers.ValidationError({"site": "Site is not assigned to a branch."})
+# #         if not site.branch.customer_id:
+# #             raise serializers.ValidationError({"site": "Site is not assigned to a customer."})
+
+# #         return attrs
+
+
+# # # ============================================================
+# # # CUSTOMER → DEVICE
+# # # ============================================================
+
+# # class CustomerDeviceMappingSerializer(serializers.ModelSerializer):
+# #     customer_name = serializers.CharField(source="customer.company", read_only=True)
+# #     device_name = serializers.CharField(source="device.device_name", read_only=True)
+# #     ac_id = serializers.CharField(source="device.ac_id", read_only=True)
+
+# #     class Meta:
+# #         model = CustomerDeviceMapping
+# #         fields = [
+# #             "id", "customer", "customer_name", "device", "device_name", "ac_id",
+# #             "is_active", "created_at", "updated_at",
+# #         ]
+# #         read_only_fields = ["id", "customer_name", "device_name", "ac_id", "created_at", "updated_at"]
+
+# #     def validate(self, attrs):
+# #         customer = attrs["customer"]
+# #         device = attrs["device"]
+
+# #         if device.site_id:
+# #             site_customer_id = device.site.branch.customer_id
+# #             if site_customer_id != customer.id:
+# #                 raise serializers.ValidationError({
+# #                     "device": "This device belongs to a site of another customer."
+# #                 })
+
+# #         return attrs
+
+
+# # class UserSerializer(serializers.ModelSerializer):
+# #     scope_name = serializers.CharField(read_only=True)
+# #     scope_id = serializers.SerializerMethodField()
+# #     customer_hierarchy_type = serializers.SerializerMethodField()
+# #     zone_name = serializers.CharField(source="zone.name", read_only=True, default=None)
+# #     circle_name = serializers.CharField(source="circle.name", read_only=True, default=None)
+# #     state_name = serializers.CharField(source="state.name", read_only=True, default=None)
+# #     district_name = serializers.CharField(source="district.name", read_only=True, default=None)
+    
+# #     head_office_state = serializers.SerializerMethodField()
+# #     head_office_district = serializers.SerializerMethodField()
+
+# #     class Meta:
+# #         model = User
+# #         fields = [
+# #             "id", "email", "name", "phone", "role",
+# #             "organization", "customer", "zone", "circle", "state", "district", "branch", "site",
+# #             "scope_name", "scope_id", "customer_hierarchy_type",
+# #             "zone_name", "circle_name", "state_name", "district_name",
+# #             "is_active", "date_joined", "last_login",
+# #             "head_office_state",
+# #             "head_office_district",
+# #         ]
+# #         read_only_fields = ["id", "date_joined", "last_login"]
+
+# #     def get_scope_id(self, obj):
+# #         _, scope_id = obj.get_scope()
+# #         return str(scope_id) if scope_id else None
+
+# #     def get_customer_hierarchy_type(self, obj):
+# #         return obj.customer.hierarchy_type if obj.customer_id and obj.customer else None
+
+# #     def get_head_office_state(self, obj):
+# #         customer = obj.customer
+
+# #         if not customer:
+# #             return ""
+
+# #         city = customer.head_office_city
+# #         if city:
+# #             taluka = city.taluka
+# #             district = taluka.district if taluka else None
+# #             state = district.state if district else None
+
+# #             if state:
+# #                 return state.name
+
+# #         return customer.state or ""
+
+
+# #     def get_head_office_district(self, obj):
+# #         customer = obj.customer
+
+# #         if not customer:
+# #             return ""
+
+# #         city = customer.head_office_city
+# #         if city:
+# #             taluka = city.taluka
+# #             district = taluka.district if taluka else None
+
+# #             if district:
+# #                 return district.name
+
+# #         return customer.district or ""
+
+# # class LoginSerializer(serializers.Serializer):
+# #     email = serializers.EmailField()
+# #     password = serializers.CharField(write_only=True, min_length=6)
+# #     role = serializers.ChoiceField(choices=Role.choices)
+
+# #     def validate(self, data):
+# #         user = authenticate(
+# #             request=self.context.get("request"),
+# #             username=data["email"],
+# #             password=data["password"],
+# #         )
+# #         if not user:
+# #             raise serializers.ValidationError("Invalid email or password.")
+# #         if not user.is_active:
+# #             raise serializers.ValidationError("This account is disabled.")
+# #         if user.role != data["role"]:
+# #             raise serializers.ValidationError(
+# #                 f"This account belongs to '{user.get_role_display()}'. Please select the correct role."
+# #             )
+# #         data["user"] = user
+# #         return data
+
+
+# # class AdminSerializer(serializers.ModelSerializer):
+# #     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+# #     scope_name = serializers.CharField(read_only=True)
+# #     scope_id = serializers.SerializerMethodField()
+# #     customer_hierarchy_type = serializers.SerializerMethodField()
+# #     zone_name = serializers.CharField(source="zone.name", read_only=True, default=None)
+# #     circle_name = serializers.CharField(source="circle.name", read_only=True, default=None)
+# #     state_name = serializers.CharField(source="state.name", read_only=True, default=None)
+# #     district_name = serializers.CharField(source="district.name", read_only=True, default=None)
+
+# #     class Meta:
+# #         model = User
+# #         fields = [
+# #             "id", "email", "name", "phone", "role",
+# #             "organization", "customer", "zone", "circle", "state", "district", "branch", "site",
+# #             "scope_name", "scope_id", "customer_hierarchy_type",
+# #             "zone_name", "circle_name", "state_name", "district_name",
+# #             "password", "is_active", "date_joined", "last_login",
+# #         ]
+# #         read_only_fields = ["id", "date_joined", "last_login", "scope_name", "scope_id"]
+# #         extra_kwargs = {
+# #             "organization": {"required": False},
+# #             "customer": {"required": False},
+# #             "zone": {"required": False},
+# #             "circle": {"required": False},
+# #             "region": {"required": False},
+# #             "division": {"required": False},
+# #             "state": {"required": False},
+# #             "district": {"required": False},
+# #             "taluka": {"required": False},
+# #             "city": {"required": False},
+# #             "branch": {"required": False},
+# #             "site": {"required": False},
+# #         }
+
+# #     def get_scope_id(self, obj):
+# #         _, scope_id = obj.get_scope()
+# #         return str(scope_id) if scope_id else None
+
+# #     def get_customer_hierarchy_type(self, obj):
+# #         return obj.customer.hierarchy_type if obj.customer_id and obj.customer else None
+
+# #     CREATABLE_ROLES = (Role.BR_ADMIN, Role.ENGINEER)
+
+# #     def validate_role(self, value):
+# #         if self.instance is not None and self.instance.role == value:
+# #             return value
+# #         if value not in self.CREATABLE_ROLES:
+# #             raise serializers.ValidationError(
+# #                 "Only Branch Admin and Engineer accounts can be created here. "
+# #                 "Customers are created from the Customers page."
+# #             )
+# #         return value
+
+# #     def validate_customer(self, value):
+# #         request = self.context.get("request")
+# #         acting = getattr(request, "user", None)
+# #         if value is None or acting is None:
+# #             return value
+# #         if acting.role == Role.ORG_SUPER_ADMIN and value.organization_id != acting.organization_id:
+# #             raise serializers.ValidationError("Customer does not belong to your organization.")
+# #         if acting.role == Role.CUSTOMER and value.pk != acting.customer_id:
+# #             raise serializers.ValidationError("You can only assign users to your own customer.")
+# #         return value
+
+# #     def validate(self, attrs):
+# #         attrs = super().validate(attrs)
+# #         customer = attrs.get("customer") or getattr(self.instance, "customer", None)
+# #         zone = attrs.get("zone") if "zone" in attrs else getattr(self.instance, "zone", None)
+# #         circle = attrs.get("circle") if "circle" in attrs else getattr(self.instance, "circle", None)
+# #         state = attrs.get("state") if "state" in attrs else getattr(self.instance, "state", None)
+# #         district = attrs.get("district") if "district" in attrs else getattr(self.instance, "district", None)
+
+# #         if not customer:
+# #             return attrs
+
+# #         if zone and zone.customer_id != customer.pk:
+# #             raise serializers.ValidationError({"zone": "Selected zone does not belong to the selected customer."})
+# #         if circle and (not zone or circle.zone_id != zone.pk):
+# #             raise serializers.ValidationError({"circle": "Selected circle must belong to the selected zone."})
+# #         if state and state.customer_id != customer.pk:
+# #             raise serializers.ValidationError({"state": "Selected state does not belong to the selected customer."})
+# #         if district and (not state or district.state_id != state.pk):
+# #             raise serializers.ValidationError({"district": "Selected district must belong to the selected state."})
+
+# #         site = attrs.get("site") if "site" in attrs else getattr(self.instance, "site", None)
+# #         branch = attrs.get("branch") if "branch" in attrs else getattr(self.instance, "branch", None)
+
+# #         if site:
+# #             if not site.branch_id:
+# #                 raise serializers.ValidationError({"site": "Selected site has no branch."})
+# #             if branch and site.branch_id != branch.pk:
+# #                 raise serializers.ValidationError({"site": "Selected site does not belong to the selected branch."})
+# #             if customer and site.branch.customer_id != customer.pk:
+# #                 raise serializers.ValidationError({"site": "Selected site does not belong to the selected customer."})
+# #             # A site is the most specific scope. Keep branch/customer in sync.
+# #             attrs["branch"] = site.branch
+# #             attrs["customer"] = site.branch.customer
+
+# #         if customer.hierarchy_type == HierarchyType.GEOGRAPHICAL and (zone or circle):
+# #             raise serializers.ValidationError({
+# #                 "zone": "This customer uses the Geographical hierarchy; assign State/District instead."
+# #             })
+# #         if customer.hierarchy_type == HierarchyType.ZONAL and (state or district):
+# #             raise serializers.ValidationError({
+# #                 "state": "This customer uses the Zonal hierarchy; assign Zone/Circle instead."
+# #             })
+
+# #         return attrs
+
+# #         geo_chain = ["state", "district", "taluka", "city"]
+# #         zon_chain = ["zone", "circle", "region", "division"]
+
+# #         def _chain_ok(chain, attrs_or_instance, expected_hierarchy):
+# #             filled = [
+# #                 (name, attrs_or_instance.get(name)
+# #                     if isinstance(attrs_or_instance, dict)
+# #                     else getattr(attrs_or_instance, name, None))
+# #                 for name in chain
+# #             ]
+# #             # Drop nulls, keep order
+# #             filled = [(n, v) for n, v in filled if v is not None]
+# #             # The chain must be contiguous from the top (no gaps)
+# #             if not filled:
+# #                 return
+# #             # Verify each step links to the previous
+# #             for i in range(1, len(filled)):
+# #                 prev_name, prev_obj = filled[i - 1]
+# #                 name, obj = filled[i]
+# #                 parent_attr = {
+# #                     "district": "state",
+# #                     "taluka": "district",
+# #                     "city": "taluka",
+# #                     "circle": "zone",
+# #                     "region": "circle",
+# #                     "division": "region",
+# #                 }[name]
+# #                 if getattr(obj, f"{parent_attr}_id") != prev_obj.pk:
+# #                     raise serializers.ValidationError(
+# #                         {name: f"Selected {name} does not belong to the selected {parent_attr}."}
+# #                     )
+# #             # Verify the top of the chain belongs to the customer
+# #             top_name, top_obj = filled[0]
+# #             if top_obj.customer_id != customer.pk:
+# #                 raise serializers.ValidationError({top_name: "Does not belong to the selected customer."})
+
+# #         # Get values for whichever fields the request actually sends
+# #         payload = {}
+# #         for name in geo_chain + zon_chain:
+# #             if name in attrs:
+# #                 payload[name] = attrs[name]
+# #             elif self.instance is not None:
+# #                 payload[name] = getattr(self.instance, name, None)
+
+# #         # Hierarchy must match the customer
+# #         if customer.hierarchy_type == HierarchyType.GEOGRAPHICAL:
+# #             if any(payload.get(n) for n in zon_chain):
+# #                 raise serializers.ValidationError({
+# #                     "zone": "This customer uses the Geographical hierarchy; assign State/District/Taluka/City instead."
+# #                 })
+# #             _chain_ok(geo_chain, payload, "GEOGRAPHICAL")
+# #         elif customer.hierarchy_type == HierarchyType.ZONAL:
+# #             if any(payload.get(n) for n in geo_chain):
+# #                 raise serializers.ValidationError({
+# #                     "state": "This customer uses the Zonal hierarchy; assign Zone/Circle/Region/Division instead."
+# #                 })
+# #             _chain_ok(zon_chain, payload, "ZONAL")
+
+# #     def create(self, validated_data):
+# #         password = validated_data.pop("password", "") or "Admin@123"
+# #         user = User(**validated_data)
+# #         user.set_password(password)
+# #         user._skip_scope_check = True  # ← bypass scope check on this save
+# #         user.save()
+# #         return user
+
+# #     def update(self, instance, validated_data):
+# #         password = validated_data.pop("password", None)
+# #         instance = super().update(instance, validated_data)
+# #         if password:
+# #             instance.set_password(password)
+
+# #         # Activate the user once the required scope is present.
+# #         scope_field = {
+# #             "ORG_SUPER_ADMIN": "organization",
+# #             "CUSTOMER": "customer",
+# #             "BR_ADMIN": "branch",
+# #             "ENGINEER": "site",
+# #             # "ZONAL_ADMIN": "zone",
+# #             # "CIRCLE_ADMIN": "circle",
+# #         }.get(instance.role)
+
+# #         if instance.role == "ORG_SUPER_ADMIN" or (scope_field and getattr(instance, f"{scope_field}_id")):
+# #             instance.is_active = True
+
+# #         instance.save()
+# #         return instance
+
+
+# # class DashboardPreferenceSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = DashboardPreference
+# #         fields = [
+# #             "id", "name", "customer", "main_filters", "card_filters",
+# #             "visible_widgets", "is_default", "created_at", "updated_at",
+# #         ]
+# #         read_only_fields = ["id", "customer", "created_at", "updated_at"]
+
+
+
+# # # from rest_framework import serializers
+# # from rest_framework import serializers
+
+# # from django.core.exceptions import ValidationError as DjangoValidationError
+# # from django.db import transaction
+# # from django.db.models import Q
+# # from .models import Branch, Building, Circle, City, Country, Customer, Division, Floor, Region, Role, Room, Site, User, Zone, zonal_branch_parent_level
+# # # from .models import (
+# # #     ACData, Country, DashboardPreference, User, Organization, Customer,
+# # #     HierarchyType, Zone, Circle, Region, Division, State, District, Taluka,
+# # #     City, Branch, Building, Floor, Room, Site, ACDevice, CustomerSiteMapping, SiteDeviceMapping,
+# # #     CustomerDeviceMapping, Role, zonal_branch_parent_level,
+# # # )
+
+
+
+
+
+# import re
+
+# from rest_framework import serializers
+# from django.contrib.auth import authenticate
+# from django.db import transaction
+# from django.db.models import Q
+# from django.core.exceptions import ValidationError as DjangoValidationError
+# from .models import (
+#     ACData, Country, DashboardPreference, User, Organization, Customer,
+#     HierarchyType, Zone, Circle, Region, Division, State, District, Taluka,
+#     City, Branch, Building, Floor, Room, Site, ACDevice, CustomerSiteMapping, SiteDeviceMapping,
+#     CustomerDeviceMapping, Role, zonal_branch_parent_level,
+# )
+
+# class OrganizationSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Organization
+#         fields = "__all__"
+
+# class CustomerSerializer(serializers.ModelSerializer):
+#     password = serializers.CharField(
+#         write_only=True,
+#         required=False,
+#         allow_blank=True,
+#         min_length=6,
+#     )
+#     login_email = serializers.SerializerMethodField()
+#     head_office_hierarchy = serializers.SerializerMethodField()
+#     filter_defaults = serializers.SerializerMethodField()
+
+#     # Name-strings the React form sends (used to populate flat fields
+#     # and/or resolve the head_office_city FK).
+#     state = serializers.CharField(required=False, allow_blank=True)
+#     district = serializers.CharField(required=False, allow_blank=True)
+#     taluka = serializers.CharField(required=False, allow_blank=True)
+#     city = serializers.CharField(required=False, allow_blank=True)
+
+#     class Meta:
+#         model = Customer
+#         fields = "__all__"
+#         read_only_fields = [
+#             "organization",
+#             "tpt_customer_id",
+#             "created_at",
+#             "updated_at",
+#         ]
+#         validators = []
+
+#     def validate_zonal_hierarchy_config(self, value):
+#         from .models import validate_zonal_hierarchy_config
+#         try:
+#             validate_zonal_hierarchy_config(value)
+#         except DjangoValidationError as exc:
+#             raise serializers.ValidationError(getattr(exc, "message_dict", str(exc)))
+#         return value
+
+#     def validate(self, attrs):
+#         attrs = super().validate(attrs)
+#         hierarchy_type = attrs.get("hierarchy_type", getattr(self.instance, "hierarchy_type", None))
+#         config = attrs.get(
+#             "zonal_hierarchy_config",
+#             getattr(self.instance, "zonal_hierarchy_config", None),
+#         )
+#         if hierarchy_type == "ZONAL":
+#             self.validate_zonal_hierarchy_config(config)
+#             if self.instance and "zonal_hierarchy_config" in attrs:
+#                 levels = config.get("levels", [])
+#                 expected_parent = zonal_branch_parent_level(config)
+#                 existing_styles = []
+#                 for field in ("division", "circle", "region", "zone"):
+#                     if self.instance.branches.filter(**{f"{field}__isnull": False}).exists():
+#                         existing_styles.append(field)
+#                 if existing_styles and any(style != expected_parent for style in existing_styles):
+#                     raise serializers.ValidationError({
+#                         "zonal_hierarchy_config": (
+#                             "The selected administrative path does not match existing branch parents. "
+#                             "Re-parent existing branches before changing this setting."
+#                         )
+#                     })
+#                 if "circle" in levels and expected_parent in ("region", "division"):
+#                     direct_zone_regions = Branch.objects.filter(customer=self.instance).filter(
+#                         Q(region__zone__isnull=False) | Q(division__region__zone__isnull=False)
+#                     ).exists()
+#                     if direct_zone_regions:
+#                         raise serializers.ValidationError({
+#                             "zonal_hierarchy_config": (
+#                                 "This configuration includes Circle, but existing Region/Division records are directly under Zone. "
+#                                 "Re-parent them under a Circle before enabling Circle."
+#                             )
+#                         })
+#                 existing_locations = {
+#                     "building": Building.objects.filter(branch__customer=self.instance).exists(),
+#                     "floor": Floor.objects.filter(branch__customer=self.instance).exists(),
+#                     "room": Room.objects.filter(floor__branch__customer=self.instance).exists(),
+#                 }
+#                 removed_in_use = [level for level, exists in existing_locations.items() if exists and level not in levels]
+#                 if removed_in_use:
+#                     raise serializers.ValidationError({
+#                         "zonal_hierarchy_config": (
+#                             "Cannot disable existing physical levels with saved records: "
+#                             + ", ".join(removed_in_use)
+#                             + ". Remove or migrate those records first."
+#                         )
+#                     })
+#                 if (
+#                     "building" in levels
+#                     and not Building.objects.filter(branch__customer=self.instance).exists()
+#                     and Floor.objects.filter(branch__customer=self.instance, building__isnull=True).exists()
+#                 ):
+#                     raise serializers.ValidationError({
+#                         "zonal_hierarchy_config": (
+#                             "Existing floors are linked directly to branches. Assign them to Buildings before enabling Building."
+#                         )
+#                     })
+#         return attrs
+
+#     # ------------------------------------------------------------------
+#     # READ-ONLY OUTPUT
+#     # ------------------------------------------------------------------
+#     def get_head_office_hierarchy(self, obj):
+#         if obj.hierarchy_type == "GEOGRAPHICAL":
+#             city = getattr(obj, "head_office_city", None)
+#             if not city:
+#                 return ""
+#             taluka = city.taluka
+#             district = taluka.district if taluka else None
+#             state = district.state if district else None
+#             country = state.country if state else None
+#             parts = [
+#                 country.name if country else None,
+#                 state.name if state else None,
+#                 district.name if district else None,
+#                 taluka.name if taluka else None,
+#                 city.name,
+#             ]
+#             return " → ".join(p for p in parts if p)
+
+#         if obj.hierarchy_type == "ZONAL":
+#             division = getattr(obj, "head_office_division", None)
+#             if not division:
+#                 return ""
+#             region = division.region
+#             circle = region.circle if region else None
+#             zone = circle.zone if circle else None
+#             country = zone.country if zone else None
+#             parts = [
+#                 country.name if country else None,
+#                 zone.name if zone else None,
+#                 circle.name if circle else None,
+#                 region.name if region else None,
+#                 division.name,
+#             ]
+#             return " → ".join(p for p in parts if p)
+
+#         return ""
+
+#     def get_login_email(self, obj):
+#         return (
+#             User.objects
+#             .filter(customer=obj, role=Role.CUSTOMER)
+#             .values_list("email", flat=True)
+#             .first()
+#         )
+
+#     def get_filter_defaults(self, obj):
+#         defaults = {
+#             "hierarchy": obj.hierarchy_type,
+#             "country": "India",
+#             "state": "",
+#             "district": "",
+#             "taluka": "",
+#             "branch": "",
+#             "floor": "",
+#         }
+
+#         if obj.hierarchy_type == "GEOGRAPHICAL":
+#             city = getattr(obj, "head_office_city", None)
+#             if city:
+#                 taluka = city.taluka
+#                 district = taluka.district if taluka else None
+#                 state = district.state if district else None
+#                 country = state.country if state else None
+#                 defaults.update({
+#                     "country": country.name if country else "India",
+#                     "state": state.name if state else "",
+#                     "district": district.name if district else "",
+#                     "taluka": taluka.name if taluka else "",
+#                 })
+
+#         elif obj.hierarchy_type == "ZONAL":
+#             division = getattr(obj, "head_office_division", None)
+#             if division:
+#                 region = division.region
+#                 circle = region.circle if region else None
+#                 zone = circle.zone if circle else None
+#                 country = zone.country if zone else None
+#                 defaults.update({
+#                     "country": country.name if country else "India",
+#                     "zone": zone.name if zone else "",
+#                     "circle": circle.name if circle else "",
+#                     "region": region.name if region else "",
+#                     "division": division.name,
+#                 })
+
+#         return defaults
+
+#     # ------------------------------------------------------------------
+#     # LOGIN USER (kept for any endpoint that calls it)
+#     # ------------------------------------------------------------------
+#     def _ensure_login(self, customer):
+#         email = (
+#             customer.contact_person_email
+#             or customer.company_email
+#             or self.initial_data.get("contact_person_email")
+#             or self.initial_data.get("company_email")
+#         )
+#         password = self.initial_data.get("password") or None
+#         if not email:
+#             return None
+
+#         user = User.objects.filter(email__iexact=email).first()
+#         if user is None:
+#             user = User(
+#                 email=email,
+#                 customer=customer,
+#                 role=Role.CUSTOMER,
+#                 is_active=True,
+#             )
+#             if hasattr(user, "username"):
+#                 user.username = email
+#             if password:
+#                 user.set_password(password)
+#             else:
+#                 user.set_unusable_password()
+#             user.save()
+#         else:
+#             user.customer = customer
+#             user.role = Role.CUSTOMER
+#             if password:
+#                 user.set_password(password)
+#             user.save()
+#         return user
+
+#     # ------------------------------------------------------------------
+#     # Helpers
+#     # ------------------------------------------------------------------
+#     def _model_field_names(self):
+#         return {f.name for f in Customer._meta.get_fields()}
+
+#     def _resolve_city(self, state_name, district_name, taluka_name, city_name):
+#         if not all([state_name, district_name, taluka_name, city_name]):
+#             return None
+#         city = City.objects.filter(
+#             name__iexact=city_name,
+#             taluka__name__iexact=taluka_name,
+#             taluka__district__name__iexact=district_name,
+#             taluka__district__state__name__iexact=state_name,
+#         ).first()
+#         if city is None:
+#             raise serializers.ValidationError(
+#                 {"city": "Could not resolve the selected location."}
+#             )
+#         return city
+
+#     def _apply_location_fields(self, validated_data, instance=None):
+#         """
+#         Pop the name strings, then restore only those flat fields the
+#         Customer model actually declares, and resolve head_office_city
+#         if the model uses it. Works for both create and update.
+#         """
+#         state_name    = validated_data.pop("state", "") or ""
+#         district_name = validated_data.pop("district", "") or ""
+#         taluka_name   = validated_data.pop("taluka", "") or ""
+#         city_name     = validated_data.pop("city", "") or ""
+
+#         model_fields = self._model_field_names()
+#         target = validated_data if instance is None else {}
+#         target_data = validated_data  # alias for clarity
+
+#         # Only assign a flat field if the model declares it. This is the
+#         # exact spot where "taluka" used to blow up.
+#         for name, value in (
+#             ("state", state_name),
+#             ("district", district_name),
+#             ("taluka", taluka_name),
+#             ("city", city_name),
+#         ):
+#             if name in model_fields:
+#                 if instance is None:
+#                     target_data[name] = value
+#                 else:
+#                     setattr(instance, name, value)
+
+#         # If the model stores the location as a City FK, resolve it.
+#         if "head_office_city" in model_fields:
+#             resolved = self._resolve_city(
+#                 state_name, district_name, taluka_name, city_name
+#             )
+#             if resolved is not None:
+#                 if instance is None:
+#                     target_data["head_office_city"] = resolved
+#                 else:
+#                     instance.head_office_city = resolved
+
+#     # CREATE / UPDATE
+#     @transaction.atomic
+#     def create(self, validated_data):
+#         validated_data.pop("password", None)
+#         self._apply_location_fields(validated_data, instance=None)
+#         return Customer.objects.create(**validated_data)
+
+#     @transaction.atomic
+#     def update(self, instance, validated_data):
+#         validated_data.pop("password", None)
+
+#         # Apply location values directly to the instance (create-safe path)
+#         self._apply_location_fields(validated_data, instance=instance)
+
+#         for attr, value in validated_data.items():
+#             setattr(instance, attr, value)
+
+#         instance.save()
+#         return instance
+
+
+# class CountrySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Country
+#         fields = ["id", "name", "code", "is_active"]
+#         read_only_fields = ["id"]
+
+# class ZoneSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Zone
+#         fields = "__all__"
+
+#     def validate_customer(self, customer):
+#         if customer.hierarchy_type != "ZONAL":
+#             raise serializers.ValidationError("Zone is only available for Zonal customers.")
+#         return customer
+
+#     def validate(self, attrs):
+#         config = attrs.get("hierarchy_config", getattr(self.instance, "hierarchy_config", {})) or {}
+#         zone_type = attrs.get("zone_type", getattr(self.instance, "zone_type", None))
+#         if zone_type and zone_type not in {choice[0] for choice in Zone.ZONE_TYPE_CHOICES}:
+#             raise serializers.ValidationError({"zone_type": "Select a valid Zone classification."})
+#         if config:
+#             levels = config.get("levels")
+#             allowed = ["zone", "circle", "region", "division", "branch"]
+#             if not isinstance(levels, list) or not levels or levels[0] != "zone" or levels[-1] != "branch":
+#                 raise serializers.ValidationError({"hierarchy_config": "Hierarchy must start with Zone and end with Branch."})
+#             if len(levels) != len(set(levels)) or any(level not in allowed for level in levels):
+#                 raise serializers.ValidationError({"hierarchy_config": "Use each supported hierarchy level once."})
+#             if levels != [level for level in allowed if level in levels]:
+#                 raise serializers.ValidationError({"hierarchy_config": "Keep levels in Zone → Circle → Region → Division → Branch order."})
+#             labels = config.get("labels", {})
+#             if not isinstance(labels, dict) or any(k not in allowed or not isinstance(v, str) or not v.strip() or len(v.strip()) > 60 for k, v in labels.items()):
+#                 raise serializers.ValidationError({"hierarchy_config": "Each custom level label must be a non-empty string of at most 60 characters."})
+#             coverage = config.get("coverage_type", "NONE")
+#             if coverage not in {"STATE", "CITY", "MULTI_STATE", "MULTI_CITY", "CUSTOM", "NONE"}:
+#                 raise serializers.ValidationError({"hierarchy_config": "Invalid geographical coverage type."})
+#         return attrs
+
+# class CircleSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Circle
+#         fields = "__all__"
+
+#     def validate_zone(self, zone):
+#         if zone.customer.hierarchy_type != "ZONAL":
+#             raise serializers.ValidationError("Circle is only available for Zonal customers.")
+#         levels = (zone.hierarchy_config or zone.customer.zonal_hierarchy_config or {}).get("levels", [])
+#         if "circle" not in levels:
+#             raise serializers.ValidationError("Circle is not enabled in this customer's hierarchy.")
+#         return zone
+
+
+# class RegionSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Region
+#         fields = "__all__"
+
+#     def validate(self, attrs):
+#         circle = attrs.get("circle", getattr(self.instance, "circle", None))
+#         zone = attrs.get("zone", getattr(self.instance, "zone", None))
+#         if bool(circle) == bool(zone):
+#             raise serializers.ValidationError("A Region must belong to exactly one parent: Circle or Zone.")
+#         customer = circle.zone.customer if circle else zone.customer
+#         parent_zone = zone if zone else (circle.zone if circle else None)
+#         levels = (parent_zone.hierarchy_config if parent_zone and parent_zone.hierarchy_config else customer.zonal_hierarchy_config or {}).get("levels", [])
+#         if zone and "region" not in levels:
+#             raise serializers.ValidationError({"zone": "Region is not enabled in this customer's hierarchy."})
+#         if zone and "circle" in levels:
+#             raise serializers.ValidationError({"circle": "This customer's configuration requires Region to be under Circle."})
+#         if circle and "division" not in levels and "region" not in levels:
+#             raise serializers.ValidationError({"circle": "Circle → Region is not enabled for this customer."})
+#         return attrs
+
+# class DivisionSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Division
+#         fields = "__all__"
+
+#     def validate_region(self, region):
+#         if not region:
+#             raise serializers.ValidationError("Region is required for a Division.")
+#         customer = region.zone.customer if region.zone_id else region.circle.zone.customer
+#         zone = region.zone if region.zone_id else region.circle.zone
+#         levels = (zone.hierarchy_config or customer.zonal_hierarchy_config or {}).get("levels", [])
+#         if customer.hierarchy_type != "ZONAL" or "division" not in levels:
+#             raise serializers.ValidationError("Division is not enabled in this customer's hierarchy configuration.")
+#         if "circle" in levels and not region.circle_id:
+#             raise serializers.ValidationError("This customer's Division must belong to a Region under a Circle.")
+#         return region
+
+# class StateSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = State
+#         fields = "__all__"
+
+# class DistrictSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = District
+#         fields = "__all__"
+
+# class TalukaSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Taluka
+#         fields = "__all__"
+
+# class CitySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = City
+#         fields = "__all__"
+
+# class BranchSerializer(serializers.ModelSerializer):
+#     city_name = serializers.SerializerMethodField()
+#     taluka_name = serializers.SerializerMethodField()
+#     district_name = serializers.SerializerMethodField()
+#     state_name = serializers.SerializerMethodField()
+#     division_name = serializers.CharField(source="division.name", read_only=True, default=None)
+#     circle_name = serializers.SerializerMethodField()
+#     region_name = serializers.SerializerMethodField()
+#     zone_name = serializers.SerializerMethodField()
+#     customer_name = serializers.CharField(source="customer.company", read_only=True, default=None)
+#     ifsc_code = serializers.CharField(max_length=11, required=False, allow_blank=True, trim_whitespace=True)
+
+#     class Meta:
+#         model = Branch
+#         fields = "__all__"
+#         read_only_fields = [
+#             "city_name", "taluka_name", "district_name", "state_name",
+#             "division_name", "circle_name", "region_name", "zone_name", "customer_name",
+#         ]
+
+#     def get_city_name(self, obj):
+#         if obj.geographic_city_id:
+#             return obj.geographic_city.name
+#         return obj.city.name if obj.city_id else None
+
+#     def get_taluka_name(self, obj):
+#         return obj.taluka.name if obj.taluka_id else (obj.city.taluka.name if obj.city_id else None)
+
+#     def get_district_name(self, obj):
+#         taluka = obj.taluka if obj.taluka_id else (obj.city.taluka if obj.city_id else None)
+#         return taluka.district.name if taluka else None
+
+#     def get_state_name(self, obj):
+#         if obj.geographic_state_id:
+#             return obj.geographic_state.name
+#         taluka = obj.taluka if obj.taluka_id else (obj.city.taluka if obj.city_id else None)
+#         return taluka.district.state.name if taluka else None
+
+#     def get_circle_name(self, obj):
+#         levels = (obj.customer.zonal_hierarchy_config or {}).get("levels", []) if obj.customer_id else []
+#         if obj.customer_id and obj.customer.hierarchy_type == "ZONAL" and "circle" not in levels:
+#             return None
+#         if obj.circle_id:
+#             return obj.circle.name
+#         if obj.region_id and obj.region.circle_id:
+#             return obj.region.circle.name
+#         if obj.division_id and obj.division.region.circle_id:
+#             return obj.division.region.circle.name
+#         return None
+
+#     def get_region_name(self, obj):
+#         levels = (obj.customer.zonal_hierarchy_config or {}).get("levels", []) if obj.customer_id else []
+#         if obj.customer_id and obj.customer.hierarchy_type == "ZONAL" and "region" not in levels:
+#             return None
+#         if obj.region_id:
+#             return obj.region.name
+#         if obj.division_id:
+#             return obj.division.region.name
+#         return None
+
+#     def get_zone_name(self, obj):
+#         if obj.zone_id:
+#             return obj.zone.name
+#         if obj.circle_id:
+#             return obj.circle.zone.name
+#         if obj.region_id:
+#             return obj.region.zone.name if obj.region.zone_id else (obj.region.circle.zone.name if obj.region.circle_id else None)
+#         if obj.division_id:
+#             region = obj.division.region
+#             return region.zone.name if region.zone_id else (region.circle.zone.name if region.circle_id else None)
+#         return None
+
+#     def validate(self, attrs):
+#         customer = attrs.get("customer") or getattr(self.instance, "customer", None)
+#         parents = {
+#             "city": attrs.get("city", getattr(self.instance, "city", None)),
+#             "taluka": attrs.get("taluka", getattr(self.instance, "taluka", None)),
+#             "division": attrs.get("division", getattr(self.instance, "division", None)),
+#             "circle": attrs.get("circle", getattr(self.instance, "circle", None)),
+#             "region": attrs.get("region", getattr(self.instance, "region", None)),
+#             "zone": attrs.get("zone", getattr(self.instance, "zone", None)),
+#         }
+#         if not customer:
+#             raise serializers.ValidationError({"customer": "Customer is required."})
+
+#         org_unit = attrs.get("org_unit", getattr(self.instance, "org_unit", None))
+#         if org_unit:
+#             if customer.hierarchy_type != "ZONAL":
+#                 raise serializers.ValidationError({"org_unit": "Organisational hierarchy links are disabled for Geographical customers. Their State → District → Taluka → City → Branch structure remains unchanged."})
+#             if org_unit.customer_id != customer.pk:
+#                 raise serializers.ValidationError({"org_unit": "The organisational unit must belong to this customer."})
+#             if org_unit.unit_type.code != "BO":
+#                 raise serializers.ValidationError({"org_unit": "A Branch record can only link to an organisational unit of type BO (Branch)."})
+#             duplicate = Branch.objects.filter(org_unit=org_unit)
+#             if self.instance:
+#                 duplicate = duplicate.exclude(pk=self.instance.pk)
+#             if duplicate.exists():
+#                 raise serializers.ValidationError({"org_unit": "This organisational Branch unit is already linked to another Branch record."})
+
+#         geographic_state = attrs.get("geographic_state", getattr(self.instance, "geographic_state", None))
+#         geographic_city = attrs.get("geographic_city", getattr(self.instance, "geographic_city", None))
+#         if geographic_city:
+#             city_state = geographic_city.taluka.district.state
+#             if geographic_state and geographic_state.pk != city_state.pk:
+#                 raise serializers.ValidationError({"geographic_city": "The selected City does not belong to the selected State."})
+#             geographic_state = city_state
+#         if geographic_state and geographic_state.customer_id != customer.pk:
+#             raise serializers.ValidationError({"geographic_state": "The selected State does not belong to this customer."})
+#         if geographic_city and geographic_city.taluka.district.state.customer_id != customer.pk:
+#             raise serializers.ValidationError({"geographic_city": "The selected City does not belong to this customer."})
+
+#         if sum(bool(value) for value in parents.values()) != 1:
+#             raise serializers.ValidationError("A branch must belong to exactly one hierarchy parent.")
+#         if customer.hierarchy_type == "GEOGRAPHICAL":
+#             if not (parents["city"] or parents["taluka"]) or any(parents[k] for k in ("division", "circle", "region", "zone")):
+#                 raise serializers.ValidationError("Geographical branches must be under City or Taluka.")
+#         elif customer.hierarchy_type == "ZONAL":
+#             selected_zone = parents.get("zone")
+#             selected_parent = next((parent for key, parent in parents.items() if key != "zone" and parent), None)
+#             if not selected_zone and selected_parent:
+#                 if hasattr(selected_parent, "zone_id"):
+#                     selected_zone = selected_parent.zone if selected_parent.zone_id else None
+#                 if not selected_zone and hasattr(selected_parent, "circle_id") and selected_parent.circle_id:
+#                     selected_zone = selected_parent.circle.zone
+#                 if not selected_zone and hasattr(selected_parent, "region"):
+#                     region = selected_parent.region
+#                     selected_zone = region.zone if region.zone_id else region.circle.zone
+#             zone_config = selected_zone.hierarchy_config if selected_zone and selected_zone.hierarchy_config else customer.zonal_hierarchy_config
+#             expected = zonal_branch_parent_level(zone_config)
+#             if expected not in parents or not parents[expected]:
+#                 raise serializers.ValidationError({str(expected or "parent"): "Select the direct Branch parent required by this customer's hierarchy."})
+#             forbidden = [key for key in ("city", "taluka", "division", "circle", "region", "zone") if key != expected]
+#             if any(parents[k] for k in forbidden):
+#                 raise serializers.ValidationError("This customer configuration does not allow the selected parent.")
+
+#             parent = parents[expected]
+#             if expected == "zone":
+#                 if parent.geography_mode == "STATE" and (not geographic_state or geographic_city):
+#                     raise serializers.ValidationError({"geographic_state": "This Zone requires a State and does not accept a City."})
+#                 if parent.geography_mode == "CITY" and not geographic_city:
+#                     raise serializers.ValidationError({"geographic_city": "This Zone requires a City."})
+#                 parent_customer_id = parent.customer_id
+#             elif expected == "circle":
+#                 parent_customer_id = parent.zone.customer_id
+#             elif expected == "region":
+#                 parent_customer_id = parent.zone.customer_id if parent.zone_id else parent.circle.zone.customer_id
+#                 if "circle" in (zone_config or {}).get("levels", []) and not parent.circle_id:
+#                     raise serializers.ValidationError({"region": "This customer's Region must belong to a Circle."})
+#             else:
+#                 region = parent.region
+#                 parent_customer_id = region.zone.customer_id if region.zone_id else region.circle.zone.customer_id
+#                 if "circle" in (zone_config or {}).get("levels", []) and not region.circle_id:
+#                     raise serializers.ValidationError({"division": "This customer's Division must belong to a Region under a Circle."})
+#             if parent_customer_id != customer.pk:
+#                 raise serializers.ValidationError({expected: f"The selected {expected.title()} does not belong to this customer."})
+#         else:
+#             raise serializers.ValidationError({"customer": "Customer hierarchy is not configured."})
+#         return attrs
+
+
+# def _physical_levels(branch):
+#     """Physical levels (building/floor/room) the branch's customer has in its hierarchy.
+
+#     Zonal customers: taken from zonal_hierarchy_config.levels.
+#     Geographical customers: floor and room only (no buildings).
+#     """
+#     customer = branch.customer
+#     if str(getattr(customer, "hierarchy_type", "")).upper() == "ZONAL":
+#         levels = (customer.zonal_hierarchy_config or {}).get("levels") or ["zone", "circle", "branch", "floor"]
+#         return {x for x in levels if x in ("building", "floor", "room")}
+#     return {"floor", "room"}
+
+
+# def _require_level(branch, level):
+#     if level not in _physical_levels(branch):
+#         raise serializers.ValidationError(
+#             {"non_field_errors": [f"{level.title()} is not part of this customer's hierarchy."]}
+#         )
+
+
+# class BuildingSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Building
+#         fields = "__all__"
+
+#     def validate(self, attrs):
+#         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+#         if branch:
+#             _require_level(branch, "building")
+#         return attrs
+
+
+# class RoomSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Room
+#         fields = "__all__"
+
+#     def validate(self, attrs):
+#         floor = attrs.get("floor") or getattr(self.instance, "floor", None)
+#         if floor:
+#             _require_level(floor.branch, "room")
+#         return attrs
+
+
+# class FloorSerializer(serializers.ModelSerializer):
+#     branch_name = serializers.CharField(source="branch.name", read_only=True)
+#     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True)
+
+#     class Meta:
+#         model = Floor
+#         fields = ["id", "name", "code", "branch", "building", "branch_name", "customer_id", "is_active", "created_at"]
+
+#     def validate(self, attrs):
+#         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+#         building = attrs.get("building", getattr(self.instance, "building", None))
+#         if not branch:
+#             raise serializers.ValidationError({"branch": "Select a branch."})
+#         levels = _physical_levels(branch)
+#         if "floor" not in levels:
+#             raise serializers.ValidationError({"non_field_errors": ["Floor is not part of this customer's hierarchy."]})
+#         if building and "building" not in levels:
+#             raise serializers.ValidationError({"building": "Building is not part of this customer's hierarchy."})
+#         if "building" in levels and not building:
+#             raise serializers.ValidationError({"building": "Select a building for this floor."})
+#         if building and building.branch_id != branch.pk:
+#             raise serializers.ValidationError({"building": "Building must belong to the selected branch."})
+#         return attrs
+
+
+# class SiteSerializer(serializers.ModelSerializer):
+#     branch_name = serializers.CharField(source="branch.name", read_only=True)
+#     floor_name = serializers.CharField(source="floor.name", read_only=True, default=None)
+#     building_name = serializers.CharField(source="building.name", read_only=True, default=None)
+#     room_name = serializers.CharField(source="room.name", read_only=True, default=None)
+#     tpt_site_id = serializers.CharField(read_only=True, allow_null=True)
+
+#     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True, allow_null=True)
+#     customer_name = serializers.CharField(source="branch.customer.company", read_only=True, allow_null=True)
+#     organization_id = serializers.UUIDField(source="branch.customer.organization_id", read_only=True, allow_null=True)
+
+#     admins = serializers.SerializerMethodField()
+#     engineers = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Site
+#         fields = [
+#             "id", "name", "code", "address", "latitude", "longitude", "tpt_site_id",
+#             "branch", "branch_name", "building", "building_name", "floor", "floor_name", "room", "room_name",
+#             "customer_id", "customer_name", "organization_id",
+#             "admins", "engineers", "is_active", "created_at",
+#         ]
+#         read_only_fields = [
+#             "id", "branch_name", "floor_name", "building_name", "room_name", "customer_id", "customer_name",
+#             "organization_id", "admins", "engineers", "created_at",
+#         ]
+
+#     def get_admins(self, obj):
+#         return list(
+#             obj.users.filter(role=Role.BR_ADMIN, is_active=True)
+#             .values("id", "name", "email", "phone", "role", "branch_id", "site_id")
+#         )
+
+#     def get_engineers(self, obj):
+#         return list(
+#             obj.users.filter(role=Role.ENGINEER, is_active=True)
+#             .values("id", "name", "email", "phone", "role", "branch_id", "site_id")
+#         )
+
+#     def validate(self, attrs):
+#         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+#         floor = attrs.get("floor", getattr(self.instance, "floor", None))
+#         building = attrs.get("building", getattr(self.instance, "building", None))
+#         room = attrs.get("room", getattr(self.instance, "room", None))
+
+#         if not branch:
+#             raise serializers.ValidationError({"branch": "A site must belong to a branch."})
+#         if not branch.customer_id:
+#             raise serializers.ValidationError({"branch": "The selected branch is not assigned to a customer."})
+#         if floor and floor.branch_id != branch.id:
+#             raise serializers.ValidationError({"floor": "Selected floor does not belong to the selected branch."})
+#         if building and building.branch_id != branch.id:
+#             raise serializers.ValidationError({"building": "Selected building does not belong to the selected branch."})
+#         if floor and building and floor.building_id != building.id:
+#             raise serializers.ValidationError({"floor": "Selected floor does not belong to the selected building."})
+#         if room and (not floor or room.floor_id != floor.id):
+#             raise serializers.ValidationError({"room": "Selected room must belong to the selected floor."})
+#         if branch.customer.hierarchy_type == "ZONAL":
+#             levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", [])
+#             if building and "building" not in levels:
+#                 raise serializers.ValidationError({"building": "Building is not enabled in this customer's hierarchy."})
+#             if floor and "building" in levels and not building:
+#                 raise serializers.ValidationError({"building": "Select the Building for this Floor."})
+#             if floor and "floor" not in levels:
+#                 raise serializers.ValidationError({"floor": "Floor is not enabled in this customer's hierarchy."})
+#             if room and "room" not in levels:
+#                 raise serializers.ValidationError({"room": "Room is not enabled in this customer's hierarchy."})
+
+#         request = self.context.get("request")
+#         user = getattr(request, "user", None)
+
+#         if user and user.is_authenticated:
+#             if user.role == Role.CUSTOMER:
+#                 if branch.customer_id != user.customer_id:
+#                     raise serializers.ValidationError({
+#                         "branch": "You can only use sites belonging to your customer."
+#                     })
+#             elif user.role == Role.BR_ADMIN:
+#                 if branch.id != user.branch_id:
+#                     raise serializers.ValidationError({
+#                         "branch": "You can only use sites belonging to your branch."
+#                     })
+#             elif user.role == Role.ENGINEER:
+#                 if self.instance is None or self.instance.id != user.site_id:
+#                     raise serializers.ValidationError({"branch": "You can only use your assigned site."})
+#             elif user.role == Role.ORG_SUPER_ADMIN:
+#                 if branch.customer.organization_id != user.organization_id:
+#                     raise serializers.ValidationError({"branch": "This site is outside your organization."})
+
+#         return attrs
+
+
+# class ACDeviceSerializer(serializers.ModelSerializer):
+#     branch_id = serializers.UUIDField(source="branch.id", read_only=True, allow_null=True)
+#     branch_name = serializers.CharField(source="branch.name", read_only=True, allow_null=True)
+#     site_id = serializers.UUIDField(source="site.id", read_only=True, allow_null=True)
+#     site_name = serializers.CharField(source="site.name", read_only=True, allow_null=True)
+#     building_name = serializers.CharField(source="site.building.name", read_only=True, allow_null=True)
+#     floor_name = serializers.CharField(source="site.floor.name", read_only=True, allow_null=True)
+#     room_name = serializers.CharField(source="site.room.name", read_only=True, allow_null=True)
+#     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True, allow_null=True)
+#     customer_name = serializers.CharField(source="branch.customer.company", read_only=True, allow_null=True)
+#     assignment_status = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = ACDevice
+#         fields = [
+#             "id", "ac_id", "device_name", "branch", "branch_id", "branch_name",
+#             "site_id", "site_name", "building_name", "floor_name", "room_name",
+#             "customer_id", "customer_name", "assignment_status",
+#             "status", "capacity_ton", "installation_date", "last_maintenance_date", "assigned_by", "assigned_admin",
+#             "tpt_device_id", "tpt_sync_status", "tpt_sync_error", "created_at", "updated_at",
+#             "is_simulated",
+#         ]
+#         read_only_fields = [
+#             "id", "branch_id", "branch_name", "site_id", "site_name", "building_name", "floor_name", "room_name",
+#             "customer_id", "customer_name", "assignment_status", "assigned_by", "assigned_admin", "tpt_device_id",
+#             "tpt_sync_status", "tpt_sync_error", "created_at", "updated_at",
+#             "is_simulated",
+#         ]
+
+#     def get_assignment_status(self, obj):
+#         return "ASSIGNED" if obj.branch_id else "UNASSIGNED"
+
+#     def validate(self, attrs):
+#         branch = attrs.get("branch", getattr(self.instance, "branch", None))
+#         request = self.context.get("request")
+#         user = getattr(request, "user", None)
+#         if branch and user and getattr(user, "is_authenticated", False):
+#             if getattr(user, "role", None) == Role.CUSTOMER:
+#                 if branch.customer_id != user.customer_id:
+#                     raise serializers.ValidationError({
+#                         "branch": "You can only assign a device to a branch belonging to your customer."
+#                     })
+#             elif getattr(user, "role", None) == Role.ORG_SUPER_ADMIN:
+#                 if branch.customer.organization_id != user.organization_id:
+#                     raise serializers.ValidationError({"branch": "This branch is outside your organization."})
+#         return attrs
+
+
+# class CustomerSiteMappingSerializer(serializers.ModelSerializer):
+#     customer_name = serializers.CharField(source="customer.company", read_only=True)
+#     site_name = serializers.CharField(source="site.name", read_only=True)
+
+#     class Meta:
+#         model = CustomerSiteMapping
+#         fields = ["id", "customer", "customer_name", "site", "site_name", "is_active", "created_at", "updated_at"]
+#         read_only_fields = ["id", "customer_name", "site_name", "created_at", "updated_at"]
+
+#     def validate(self, attrs):
+#         customer = attrs["customer"]
+#         site = attrs["site"]
+
+#         # Site must belong to the same customer
+#         if site.branch_id and site.branch.customer_id and site.branch.customer_id != customer.id:
+#             raise serializers.ValidationError({"site": "This site belongs to another customer."})
+
+#         if not site.branch_id:
+#             raise serializers.ValidationError({"site": "Site is not assigned to a branch."})
+
+#         return attrs
+
+
+# # ============================================================
+# # SITE → DEVICE
+# # ============================================================
+
+# class SiteDeviceMappingSerializer(serializers.ModelSerializer):
+#     site_name = serializers.CharField(source="site.name", read_only=True)
+#     device_name = serializers.CharField(source="device.device_name", read_only=True)
+#     ac_id = serializers.CharField(source="device.ac_id", read_only=True)
+
+#     class Meta:
+#         model = SiteDeviceMapping
+#         fields = [
+#             "id", "site", "site_name", "device", "device_name", "ac_id",
+#             "is_active", "created_at", "updated_at",
+#         ]
+#         read_only_fields = ["id", "site_name", "device_name", "ac_id", "created_at", "updated_at"]
+
+#     def validate(self, attrs):
+#         site = attrs["site"]
+#         device = attrs["device"]
+
+#         if not site.branch_id:
+#             raise serializers.ValidationError({"site": "Site is not assigned to a branch."})
+#         if not site.branch.customer_id:
+#             raise serializers.ValidationError({"site": "Site is not assigned to a customer."})
+
+#         return attrs
+
+
+# # ============================================================
+# # CUSTOMER → DEVICE
+# # ============================================================
+
+# class CustomerDeviceMappingSerializer(serializers.ModelSerializer):
+#     customer_name = serializers.CharField(source="customer.company", read_only=True)
+#     device_name = serializers.CharField(source="device.device_name", read_only=True)
+#     ac_id = serializers.CharField(source="device.ac_id", read_only=True)
+
+#     class Meta:
+#         model = CustomerDeviceMapping
+#         fields = [
+#             "id", "customer", "customer_name", "device", "device_name", "ac_id",
+#             "is_active", "created_at", "updated_at",
+#         ]
+#         read_only_fields = ["id", "customer_name", "device_name", "ac_id", "created_at", "updated_at"]
+
+#     def validate(self, attrs):
+#         customer = attrs["customer"]
+#         device = attrs["device"]
+
+#         if device.site_id:
+#             site_customer_id = device.site.branch.customer_id
+#             if site_customer_id != customer.id:
+#                 raise serializers.ValidationError({
+#                     "device": "This device belongs to a site of another customer."
+#                 })
+
+#         return attrs
+
+
+# class UserSerializer(serializers.ModelSerializer):
+#     scope_name = serializers.CharField(read_only=True)
+#     scope_id = serializers.SerializerMethodField()
+#     customer_hierarchy_type = serializers.SerializerMethodField()
+#     zone_name = serializers.CharField(source="zone.name", read_only=True, default=None)
+#     circle_name = serializers.CharField(source="circle.name", read_only=True, default=None)
+#     state_name = serializers.CharField(source="state.name", read_only=True, default=None)
+#     district_name = serializers.CharField(source="district.name", read_only=True, default=None)
+    
+#     head_office_state = serializers.SerializerMethodField()
+#     head_office_district = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = User
+#         fields = [
+#             "id", "email", "name", "phone", "role",
+#             "organization", "customer", "zone", "circle", "state", "district", "branch", "site",
+#             "scope_name", "scope_id", "customer_hierarchy_type",
+#             "zone_name", "circle_name", "state_name", "district_name",
+#             "is_active", "date_joined", "last_login",
+#             "head_office_state",
+#             "head_office_district",
+#         ]
+#         read_only_fields = ["id", "date_joined", "last_login"]
+
+#     def get_scope_id(self, obj):
+#         _, scope_id = obj.get_scope()
+#         return str(scope_id) if scope_id else None
+
+#     def get_customer_hierarchy_type(self, obj):
+#         return obj.customer.hierarchy_type if obj.customer_id and obj.customer else None
+
+#     def get_head_office_state(self, obj):
+#         customer = obj.customer
+
+#         if not customer:
+#             return ""
+
+#         city = customer.head_office_city
+#         if city:
+#             taluka = city.taluka
+#             district = taluka.district if taluka else None
+#             state = district.state if district else None
+
+#             if state:
+#                 return state.name
+
+#         return customer.state or ""
+
+
+#     def get_head_office_district(self, obj):
+#         customer = obj.customer
+
+#         if not customer:
+#             return ""
+
+#         city = customer.head_office_city
+#         if city:
+#             taluka = city.taluka
+#             district = taluka.district if taluka else None
+
+#             if district:
+#                 return district.name
+
+#         return customer.district or ""
+
+# class LoginSerializer(serializers.Serializer):
+#     email = serializers.EmailField()
+#     password = serializers.CharField(write_only=True, min_length=6)
+#     role = serializers.ChoiceField(choices=Role.choices)
+
+#     def validate(self, data):
+#         user = authenticate(
+#             request=self.context.get("request"),
+#             username=data["email"],
+#             password=data["password"],
+#         )
+#         if not user:
+#             raise serializers.ValidationError("Invalid email or password.")
+#         if not user.is_active:
+#             raise serializers.ValidationError("This account is disabled.")
+#         if user.role != data["role"]:
+#             raise serializers.ValidationError(
+#                 f"This account belongs to '{user.get_role_display()}'. Please select the correct role."
+#             )
+#         data["user"] = user
+#         return data
+
+
+# class AdminSerializer(serializers.ModelSerializer):
+#     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+#     scope_name = serializers.CharField(read_only=True)
+#     scope_id = serializers.SerializerMethodField()
+#     customer_hierarchy_type = serializers.SerializerMethodField()
+#     zone_name = serializers.CharField(source="zone.name", read_only=True, default=None)
+#     circle_name = serializers.CharField(source="circle.name", read_only=True, default=None)
+#     state_name = serializers.CharField(source="state.name", read_only=True, default=None)
+#     district_name = serializers.CharField(source="district.name", read_only=True, default=None)
+
+#     class Meta:
+#         model = User
+#         fields = [
+#             "id", "email", "name", "phone", "role",
+#             "organization", "customer", "zone", "circle", "state", "district", "branch", "site",
+#             "scope_name", "scope_id", "customer_hierarchy_type",
+#             "zone_name", "circle_name", "state_name", "district_name",
+#             "password", "is_active", "date_joined", "last_login",
+#         ]
+#         read_only_fields = ["id", "date_joined", "last_login", "scope_name", "scope_id"]
+#         extra_kwargs = {
+#             "organization": {"required": False},
+#             "customer": {"required": False},
+#             "zone": {"required": False},
+#             "circle": {"required": False},
+#             "region": {"required": False},
+#             "division": {"required": False},
+#             "state": {"required": False},
+#             "district": {"required": False},
+#             "taluka": {"required": False},
+#             "city": {"required": False},
+#             "branch": {"required": False},
+#             "site": {"required": False},
+#         }
+
+#     def get_scope_id(self, obj):
+#         _, scope_id = obj.get_scope()
+#         return str(scope_id) if scope_id else None
+
+#     def get_customer_hierarchy_type(self, obj):
+#         return obj.customer.hierarchy_type if obj.customer_id and obj.customer else None
+
+#     CREATABLE_ROLES = (Role.BR_ADMIN, Role.ENGINEER)
+
+#     def validate_role(self, value):
+#         if self.instance is not None and self.instance.role == value:
+#             return value
+#         if value not in self.CREATABLE_ROLES:
+#             raise serializers.ValidationError(
+#                 "Only Branch Admin and Engineer accounts can be created here. "
+#                 "Customers are created from the Customers page."
+#             )
+#         return value
+
+#     def validate_customer(self, value):
+#         request = self.context.get("request")
+#         acting = getattr(request, "user", None)
+#         if value is None or acting is None:
+#             return value
+#         if acting.role == Role.ORG_SUPER_ADMIN and value.organization_id != acting.organization_id:
+#             raise serializers.ValidationError("Customer does not belong to your organization.")
+#         if acting.role == Role.CUSTOMER and value.pk != acting.customer_id:
+#             raise serializers.ValidationError("You can only assign users to your own customer.")
+#         return value
+
+#     def validate(self, attrs):
+#         attrs = super().validate(attrs)
+#         customer = attrs.get("customer") or getattr(self.instance, "customer", None)
+#         zone = attrs.get("zone") if "zone" in attrs else getattr(self.instance, "zone", None)
+#         circle = attrs.get("circle") if "circle" in attrs else getattr(self.instance, "circle", None)
+#         state = attrs.get("state") if "state" in attrs else getattr(self.instance, "state", None)
+#         district = attrs.get("district") if "district" in attrs else getattr(self.instance, "district", None)
+
+#         if not customer:
+#             return attrs
+
+#         if zone and zone.customer_id != customer.pk:
+#             raise serializers.ValidationError({"zone": "Selected zone does not belong to the selected customer."})
+#         if circle and (not zone or circle.zone_id != zone.pk):
+#             raise serializers.ValidationError({"circle": "Selected circle must belong to the selected zone."})
+#         if state and state.customer_id != customer.pk:
+#             raise serializers.ValidationError({"state": "Selected state does not belong to the selected customer."})
+#         if district and (not state or district.state_id != state.pk):
+#             raise serializers.ValidationError({"district": "Selected district must belong to the selected state."})
+
+#         site = attrs.get("site") if "site" in attrs else getattr(self.instance, "site", None)
+#         branch = attrs.get("branch") if "branch" in attrs else getattr(self.instance, "branch", None)
+
+#         if site:
+#             if not site.branch_id:
+#                 raise serializers.ValidationError({"site": "Selected site has no branch."})
+#             if branch and site.branch_id != branch.pk:
+#                 raise serializers.ValidationError({"site": "Selected site does not belong to the selected branch."})
+#             if customer and site.branch.customer_id != customer.pk:
+#                 raise serializers.ValidationError({"site": "Selected site does not belong to the selected customer."})
+#             # A site is the most specific scope. Keep branch/customer in sync.
+#             attrs["branch"] = site.branch
+#             attrs["customer"] = site.branch.customer
+
+#         if customer.hierarchy_type == HierarchyType.GEOGRAPHICAL and (zone or circle):
+#             raise serializers.ValidationError({
+#                 "zone": "This customer uses the Geographical hierarchy; assign State/District instead."
+#             })
+#         if customer.hierarchy_type == HierarchyType.ZONAL and (state or district):
+#             raise serializers.ValidationError({
+#                 "state": "This customer uses the Zonal hierarchy; assign Zone/Circle instead."
+#             })
+
+#         return attrs
+
+#         geo_chain = ["state", "district", "taluka", "city"]
+#         zon_chain = ["zone", "circle", "region", "division"]
+
+#         def _chain_ok(chain, attrs_or_instance, expected_hierarchy):
+#             filled = [
+#                 (name, attrs_or_instance.get(name)
+#                     if isinstance(attrs_or_instance, dict)
+#                     else getattr(attrs_or_instance, name, None))
+#                 for name in chain
+#             ]
+#             # Drop nulls, keep order
+#             filled = [(n, v) for n, v in filled if v is not None]
+#             # The chain must be contiguous from the top (no gaps)
+#             if not filled:
+#                 return
+#             # Verify each step links to the previous
+#             for i in range(1, len(filled)):
+#                 prev_name, prev_obj = filled[i - 1]
+#                 name, obj = filled[i]
+#                 parent_attr = {
+#                     "district": "state",
+#                     "taluka": "district",
+#                     "city": "taluka",
+#                     "circle": "zone",
+#                     "region": "circle",
+#                     "division": "region",
+#                 }[name]
+#                 if getattr(obj, f"{parent_attr}_id") != prev_obj.pk:
+#                     raise serializers.ValidationError(
+#                         {name: f"Selected {name} does not belong to the selected {parent_attr}."}
+#                     )
+#             # Verify the top of the chain belongs to the customer
+#             top_name, top_obj = filled[0]
+#             if top_obj.customer_id != customer.pk:
+#                 raise serializers.ValidationError({top_name: "Does not belong to the selected customer."})
+
+#         # Get values for whichever fields the request actually sends
+#         payload = {}
+#         for name in geo_chain + zon_chain:
+#             if name in attrs:
+#                 payload[name] = attrs[name]
+#             elif self.instance is not None:
+#                 payload[name] = getattr(self.instance, name, None)
+
+#         # Hierarchy must match the customer
+#         if customer.hierarchy_type == HierarchyType.GEOGRAPHICAL:
+#             if any(payload.get(n) for n in zon_chain):
+#                 raise serializers.ValidationError({
+#                     "zone": "This customer uses the Geographical hierarchy; assign State/District/Taluka/City instead."
+#                 })
+#             _chain_ok(geo_chain, payload, "GEOGRAPHICAL")
+#         elif customer.hierarchy_type == HierarchyType.ZONAL:
+#             if any(payload.get(n) for n in geo_chain):
+#                 raise serializers.ValidationError({
+#                     "state": "This customer uses the Zonal hierarchy; assign Zone/Circle/Region/Division instead."
+#                 })
+#             _chain_ok(zon_chain, payload, "ZONAL")
+
+#     def create(self, validated_data):
+#         password = validated_data.pop("password", "") or "Admin@123"
+#         user = User(**validated_data)
+#         user.set_password(password)
+#         user._skip_scope_check = True  # ← bypass scope check on this save
+#         user.save()
+#         return user
+
+#     def update(self, instance, validated_data):
+#         password = validated_data.pop("password", None)
+#         instance = super().update(instance, validated_data)
+#         if password:
+#             instance.set_password(password)
+
+#         # Activate the user once the required scope is present.
+#         scope_field = {
+#             "ORG_SUPER_ADMIN": "organization",
+#             "CUSTOMER": "customer",
+#             "BR_ADMIN": "branch",
+#             "ENGINEER": "site",
+#             # "ZONAL_ADMIN": "zone",
+#             # "CIRCLE_ADMIN": "circle",
+#         }.get(instance.role)
+
+#         if instance.role == "ORG_SUPER_ADMIN" or (scope_field and getattr(instance, f"{scope_field}_id")):
+#             instance.is_active = True
+
+#         instance.save()
+#         return instance
+
+
+# class DashboardPreferenceSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = DashboardPreference
+#         fields = [
+#             "id", "name", "customer", "main_filters", "card_filters",
+#             "visible_widgets", "is_default", "created_at", "updated_at",
+#         ]
+#         read_only_fields = ["id", "customer", "created_at", "updated_at"]
+
+
+
 import re
 
 from rest_framework import serializers
@@ -12,482 +4486,10 @@ from .models import (
     CustomerDeviceMapping, Role, zonal_branch_parent_level,
 )
 
-
-class ACDataSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ACData
-        fields = [
-            "id", "timestamp", "ac_id", "indoor_temperature", "outdoor_temperature",
-            "indoor_humidity", "outdoor_humidity", "voltage", "current",
-        ]
-
-
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = "__all__"
-
-
-# class CustomerSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=6)
-#     login_email = serializers.SerializerMethodField()
-#     head_office_hierarchy = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = Customer
-#         fields = "__all__"
-#         read_only_fields = ["organization", "tpt_customer_id", "created_at", "updated_at"]
-#         validators = []
-
-#     # LOGIN EMAIL
-#     def get_login_email(self, obj):
-#         return (
-#             User.objects
-#             .filter(customer=obj, role=Role.CUSTOMER)
-#             .values_list("email", flat=True)
-#             .first()
-#         )
-
-#     @staticmethod
-#     def _login_email_for(customer):
-#         return (customer.contact_person_email or customer.company_email or "").strip().lower()
-
-#     # CREATE CUSTOMER LOGIN
-#     def _ensure_login(self, customer, password):
-#         """Create or update the Bank Customer login."""
-#         login = User.objects.filter(customer=customer, role=Role.CUSTOMER).first()
-
-#         # Existing login
-#         if login:
-#             if password:
-#                 login.set_password(password)
-            
-#             login.email = self._login_email_for(customer)
-#             login.name = customer.contact_person or customer.company
-#             # login.phone = customer.admin_mobile or customer.phone
-#             login.phone = customer.phone or ""
-#             login.is_active = customer.is_active
-#             login.save()
-#             return login
-
-#         # New login
-#         email = self._login_email_for(customer)
-#         if not email:
-#             raise serializers.ValidationError({
-#                 "contact_person_email": "An email is required to create the bank login."
-#             })
-#         if User.objects.filter(email__iexact=email).exists():
-#             raise serializers.ValidationError({
-#                 "contact_person_email": "A user with this email already exists."
-#             })
-
-#         login = User(
-#             email=email,
-#             name=customer.contact_person or customer.company,
-#             # phone=customer.admin_mobile or customer.phone,
-#             phone=customer.phone or "",
-#             role=Role.CUSTOMER,
-#             organization=customer.organization,
-#             customer=customer,
-#             is_active=customer.is_active,
-#         )
-#         login.set_password(password)
-#         login.save()
-#         return login
-
-#     # ============================================================
-#     # VALIDATION
-#     # ============================================================
-
-#     def validate_company(self, value):
-#         value = value.strip()
-#         if not value:
-#             raise serializers.ValidationError("Bank name is required.")
-#         return value
-
-#     def validate_code(self, value):
-#         value = value.strip().upper()
-#         if not value:
-#             raise serializers.ValidationError("Bank code is required.")
-#         return value
-
-#     def validate_bank_short_name(self, value):
-#         return value.strip().upper()
-
-#     def validate_company_email(self, value):
-#         return value.strip().lower()
-
-#     def validate_contact_person_email(self, value):
-#         return value.strip().lower()
-
-#     # def validate_pan(self, value):
-#     #     value = value.strip().upper()
-#     #     if value and not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]$", value):
-#     #         raise serializers.ValidationError("Enter a valid PAN number.")
-#     #     return value
-
-#     # def validate_gstin(self, value):
-#     #     value = value.strip().upper()
-#     #     if value and len(value) != 15:
-#     #         raise serializers.ValidationError("GSTIN must contain 15 characters.")
-#     #     return value
-
-#     def get_head_office_hierarchy(self, obj):
-#         if obj.hierarchy_type == "GEOGRAPHICAL":
-#             city = obj.head_office_city
-
-#             if not city:
-#                 return ""
-
-#             taluka = city.taluka
-#             district = taluka.district if taluka else None
-#             state = district.state if district else None
-#             country = state.country if state else None
-
-#             parts = [
-#                 country.name if country else None,
-#                 state.name if state else None,
-#                 district.name if district else None,
-#                 taluka.name if taluka else None,
-#                 city.name,
-#             ]
-
-#             return " → ".join(part for part in parts if part)
-
-#         if obj.hierarchy_type == "ZONAL":
-#             division = obj.head_office_division
-
-#             if not division:
-#                 return ""
-
-#             region = division.region
-#             circle = region.circle if region else None
-#             zone = circle.zone if circle else None
-#             country = zone.country if zone else None
-
-#             parts = [
-#                 country.name if country else None,
-#                 zone.name if zone else None,
-#                 circle.name if circle else None,
-#                 region.name if region else None,
-#                 division.name,
-#             ]
-
-#             return " → ".join(part for part in parts if part)
-
-#         return ""
-
-        
-#     def validate(self, attrs):
-#         attrs = super().validate(attrs)
-
-#         request = self.context.get("request")
-#         user = getattr(request, "user", None)
-
-#         # Resolve organization.
-#         organization = (
-#             self.instance.organization
-#             if self.instance
-#             else getattr(user, "organization", None)
-#         )
-
-#         if not organization:
-#             raise serializers.ValidationError({
-#                 "organization": "Could not determine organization."
-#             })
-
-#         # Ensure bank code is unique within the organization.
-#         code = attrs.get("code") or getattr(self.instance, "code", None)
-
-#         if code:
-#             duplicates = Customer.objects.filter(
-#                 organization=organization,
-#                 code=code,
-#             )
-
-#             if self.instance:
-#                 duplicates = duplicates.exclude(pk=self.instance.pk)
-
-#             if duplicates.exists():
-#                 raise serializers.ValidationError({
-#                     "code": "A bank with this code already exists in your organization."
-#                 })
-
-#         # Validate hierarchy selection and changes.
-#         hierarchy_type = attrs.get(
-#             "hierarchy_type",
-#             getattr(self.instance, "hierarchy_type", None),
-#         )
-
-#         if self.instance is None:
-#             if not hierarchy_type:
-#                 raise serializers.ValidationError({
-#                     "hierarchy_type": "Select Geographical or Zonal."
-#                 })
-#         elif (
-#             hierarchy_type
-#             and hierarchy_type != self.instance.hierarchy_type
-#             and self.instance.branches.exists()
-#         ):
-#             raise serializers.ValidationError({
-#                 "hierarchy_type": (
-#                     "This bank already has branches. "
-#                     "Hierarchy type cannot be changed."
-#                 )
-#             })
-
-#         # Validate head-office location against the selected hierarchy.
-#         city = attrs.get(
-#             "head_office_city",
-#             getattr(self.instance, "head_office_city", None),
-#         )
-
-#         division = attrs.get(
-#             "head_office_division",
-#             getattr(self.instance, "head_office_division", None),
-#         )
-
-#         if hierarchy_type == "GEOGRAPHICAL" and division:
-#             raise serializers.ValidationError({
-#                 "head_office_division": (
-#                     "Select a City for a Geographical customer."
-#                 )
-#             })
-
-#         if hierarchy_type == "ZONAL" and city:
-#             raise serializers.ValidationError({
-#                 "head_office_city": (
-#                     "Select a Division for a Zonal customer."
-#                 )
-#             })
-
-#         return attrs
-
-#     def validate_pincode(self, value):
-#         value = value.strip()
-#         if value and not re.match(r"^\d{6}$", value):
-#             raise serializers.ValidationError("PIN code must contain exactly 6 digits.")
-#         return value
-
-
-#     # CREATE
-#     # def create(self, validated_data):
-#     #     password = validated_data.pop("password", "")
-#     #     with transaction.atomic():
-#     #         customer = super().create(validated_data)
-#     #         if password:
-#     #             self._ensure_login(customer, password)
-#     #     return customer
-
-#     def create(self, validated_data):
-#         validated_data.pop("password", None)
-#         return super().create(validated_data)
-
-#     # UPDATE
-#     def update(self, instance, validated_data):
-#         password = validated_data.pop("password", "")
-#         with transaction.atomic():
-#             customer = super().update(instance, validated_data)
-#             login = User.objects.filter(customer=customer, role=Role.CUSTOMER).first()
-#             if login:
-#                 login.email = (customer.contact_person_email or customer.company_email).strip().lower()
-#                 login.name = customer.contact_person or customer.company
-#                 # login.phone = customer.admin_mobile or customer.phone
-#                 login.phone = customer.phone or ""
-#                 login.is_active = customer.is_active
-#                 if password:
-#                     login.set_password(password)
-#                 login.save()
-#             elif password:
-#                 self._ensure_login(customer, password)
-#         return customer
-
-# class CustomerSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(
-#         write_only=True,
-#         required=False,
-#         allow_blank=True,
-#         min_length=6,
-#     )
-#     login_email = serializers.SerializerMethodField()
-#     head_office_hierarchy = serializers.SerializerMethodField()
-#     filter_defaults = serializers.SerializerMethodField()
-    
-#     state = serializers.CharField(required=False, allow_blank=True)
-#     district = serializers.CharField(required=False, allow_blank=True)
-#     taluka = serializers.CharField(required=False, allow_blank=True)
-
-#     class Meta:
-#         model = Customer
-#         fields = "__all__"
-#         read_only_fields = [
-#             "organization",
-#             "tpt_customer_id",
-#             "created_at",
-#             "updated_at",
-#         ]
-#         validators = []
-
-#     def get_head_office_hierarchy(self, obj):
-#         if obj.hierarchy_type == "GEOGRAPHICAL":
-#             city = obj.head_office_city
-
-#             if not city:
-#                 return ""
-
-#             taluka = city.taluka
-#             district = taluka.district if taluka else None
-#             state = district.state if district else None
-#             country = state.country if state else None
-
-#             parts = [
-#                 country.name if country else None,
-#                 state.name if state else None,
-#                 district.name if district else None,
-#                 taluka.name if taluka else None,
-#                 city.name,
-#             ]
-
-#             return " → ".join(part for part in parts if part)
-
-#         elif obj.hierarchy_type == "ZONAL":
-#             division = obj.head_office_division
-
-#             if not division:
-#                 return ""
-
-#             region = division.region
-#             circle = region.circle if region else None
-#             zone = circle.zone if circle else None
-#             country = zone.country if zone else None
-
-#             parts = [
-#                 country.name if country else None,
-#                 zone.name if zone else None,
-#                 circle.name if circle else None,
-#                 region.name if region else None,
-#                 division.name,
-#             ]
-
-#             return " → ".join(part for part in parts if part)
-
-#         return ""
-
-#     def get_login_email(self, obj):
-#         return (
-#             User.objects
-#             .filter(customer=obj, role=Role.CUSTOMER)
-#             .values_list("email", flat=True)
-#             .first()
-#         )
-
-#     def create(self, validated_data):
-#         password = validated_data.pop("password", "")
-
-#         # These are UI location names, not Customer model fields.
-#         state_name = validated_data.pop("state", "")
-#         district_name = validated_data.pop("district", "")
-#         taluka_name = validated_data.pop("taluka", "")
-
-#         with transaction.atomic():
-#             customer = super().create(validated_data)
-
-#             if password:
-#                 self._ensure_login(customer, password)
-
-#         return customer
-
-
-#     def update(self, instance, validated_data):
-#         password = validated_data.pop("password", "")
-
-#         # Prevent non-model fields from reaching Customer.objects.update().
-#         validated_data.pop("state", None)
-#         validated_data.pop("district", None)
-#         validated_data.pop("taluka", None)
-
-#         with transaction.atomic():
-#             customer = super().update(instance, validated_data)
-
-#             login = User.objects.filter(
-#                 customer=customer,
-#                 role=Role.CUSTOMER,
-#             ).first()
-
-#             if login:
-#                 login.email = (
-#                     customer.contact_person_email or customer.company_email
-#                 ).strip().lower()
-#                 login.name = customer.contact_person or customer.company
-#                 login.phone = customer.admin_mobile or customer.phone
-#                 login.is_active = customer.is_active
-
-#                 if password:
-#                     login.set_password(password)
-
-#                 login.save()
-
-#             elif password:
-#                 self._ensure_login(customer, password)
-
-#         return customer
-
-#     def get_filter_defaults(self, obj):
-#         """
-#         Return the default dashboard filters for this customer.
-#         Values must match the names used in the filter location tree.
-#         """
-#         defaults = {
-#             "hierarchy": obj.hierarchy_type,
-#             "country": "India",
-#             "state": "",
-#             "district": "",
-#             "taluka": "",
-#             "branch": "",
-#             "floor": "",
-#         }
-
-#         if obj.hierarchy_type == "GEOGRAPHICAL":
-#             city = obj.head_office_city
-
-#             if city:
-#                 taluka = city.taluka
-#                 district = taluka.district if taluka else None
-#                 state = district.state if district else None
-#                 country = state.country if state else None
-
-#                 defaults.update({
-#                     "country": country.name if country else "India",
-#                     "state": state.name if state else "",
-#                     "district": district.name if district else "",
-#                     "taluka": taluka.name if taluka else "",
-#                 })
-
-#         elif obj.hierarchy_type == "ZONAL":
-#             division = obj.head_office_division
-
-#             if division:
-#                 region = division.region
-#                 circle = region.circle if region else None
-#                 zone = circle.zone if circle else None
-#                 country = zone.country if zone else None
-
-#                 defaults.update({
-#                     "country": country.name if country else "India",
-#                     "zone": zone.name if zone else "",
-#                     "circle": circle.name if circle else "",
-#                     "region": region.name if region else "",
-#                     "division": division.name,
-#                 })
-
-#         return defaults
-
-# imports your file already has (User, Role, Customer, serializers, …)
-# add if missing:
-#   from django.db import transaction
-from django.core.exceptions import ValidationError as DjangoValidationError
-#   from .models import City          # adjust to your actual import
-
 
 class CustomerSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -811,6 +4813,28 @@ class ZoneSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Zone is only available for Zonal customers.")
         return customer
 
+    def validate(self, attrs):
+        config = attrs.get("hierarchy_config", getattr(self.instance, "hierarchy_config", {})) or {}
+        zone_type = attrs.get("zone_type", getattr(self.instance, "zone_type", None))
+        if zone_type and zone_type not in {choice[0] for choice in Zone.ZONE_TYPE_CHOICES}:
+            raise serializers.ValidationError({"zone_type": "Select a valid Zone classification."})
+        if config:
+            levels = config.get("levels")
+            allowed = ["zone", "circle", "region", "division", "branch"]
+            if not isinstance(levels, list) or not levels or levels[0] != "zone" or levels[-1] != "branch":
+                raise serializers.ValidationError({"hierarchy_config": "Hierarchy must start with Zone and end with Branch."})
+            if len(levels) != len(set(levels)) or any(level not in allowed for level in levels):
+                raise serializers.ValidationError({"hierarchy_config": "Use each supported hierarchy level once."})
+            if levels != [level for level in allowed if level in levels]:
+                raise serializers.ValidationError({"hierarchy_config": "Keep levels in Zone → Circle → Region → Division → Branch order."})
+            labels = config.get("labels", {})
+            if not isinstance(labels, dict) or any(k not in allowed or not isinstance(v, str) or not v.strip() or len(v.strip()) > 60 for k, v in labels.items()):
+                raise serializers.ValidationError({"hierarchy_config": "Each custom level label must be a non-empty string of at most 60 characters."})
+            coverage = config.get("coverage_type", "NONE")
+            if coverage not in {"STATE", "CITY", "MULTI_STATE", "MULTI_CITY", "CUSTOM", "NONE"}:
+                raise serializers.ValidationError({"hierarchy_config": "Invalid geographical coverage type."})
+        return attrs
+
 class CircleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Circle
@@ -819,7 +4843,7 @@ class CircleSerializer(serializers.ModelSerializer):
     def validate_zone(self, zone):
         if zone.customer.hierarchy_type != "ZONAL":
             raise serializers.ValidationError("Circle is only available for Zonal customers.")
-        levels = (zone.customer.zonal_hierarchy_config or {}).get("levels", [])
+        levels = (zone.hierarchy_config or zone.customer.zonal_hierarchy_config or {}).get("levels", [])
         if "circle" not in levels:
             raise serializers.ValidationError("Circle is not enabled in this customer's hierarchy.")
         return zone
@@ -836,7 +4860,8 @@ class RegionSerializer(serializers.ModelSerializer):
         if bool(circle) == bool(zone):
             raise serializers.ValidationError("A Region must belong to exactly one parent: Circle or Zone.")
         customer = circle.zone.customer if circle else zone.customer
-        levels = (customer.zonal_hierarchy_config or {}).get("levels", [])
+        parent_zone = zone if zone else (circle.zone if circle else None)
+        levels = (parent_zone.hierarchy_config if parent_zone and parent_zone.hierarchy_config else customer.zonal_hierarchy_config or {}).get("levels", [])
         if zone and "region" not in levels:
             raise serializers.ValidationError({"zone": "Region is not enabled in this customer's hierarchy."})
         if zone and "circle" in levels:
@@ -854,7 +4879,8 @@ class DivisionSerializer(serializers.ModelSerializer):
         if not region:
             raise serializers.ValidationError("Region is required for a Division.")
         customer = region.zone.customer if region.zone_id else region.circle.zone.customer
-        levels = (customer.zonal_hierarchy_config or {}).get("levels", [])
+        zone = region.zone if region.zone_id else region.circle.zone
+        levels = (zone.hierarchy_config or customer.zonal_hierarchy_config or {}).get("levels", [])
         if customer.hierarchy_type != "ZONAL" or "division" not in levels:
             raise serializers.ValidationError("Division is not enabled in this customer's hierarchy configuration.")
         if "circle" in levels and not region.circle_id:
@@ -998,7 +5024,18 @@ class BranchSerializer(serializers.ModelSerializer):
             if not (parents["city"] or parents["taluka"]) or any(parents[k] for k in ("division", "circle", "region", "zone")):
                 raise serializers.ValidationError("Geographical branches must be under City or Taluka.")
         elif customer.hierarchy_type == "ZONAL":
-            expected = zonal_branch_parent_level(customer.zonal_hierarchy_config)
+            selected_zone = parents.get("zone")
+            selected_parent = next((parent for key, parent in parents.items() if key != "zone" and parent), None)
+            if not selected_zone and selected_parent:
+                if hasattr(selected_parent, "zone_id"):
+                    selected_zone = selected_parent.zone if selected_parent.zone_id else None
+                if not selected_zone and hasattr(selected_parent, "circle_id") and selected_parent.circle_id:
+                    selected_zone = selected_parent.circle.zone
+                if not selected_zone and hasattr(selected_parent, "region"):
+                    region = selected_parent.region
+                    selected_zone = region.zone if region.zone_id else region.circle.zone
+            zone_config = selected_zone.hierarchy_config if selected_zone and selected_zone.hierarchy_config else customer.zonal_hierarchy_config
+            expected = zonal_branch_parent_level(zone_config)
             if expected not in parents or not parents[expected]:
                 raise serializers.ValidationError({str(expected or "parent"): "Select the direct Branch parent required by this customer's hierarchy."})
             forbidden = [key for key in ("city", "taluka", "division", "circle", "region", "zone") if key != expected]
@@ -1016,12 +5053,12 @@ class BranchSerializer(serializers.ModelSerializer):
                 parent_customer_id = parent.zone.customer_id
             elif expected == "region":
                 parent_customer_id = parent.zone.customer_id if parent.zone_id else parent.circle.zone.customer_id
-                if "circle" in customer.zonal_hierarchy_config.get("levels", []) and not parent.circle_id:
+                if "circle" in (zone_config or {}).get("levels", []) and not parent.circle_id:
                     raise serializers.ValidationError({"region": "This customer's Region must belong to a Circle."})
             else:
                 region = parent.region
                 parent_customer_id = region.zone.customer_id if region.zone_id else region.circle.zone.customer_id
-                if "circle" in customer.zonal_hierarchy_config.get("levels", []) and not region.circle_id:
+                if "circle" in (zone_config or {}).get("levels", []) and not region.circle_id:
                     raise serializers.ValidationError({"division": "This customer's Division must belong to a Region under a Circle."})
             if parent_customer_id != customer.pk:
                 raise serializers.ValidationError({expected: f"The selected {expected.title()} does not belong to this customer."})
@@ -1030,17 +5067,36 @@ class BranchSerializer(serializers.ModelSerializer):
         return attrs
 
 
+def _physical_levels(branch):
+    """Physical levels (building/floor/room) the branch's customer has in its hierarchy.
+
+    Zonal customers: taken from zonal_hierarchy_config.levels.
+    Geographical customers: floor and room only (no buildings).
+    """
+    customer = branch.customer
+    if str(getattr(customer, "hierarchy_type", "")).upper() == "ZONAL":
+        levels = (customer.zonal_hierarchy_config or {}).get("levels") or ["zone", "circle", "branch", "floor"]
+        return {x for x in levels if x in ("building", "floor", "room")}
+    return {"floor", "room"}
+
+
+def _require_level(branch, level):
+    if level not in _physical_levels(branch):
+        raise serializers.ValidationError(
+            {"non_field_errors": [f"{level.title()} is not part of this customer's hierarchy."]}
+        )
+
+
 class BuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
         fields = "__all__"
 
-    def validate_branch(self, branch):
-        customer = branch.customer
-        levels = (customer.zonal_hierarchy_config or {}).get("levels", []) if customer.hierarchy_type == "ZONAL" else []
-        if customer.hierarchy_type == "ZONAL" and "building" not in levels:
-            raise serializers.ValidationError("Building is not enabled in this customer's hierarchy configuration.")
-        return branch
+    def validate(self, attrs):
+        branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+        if branch:
+            _require_level(branch, "building")
+        return attrs
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -1048,12 +5104,13 @@ class RoomSerializer(serializers.ModelSerializer):
         model = Room
         fields = "__all__"
 
-    def validate_floor(self, floor):
-        customer = floor.branch.customer
-        levels = (customer.zonal_hierarchy_config or {}).get("levels", []) if customer.hierarchy_type == "ZONAL" else []
-        if customer.hierarchy_type == "ZONAL" and "room" not in levels:
-            raise serializers.ValidationError("Room is not enabled in this customer's hierarchy configuration.")
-        return floor
+    def validate(self, attrs):
+        floor = attrs.get("floor") or getattr(self.instance, "floor", None)
+        if not floor:
+            raise serializers.ValidationError({"floor": "Select a floor for this room."})
+        _require_level(floor.branch, "room")
+        return attrs
+
 
 class FloorSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source="branch.name", read_only=True)
@@ -1068,15 +5125,15 @@ class FloorSerializer(serializers.ModelSerializer):
         building = attrs.get("building", getattr(self.instance, "building", None))
         if not branch:
             raise serializers.ValidationError({"branch": "Select a branch."})
-        levels = (branch.customer.zonal_hierarchy_config or {}).get("levels", []) if branch.customer.hierarchy_type == "ZONAL" else []
-        if branch.customer.hierarchy_type == "ZONAL" and "floor" not in levels:
-            raise serializers.ValidationError("Floor is not enabled in this customer's hierarchy configuration.")
+        levels = _physical_levels(branch)
+        if "floor" not in levels:
+            raise serializers.ValidationError({"non_field_errors": ["Floor is not part of this customer's hierarchy."]})
+        if building and "building" not in levels:
+            raise serializers.ValidationError({"building": "Building is not part of this customer's hierarchy."})
+        if "building" in levels and not building:
+            raise serializers.ValidationError({"building": "Select a building for this floor."})
         if building and building.branch_id != branch.pk:
             raise serializers.ValidationError({"building": "Building must belong to the selected branch."})
-        if building and "building" not in levels:
-            raise serializers.ValidationError({"building": "Building is not enabled for this customer."})
-        if "building" in levels and not building:
-            raise serializers.ValidationError({"building": "A Building is required by this customer's hierarchy configuration."})
         return attrs
 
 
@@ -1175,6 +5232,11 @@ class SiteSerializer(serializers.ModelSerializer):
 class ACDeviceSerializer(serializers.ModelSerializer):
     branch_id = serializers.UUIDField(source="branch.id", read_only=True, allow_null=True)
     branch_name = serializers.CharField(source="branch.name", read_only=True, allow_null=True)
+    site_id = serializers.UUIDField(source="site.id", read_only=True, allow_null=True)
+    site_name = serializers.CharField(source="site.name", read_only=True, allow_null=True)
+    building_name = serializers.CharField(source="site.building.name", read_only=True, allow_null=True)
+    floor_name = serializers.CharField(source="site.floor.name", read_only=True, allow_null=True)
+    room_name = serializers.CharField(source="site.room.name", read_only=True, allow_null=True)
     customer_id = serializers.IntegerField(source="branch.customer_id", read_only=True, allow_null=True)
     customer_name = serializers.CharField(source="branch.customer.company", read_only=True, allow_null=True)
     assignment_status = serializers.SerializerMethodField()
@@ -1183,14 +5245,15 @@ class ACDeviceSerializer(serializers.ModelSerializer):
         model = ACDevice
         fields = [
             "id", "ac_id", "device_name", "branch", "branch_id", "branch_name",
+            "site_id", "site_name", "building_name", "floor_name", "room_name",
             "customer_id", "customer_name", "assignment_status",
             "status", "capacity_ton", "installation_date", "last_maintenance_date", "assigned_by", "assigned_admin",
             "tpt_device_id", "tpt_sync_status", "tpt_sync_error", "created_at", "updated_at",
             "is_simulated",
         ]
         read_only_fields = [
-            "id", "branch_id", "branch_name", "customer_id", "customer_name",
-            "assignment_status", "assigned_by", "assigned_admin", "tpt_device_id",
+            "id", "branch_id", "branch_name", "site_id", "site_name", "building_name", "floor_name", "room_name",
+            "customer_id", "customer_name", "assignment_status", "assigned_by", "assigned_admin", "tpt_device_id",
             "tpt_sync_status", "tpt_sync_error", "created_at", "updated_at",
             "is_simulated",
         ]

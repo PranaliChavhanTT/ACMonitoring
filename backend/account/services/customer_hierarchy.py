@@ -44,7 +44,23 @@ def initialize_customer_hierarchy(customer: Customer, *, force: bool = False) ->
     if hierarchy not in {"GEOGRAPHICAL", "ZONAL"}:
         raise ValueError("Customer hierarchy_type must be GEOGRAPHICAL or ZONAL")
 
-    top_model = State if hierarchy == "GEOGRAPHICAL" else Zone
+    # ZONAL is intentionally customer-created. Never seed Zone/Circle/Region/
+    # Division/Branch records from locationData_zonal.json. The customer starts
+    # with an empty tree and creates only the nodes it actually uses. This also
+    # prevents one customer's catalogue from being copied into every new bank.
+    if hierarchy == "ZONAL":
+        return {
+            "created": False,
+            "reason": "zonal_hierarchy_is_customer_managed",
+            "hierarchy_type": hierarchy,
+            "counts": {
+                "zones": 0, "circles": 0, "regions": 0,
+                "divisions": 0, "branches": 0, "buildings": 0,
+                "floors": 0, "rooms": 0,
+            },
+        }
+
+    top_model = State
     if not force and top_model.objects.filter(customer=customer).exists():
         return {"created": False, "reason": "already_initialized", "hierarchy_type": hierarchy}
 

@@ -439,7 +439,7 @@ function EngCreation() {
 
         <li className={view === "form" ? "active" : view === "assign" ? "done" : ""}>
           <button type="button" className="step-btn" onClick={goToCreate}>
-            <span className="step-num">2</span> {isEditing ? "Edit" : "Create"}
+            <span className="step-num">2</span> {isEditing ? "Edit" : "Add Engineer"}
           </button>
         </li>
 
@@ -582,7 +582,6 @@ function EngCreation() {
                         parent: "",           // admin list depends on customer
                       }))
                     }
-                    required
                   >
                     <option value="">— Select a customer —</option>
                     {customers.map((c) => (
@@ -606,7 +605,6 @@ function EngCreation() {
                   <select
                     value={form.parent}
                     onChange={(e) => handleFieldChange("parent", e.target.value)}
-                    required
                     disabled={!isCustomerUser && !form.customer}
                   >
                     <option value="">
@@ -642,7 +640,6 @@ function EngCreation() {
                   value={form.name}
                   onChange={(e) => handleFieldChange("name", e.target.value)}
                   placeholder="Kiran Das"
-                  required
                 />
               </label>
 
@@ -653,7 +650,6 @@ function EngCreation() {
                   value={form.email}
                   onChange={(e) => handleFieldChange("email", e.target.value)}
                   placeholder="kiran@acme.com"
-                  required
                 />
               </label>
 

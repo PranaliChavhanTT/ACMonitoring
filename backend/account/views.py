@@ -1117,6 +1117,12 @@ def create_branch_or_floor(request):
             status=400,
         )
 
+    if hierarchy == "ZONAL":
+        return JsonResponse({
+            "success": False,
+            "message": "Zonal hierarchy is database-managed. Use /hierarchy-branch/create/ and the Building/Floor/Room APIs.",
+        }, status=410)
+
     # ---------------------------------------------------------------
     # CUSTOMER HIERARCHY VALIDATION
     # ---------------------------------------------------------------
@@ -1154,14 +1160,10 @@ def create_branch_or_floor(request):
             )
 
     # ---------------------------------------------------------------
-    # LOAD TREE
+    # LOAD TREE (Geographical legacy flow only)
     # ---------------------------------------------------------------
 
-    location_file = (
-        ZONAL_LOCATION_FILE
-        if hierarchy == "ZONAL"
-        else GEOGRAPHICAL_LOCATION_FILE
-    )
+    location_file = GEOGRAPHICAL_LOCATION_FILE
 
     try:
         tree = load_location_tree(location_file)
@@ -3207,21 +3209,21 @@ def resolve_site_hierarchy(site):
     ctx["branch_name"]    = branch.name
     ctx["db_branch_id"]   = str(branch.id)
 
-    # Prefer the location-tree branch id so nodes_for_mapping() can find it.
-    tree_branch_id = str(branch.id)
-    try:
-        tree = load_location_tree(ownership.tree_file(hierarchy))
-        # Prefer the node written for this exact branch (id == branch code);
-        # fall back to matching by name for older, hand-made trees.
-        node = next(
-            (n for n, _ in iter_branches(tree, hierarchy)
-             if str(n.get("branch_id", "")) == str(branch.code)),
-            None,
-        ) or ownership.find_branch_by_path(tree, hierarchy, body)
-        if node and node.get("branch_id"):
-            tree_branch_id = node["branch_id"]
-    except Exception:
-        pass
+    # Zonal branch codes are the stable IDs exposed by db_location_tree().
+    # Never resolve a Zonal branch through the legacy JSON catalogue.
+    tree_branch_id = str(branch.code) if hierarchy == "ZONAL" else str(branch.id)
+    if hierarchy == "GEOGRAPHICAL":
+        try:
+            tree = load_location_tree(GEOGRAPHICAL_LOCATION_FILE)
+            node = next(
+                (n for n, _ in iter_branches(tree, hierarchy)
+                 if str(n.get("branch_id", "")) == str(branch.code)),
+                None,
+            ) or ownership.find_branch_by_path(tree, hierarchy, body)
+            if node and node.get("branch_id"):
+                tree_branch_id = node["branch_id"]
+        except Exception:
+            pass
     ctx["branch_id"] = tree_branch_id
 
     if site.floor_id:
@@ -3242,11 +3244,13 @@ def place_device_in_tree(ac_id, site, ctx, device_fields):
     authoritative record.
     """
     hierarchy = ctx.get("hierarchy_type")
-    if hierarchy not in ("GEOGRAPHICAL", "ZONAL"):
+    if hierarchy == "ZONAL":
+        # Zonal location/device relationships are resolved from Branch/Site/
+        # Floor database foreign keys. Do not write them into the legacy JSON.
         return
-    location_file = (
-        GEOGRAPHICAL_LOCATION_FILE if hierarchy == "GEOGRAPHICAL" else ZONAL_LOCATION_FILE
-    )
+    if hierarchy != "GEOGRAPHICAL":
+        return
+    location_file = GEOGRAPHICAL_LOCATION_FILE
     # Clean all prior placements in BOTH hierarchy files first. An AC moved
     # between branches or hierarchy types must not remain in its old branch.
     remove_device_from_location_trees(
@@ -4241,45 +4245,77 @@ def _devices_impl(request):
 # =====================================================================
 # LOCATIONS  (tree)
 # =====================================================================
+def _zonal_database_tree(user, customer_id=None):
+    """Return only ZONAL hierarchy records stored for customers in the
+    authenticated user's scope. This function deliberately never reads the
+    legacy locationData_zonal.json file.
+    """
+    from .hierarchy_tree_sync import db_location_tree
+
+    role = getattr(user, "role", None)
+    customers = Customer.objects.filter(
+        is_active=True, hierarchy_type="ZONAL"
+    ).select_related("organization").order_by("company", "id")
+
+    if role == Role.ORG_SUPER_ADMIN:
+        customers = customers.filter(organization_id=user.organization_id)
+        if customer_id not in (None, ""):
+            customers = customers.filter(pk=customer_id)
+    elif role in (Role.CUSTOMER, Role.BR_ADMIN, Role.ENGINEER):
+        if not user.customer_id:
+            customers = customers.none()
+        else:
+            customers = customers.filter(pk=user.customer_id)
+            # A customer-scoped user cannot request another customer's tree.
+            if customer_id not in (None, "") and str(customer_id) != str(user.customer_id):
+                customers = customers.none()
+    else:
+        customers = customers.none()
+
+    zone_nodes = []
+    for customer in customers:
+        customer_tree = db_location_tree("ZONAL", customer)
+        if not customer_tree:
+            continue
+        for zone in (customer_tree[0].get("zones") or []):
+            zone["customer_id"] = str(customer.pk)
+            zone["customer_name"] = customer.company
+            zone_nodes.append(zone)
+
+    tree = [{"country_id": "IND", "country_name": "India", "zones": zone_nodes}]
+    # The tree is database-built; this ownership pruning is applied only after
+    # the allowed customer set has already been enforced above.
+    if role not in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER):
+        tree = ownership.filter_tree_for_user(tree, user)
+    return ownership.attach_owner_details(_attach_devices_to_tree(tree, user))
+
+
 def _scoped_tree(location_file, user, customer_id=None, hierarchy=None):
-    """
-    Location tree for the logged-in user.
+    """Load a hierarchy tree from its authoritative source.
 
-    * With ?customer_id= (the hierarchy PICKER used to create a branch or
-      assign a site): the full hierarchy catalogue is returned - never pruned -
-      with only that customer's branches (plus unowned ones) kept.  A customer
-      login always gets its own customer, whatever id is sent.  If the JSON
-      catalogue is empty, the customer's hierarchy is built from the database.
-    * Without it (dashboard filter): the user's ownership-scoped tree, as before.
+    ZONAL data is always assembled from customer-owned database rows. The
+    legacy JSON file is intentionally not read for picker or dashboard data.
+    GEOGRAPHICAL keeps its existing JSON-backed behaviour.
     """
+    if str(hierarchy or "").strip().upper() == "ZONAL":
+        return _zonal_database_tree(user, customer_id)
+
     tree = load_location_tree(location_file)
-
     picker_customer = None
     if customer_id not in (None, ""):
         if user.role == Role.CUSTOMER:
             picker_customer = Customer.objects.filter(pk=user.customer_id).first()
         elif user.role == Role.ORG_SUPER_ADMIN:
-            try:
-                picker_customer = Customer.objects.filter(
-                    pk=int(customer_id), organization_id=user.organization_id
-                ).first()
-            except (TypeError, ValueError):
-                picker_customer = None
+            picker_customer = Customer.objects.filter(
+                pk=customer_id, organization_id=user.organization_id
+            ).first()
+        elif user.role in (Role.BR_ADMIN, Role.ENGINEER):
+            if str(customer_id) == str(user.customer_id):
+                picker_customer = Customer.objects.filter(pk=user.customer_id).first()
 
-    if picker_customer is not None:
-        # Branch creation must use the customer's actual database hierarchy.
-        # The bundled JSON files are master templates: their source IDs/codes
-        # are not necessarily the customer-specific DB primary keys/codes.
-        # Using them here made District/Taluka IDs fail validation and made
-        # newly-created Zone/Circle rows invisible in the picker.
-        if hierarchy in ("GEOGRAPHICAL", "ZONAL"):
-            from .hierarchy_tree_sync import db_location_tree
-            tree = db_location_tree(hierarchy, picker_customer)
-        else:
-            wanted = picker_customer.pk
-            tree = ownership.filter_branches_only(
-                tree, lambda n: n.get("customer_id") in (None, "", wanted)
-            )
+    if picker_customer is not None and hierarchy == "GEOGRAPHICAL":
+        from .hierarchy_tree_sync import db_location_tree
+        tree = db_location_tree("GEOGRAPHICAL", picker_customer)
         return ownership.attach_owner_details(_attach_devices_to_tree(tree, user))
 
     tree = ownership.filter_tree_for_user(tree, user)
@@ -4287,14 +4323,20 @@ def _scoped_tree(location_file, user, customer_id=None, hierarchy=None):
 
 
 def _empty_picker_message(request, data):
-    """Explain an empty picker instead of leaving the page to guess."""
-    if data or not request.GET.get("customer_id"):
+    """Explain an empty customer picker, including an empty country wrapper."""
+    if not request.GET.get("customer_id"):
         return ""
-    return (
-        "This customer has no hierarchy locations yet. Load them with: "
-        "python manage.py seed_location_hierarchy --customer <customer code> "
-        "--json <hierarchy file>"
+    hierarchy = str(request.GET.get("hierarchy") or "").upper()
+    root_key = "zones" if hierarchy == "ZONAL" else "states"
+    has_locations = any(
+        isinstance(node, dict) and bool(node.get(root_key))
+        for node in (data or [])
     )
+    if has_locations:
+        return ""
+    if hierarchy == "ZONAL":
+        return "This customer has no Zonal locations yet. Create the first Zone to begin the hierarchy."
+    return "This customer has no hierarchy locations yet. Create its first location to begin."
 
 
 def _locations_impl(request):
@@ -4321,7 +4363,7 @@ def _locations_impl(request):
             geographical_data = _scoped_tree(GEOGRAPHICAL_LOCATION_FILE, request.user,
                                              request.GET.get("customer_id"))
             zonal_data        = _scoped_tree(ZONAL_LOCATION_FILE, request.user,
-                                             request.GET.get("customer_id"))
+                                             request.GET.get("customer_id"), "ZONAL")
 
             return JsonResponse(
                 {
@@ -4344,6 +4386,12 @@ def _locations_impl(request):
         return JsonResponse({"success": False, "message": "Invalid JSON body"}, status=400)
 
     hierarchy = str(body.get("hierarchy_type", "")).strip().upper()
+
+    if hierarchy == "ZONAL":
+        return JsonResponse({
+            "success": False,
+            "message": "Zonal hierarchy is database-managed. Use the customer-specific hierarchy APIs; legacy JSON creation is disabled.",
+        }, status=410)
 
     if hierarchy not in {"ZONAL", "GEOGRAPHICAL"}:
         return JsonResponse(
@@ -5762,6 +5810,15 @@ class ZoneListView(generics.ListCreateAPIView):
         if customer_id:
             qs = qs.filter(customer_id=customer_id)
 
+        # Legacy JSON-seeded rows use the historical `<source-code>-C<customer>`
+        # code suffix. Do not show them as customer-created zones. Keep the DB
+        # records untouched to preserve any old FK/device/site relationships.
+        scoped_customer_ids = list(qs.values_list("customer_id", flat=True).distinct())
+        for scoped_customer_id in scoped_customer_ids:
+            qs = qs.exclude(
+                customer_id=scoped_customer_id,
+                code__endswith=f"-C{scoped_customer_id}",
+            )
         return qs.order_by("name")
 
     def perform_create(self, serializer):
@@ -5778,6 +5835,10 @@ class ZoneListView(generics.ListCreateAPIView):
         levels = (customer.zonal_hierarchy_config or {}).get("levels", [])
         if customer.hierarchy_type != "ZONAL" or "zone" not in levels:
             raise DRFValidationError("Zone is not enabled in this customer's hierarchy.")
+        if not serializer.validated_data.get("zone_type"):
+            raise DRFValidationError({"zone_type": "Select a Zone classification."})
+        if not serializer.validated_data.get("hierarchy_config"):
+            raise DRFValidationError({"hierarchy_config": "Configure this Zone's hierarchy before saving it."})
         serializer.save()
 
 class CircleListView(generics.ListCreateAPIView):
@@ -6685,6 +6746,7 @@ class RoomListView(generics.ListCreateAPIView):
 
 class FloorListView(generics.ListCreateAPIView):
     serializer_class = FloorSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         branch = serializer.validated_data["branch"]
@@ -6956,6 +7018,11 @@ def locations(request):
         except json.JSONDecodeError:
             return JsonResponse({"success": False, "message": "Invalid JSON body"}, status=400)
         hierarchy = str(body.get("hierarchy_type", "")).strip().upper()
+        if hierarchy == "ZONAL":
+            return JsonResponse({
+                "success": False,
+                "message": "Zonal hierarchy is database-managed. Use the customer-specific hierarchy APIs; legacy JSON creation is disabled.",
+            }, status=410)
 
         if user.role == Role.CUSTOMER:
             if not user.customer_id:
@@ -6990,6 +7057,8 @@ def locations(request):
 
 def _stamp_new_branch(user, body, response):
     hierarchy = str(body.get("hierarchy_type", "")).strip().upper()
+    if hierarchy == "ZONAL":
+        return
     branch_id = (json.loads(response.content).get("data") or {}).get("branch_id")
     if not branch_id:
         return
@@ -7958,7 +8027,7 @@ def assign_device_to_site(request):
         return JsonResponse({"error": "site_id/asset_id and device_id are required."}, status=400)
 
     site_qs = Site.objects.select_related(
-        "branch__customer", "floor__branch__customer"
+        "branch__customer", "floor__branch__customer", "building", "floor", "room"
     )
     site = _safe_first(site_qs, site_ref)
     if site is None:
@@ -7979,7 +8048,27 @@ def assign_device_to_site(request):
 
     user = request.user
     resolved_branch = site.branch or (site.floor.branch if site.floor_id else None)
-    customer = resolved_branch.customer if resolved_branch and resolved_branch.customer_id else None
+    if not resolved_branch:
+        return JsonResponse({"error": "The selected Site is not linked to a Branch."}, status=400)
+    if not site.floor_id:
+        return JsonResponse({"error": "Floor is mandatory. Select a Site linked to a Floor."}, status=400)
+    if site.floor.branch_id != resolved_branch.pk:
+        return JsonResponse({"error": "The selected Floor does not belong to the Site's Branch."}, status=400)
+    if site.building_id and site.building.branch_id != resolved_branch.pk:
+        return JsonResponse({"error": "The selected Building does not belong to the Site's Branch."}, status=400)
+    if site.building_id and site.floor.building_id != site.building_id:
+        return JsonResponse({"error": "The selected Floor does not belong to the selected Building."}, status=400)
+    if site.room_id and site.room.floor_id != site.floor_id:
+        return JsonResponse({"error": "The selected Room does not belong to the selected Floor."}, status=400)
+    customer = resolved_branch.customer if resolved_branch.customer_id else None
+    if customer and customer.hierarchy_type == "ZONAL":
+        physical_levels = (customer.zonal_hierarchy_config or {}).get("levels", [])
+        if "floor" not in physical_levels:
+            return JsonResponse({"error": "Floor is not enabled in this customer's physical hierarchy."}, status=400)
+        if "building" in physical_levels and not site.building_id:
+            return JsonResponse({"error": "A Building is required for this customer's hierarchy."}, status=400)
+        if "room" in physical_levels and not site.room_id:
+            return JsonResponse({"error": "A Room is required for this customer's hierarchy."}, status=400)
     if user.role == Role.CUSTOMER and (not customer or customer.pk != user.customer_id):
         return JsonResponse({"error": "This site is outside your customer scope."}, status=403)
     if user.role == Role.BR_ADMIN and (not customer or customer.pk != user.customer_id):
@@ -8571,13 +8660,14 @@ def control_device_relay(request):
 def _place_direct_branch_device_in_tree(device, branch):
     """Persist a directly assigned AC under its matching hierarchy branch."""
     hierarchy = _branch_hierarchy_type(branch)
-    if hierarchy not in ("GEOGRAPHICAL", "ZONAL"):
+    if hierarchy == "ZONAL":
+        # The device's branch is already linked in the database; no Zonal JSON
+        # mirror is maintained.
+        return {}
+    if hierarchy != "GEOGRAPHICAL":
         return {}
 
-    location_file = (
-        GEOGRAPHICAL_LOCATION_FILE if hierarchy == "GEOGRAPHICAL"
-        else ZONAL_LOCATION_FILE
-    )
+    location_file = GEOGRAPHICAL_LOCATION_FILE
 
     remove_device_from_location_trees(
         device.ac_id,

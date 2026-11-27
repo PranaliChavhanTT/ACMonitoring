@@ -1,10 +1,181 @@
+# from django.urls import path
+# from .telemetry_aggregate_views import save_production_type
+# from .analytics_views import comparison_analytics
+# from .history_views import current_history, telemetry_aggregates
+# from .generic_hierarchy_api import OrgUnitTypeList, CustomerOrgConfig, AllowedOrgChildren, OrgUnitListCreate, OrgUnitTree
+
+# from .hierarchy_site_views import create_hierarchy_site, create_hierarchy_branch, assign_zonal_geography
+# from .cloud_views import CloudCustomerListView, CloudUserListView
+# from .views import (
+#     DeviceDetailView,
+#     CloudDeviceDetailView,
+#     SiteDetailView,
+#     analytics,
+#     profile,
+#     AdminDetailView, 
+#     AdminListView, 
+#     BranchListView,
+#     BranchDetailView,
+#     CircleListView, 
+#     CityListView,
+#     CountryListAPIView, 
+#     CustomerDetailView, 
+#     CustomerListView, 
+#     DivisionListView,
+#     EngDetailView, 
+#     EngListView, 
+#     FloorListView, BuildingListView, RoomListView,
+#     OrganizationListView, 
+#     RegionListView,
+#     TalukaListView, 
+#     UserListView, 
+#     ZoneListView, 
+#     StateListView, 
+#     DistrictListView, 
+#     SiteListView,
+#     DeviceCreateView,
+#     ac_faults_from_3tp, 
+    
+#     ai_dashboard_analysis, 
+#     assign_customer_to_site,
+#     assign_device_to_customer, 
+#     assign_device_to_admin,
+#     assign_device_to_site, 
+#     assign_device_to_branch,
+#     control_device_relay, 
+#     create_branch_or_floor, 
+#     create_device, 
+#     create_site,
+#     pincode_lookup,
+#     reports, 
+#     search_site_branches,
+#     settings_view, 
+#     site_assignment, 
+#     ac_data, 
+#     branch_assignments,
+#     branch_ownership, 
+#     dashboard_preference_detail, 
+#     dashboard_preferences,
+#     three_tp_sites, 
+#     unassigned_devices, 
+#     dashboard_summary_view, 
+#     device, 
+#     devices,
+#     latest_ac_data, 
+#     location_detail, 
+#     locations, 
+#     login_view, 
+#     logout_view, 
+#     me_view,
+#     ac_data_with_location, 
+#     telemetry_status, 
+#     LocationListView, 
+#     treands,
+#     ac_device_info,
+# )
+
+# urlpatterns = [
+#     path("org-unit-types/", OrgUnitTypeList.as_view()),
+#     path("customers/<int:customer_id>/org-config/", CustomerOrgConfig.as_view()),
+#     path("org-units/allowed-children/", AllowedOrgChildren.as_view()),
+#     path("org-units/", OrgUnitListCreate.as_view()),
+#     path("org-units/<uuid:unit_id>/tree/", OrgUnitTree.as_view()),
+#     path("analytics/comparison/", comparison_analytics),
+#     path("save_production_type/", save_production_type),
+#     path("telemetry-aggregates/", telemetry_aggregates),
+#     path("auth/login/", login_view),
+#     path("auth/logout/", logout_view),
+#     path("profile/", profile),
+#     path("profile/ac-device/", ac_device_info),
+
+#     path("ac-data/", ac_data),
+#     path("ac-data/latest/", latest_ac_data),
+#     path("ac-data/status/", telemetry_status),
+#     path("ac-data/with-location/", ac_data_with_location),
+#     path("ac-faults/", ac_faults_from_3tp),
+
+#     path("dashboard/summary/", dashboard_summary_view),
+#     path("dashboard/preferences/", dashboard_preferences),
+#     path("dashboard/preferences/<uuid:pk>/", dashboard_preference_detail),
+#     path("v1/filters/locations/", locations),
+#     path("v1/filters/locations/<str:location_type>/<int:location_id>/", location_detail),
+
+#     path("devices/", devices),
+#     path("devices/cloud/<str:device_id>/", CloudDeviceDetailView.as_view(), name="cloud-device-detail"),
+#     path("devices/<uuid:pk>/", DeviceDetailView.as_view()),
+#     path("devices/unassigned/", unassigned_devices),
+#     path("devices/relay/", control_device_relay),
+#     path("devices/create/", DeviceCreateView.as_view()),
+#     path("devices/assign/customer/", assign_device_to_customer),
+#     path("devices/assign/admin/", assign_device_to_admin),
+#     path("devices/assign/branch/", assign_device_to_branch),
+
+#     path("auth/me/", me_view),
+#     path("organizations/", OrganizationListView.as_view()),
+#     path("customers/", CustomerListView.as_view()),
+#     path("customers/<int:pk>/", CustomerDetailView.as_view()),
+#     path("admins/", AdminListView.as_view()),
+#     path("admins/<uuid:pk>/", AdminDetailView.as_view()),
+#     path("engineers/", EngListView.as_view()),
+#     path("engineer/<uuid:pk>/", EngDetailView.as_view()),
+#     path("engineers/<uuid:pk>/", EngDetailView.as_view(), name="engineer-detail"),
+#     path("org/device/", device),
+#     path("org/dashboard/trends/", treands),
+
+#     path("org/analytics/", analytics),
+#     path("org/settings/", settings_view),
+#     path("org/reports/", reports),
+    
+#     path("countries/", CountryListAPIView.as_view()),
+#     path("zones/", ZoneListView.as_view()),
+#     path("circles/", CircleListView.as_view()),
+#     path("states/", StateListView.as_view()),
+#     path("districts/", DistrictListView.as_view()),
+#     path("talukas/", TalukaListView.as_view()),
+#     path("cities/", CityListView.as_view()),
+#     path("regions/", RegionListView.as_view()),
+#     path("divisions/", DivisionListView.as_view()),
+#     path("branches/", BranchListView.as_view()),
+#     path("branches/<uuid:pk>/", BranchDetailView.as_view(), name="branch-detail"),
+#     path("branches/assignments/", branch_assignments),
+#     path("branches/ownership/", branch_ownership),
+#     path("branches/search/", search_site_branches),
+#     path("buildings/", BuildingListView.as_view()),
+#     path("floors/", FloorListView.as_view()),
+#     path("rooms/", RoomListView.as_view()),
+#     path("users/", UserListView.as_view()),
+#     path("locations/create/", create_branch_or_floor),
+#     path("hierarchy-branch/create/", create_hierarchy_branch),
+#     path("zonal-geography/assign/", assign_zonal_geography),
+
+#     path("sites/<uuid:pk>/assignment/", site_assignment),
+#     path("sites/", SiteListView.as_view()),
+#     path("sites/<uuid:pk>/", SiteDetailView.as_view(), name="site-detail"),
+#     path("sites/create/", create_site),
+#     path("pincode/<str:pincode>/", pincode_lookup),
+
+#     path("current-history/", current_history),
+
+#     path("hierarchy-site/create/", create_hierarchy_site),
+#     path("devices/assign/site/", assign_device_to_site),
+
+#     path("customers/assign/site/", assign_customer_to_site),
+#     path("cloud/sites/", three_tp_sites),
+#     path("cloud/customers/", CloudCustomerListView.as_view()),
+#     path("cloud/users/", CloudUserListView.as_view()),
+    
+#     path("ai-dashboard-analysis/", ai_dashboard_analysis),
+#     path("ai/analyze/", ai_dashboard_analysis),
+# ]
+
+
 from django.urls import path
 from .telemetry_aggregate_views import save_production_type
 from .analytics_views import comparison_analytics
 from .history_views import current_history, telemetry_aggregates
 from .generic_hierarchy_api import OrgUnitTypeList, CustomerOrgConfig, AllowedOrgChildren, OrgUnitListCreate, OrgUnitTree
 
-from .hierarchy_site_views import create_hierarchy_site, create_hierarchy_branch
+from .hierarchy_site_views import create_hierarchy_site, create_hierarchy_branch, assign_zonal_geography, assign_zonal_next_level, zonal_next_level_options
 from .cloud_views import CloudCustomerListView, CloudUserListView
 from .views import (
     DeviceDetailView,
@@ -146,6 +317,9 @@ urlpatterns = [
     path("users/", UserListView.as_view()),
     path("locations/create/", create_branch_or_floor),
     path("hierarchy-branch/create/", create_hierarchy_branch),
+    path("zonal-geography/assign/", assign_zonal_geography),
+    path("zonal-geography/assign-next-level/", assign_zonal_next_level),
+    path("zonal-geography/next-level-options/", zonal_next_level_options),
 
     path("sites/<uuid:pk>/assignment/", site_assignment),
     path("sites/", SiteListView.as_view()),

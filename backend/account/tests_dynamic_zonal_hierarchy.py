@@ -67,11 +67,10 @@ class CustomerZonalHierarchyConfigTests(SimpleTestCase):
                 "levels": ["zone", "circle", "branch", "floor", "building"],
             })
 
-    def test_circle_or_region_is_required(self):
-        with self.assertRaises(ValidationError):
-            validate_zonal_hierarchy_config({
-                "version": 1, "levels": ["zone", "branch", "floor"]
-            })
+    def test_circle_and_region_are_optional(self):
+        self.assertTrue(validate_zonal_hierarchy_config({
+            "version": 1, "levels": ["zone", "branch", "building", "floor", "room"]
+        }))
 
 
 class DirectZoneBranchConfigurationTests(TestCase):

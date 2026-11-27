@@ -57,8 +57,51 @@ class Organization(models.Model):
 
 
 def default_zonal_hierarchy_config():
-    """Default customer-specific zonal structure: Zone -> Circle -> Branch -> Floor."""
-    return {"version": 1, "levels": ["zone", "circle", "branch", "floor"], "labels": {"zone": "Zone", "circle": "Circle", "region": "Region", "division": "Division", "branch": "Branch", "building": "Building", "floor": "Floor", "room": "Room"}}
+    """Default customer-specific structure with optional admin levels and physical locations."""
+    return {
+        "version": 1,
+        "levels": ["zone", "circle", "branch", "building", "floor", "room"],
+        "labels": {
+            "zone": "Zone", "circle": "Circle", "region": "Region",
+            "division": "Division", "branch": "Branch",
+            "building": "Building", "floor": "Floor", "room": "Room",
+        },
+    }
+
+
+def build_zonal_geographical_mapping(levels):
+    """Derive geographical classifications for the customer's ordered Zonal levels.
+
+    Rules agreed for this application:
+    - 2 levels: State, City
+    - 3 levels: State, District, City
+    - 4 levels: State, District, Taluka, City
+    - 5+ levels: map the first four levels to State/District/Taluka/City;
+      remaining organizational levels have no geographical classification.
+    Physical levels (building/floor/room) are never geographical levels.
+    """
+    organizational = [
+        level for level in (levels or [])
+        if level in ("zone", "circle", "region", "division", "branch")
+    ]
+    geography = ["STATE", "DISTRICT", "TALUKA", "CITY"]
+    count = len(organizational)
+
+    if count <= 0:
+        return {}
+    if count == 1:
+        assigned = ["STATE"]
+    elif count == 2:
+        assigned = ["STATE", "CITY"]
+    elif count == 3:
+        assigned = ["STATE", "DISTRICT", "CITY"]
+    else:
+        assigned = geography[:min(count, 4)]
+
+    mapping = {level: None for level in organizational}
+    for level, geo_type in zip(organizational, assigned):
+        mapping[level] = geo_type
+    return mapping
 
 
 def validate_zonal_hierarchy_config(config):
@@ -107,6 +150,25 @@ def validate_zonal_hierarchy_config(config):
     for key, value in labels.items():
         if not isinstance(value, str) or not value.strip() or len(value.strip()) > 60:
             raise ValidationError({"zonal_hierarchy_config": f"The display name for {key} must contain 1–60 characters."})
+
+    # The geographical mapping is derived from the customer's ordered
+    # organizational levels. Reject stale or manually incompatible mappings.
+    supplied_mapping = config.get("geographical_mapping")
+    if supplied_mapping is not None:
+        if not isinstance(supplied_mapping, dict):
+            raise ValidationError({"zonal_hierarchy_config": "geographical_mapping must be an object."})
+        expected_mapping = build_zonal_geographical_mapping(levels)
+        normalized_mapping = {
+            str(key): (str(value).upper() if value not in (None, "") else None)
+            for key, value in supplied_mapping.items()
+        }
+        if normalized_mapping != expected_mapping:
+            raise ValidationError({
+                "zonal_hierarchy_config": (
+                    "Geographical mapping does not match the selected Zonal levels. "
+                    "Refresh the mapping using the current customer hierarchy."
+                )
+            })
     return True
 
 
@@ -264,10 +326,21 @@ class Country(models.Model):
 
 
 class Zone(models.Model):
+    ZONE_TYPE_CHOICES = [
+        ("GEOGRAPHICAL", "Geographical Zone"),
+        ("STATE_BASED", "State-based Zone"),
+        ("CITY_BASED", "City-based Zone"),
+        ("BUSINESS", "Business Zone"),
+        ("ADMINISTRATIVE", "Administrative Zone"),
+        ("FUNCTIONAL", "Functional Zone"),
+    ]
     GEOGRAPHY_MODE_CHOICES = [
         ("STATE", "State-wise"),
         ("CITY", "City-wise"),
     ]
+    zone_type = models.CharField(max_length=20, choices=ZONE_TYPE_CHOICES, null=True, blank=True)
+    # Internal level keys use the existing relational models. Display labels are customer-editable.
+    hierarchy_config = models.JSONField(default=dict, blank=True)
     # Optional geographical classification used when branches are directly
     # organized under this Zone. It is independent of the administrative tree.
     geography_mode = models.CharField(
@@ -410,39 +483,83 @@ class District(models.Model):
         return self.name
 
 
+# class Taluka(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     district = models.ForeignKey(District, on_delete=models.CASCADE, related_name="talukas")
+#     name = models.CharField(max_length=255)
+#     code = models.CharField(max_length=50, unique=True)
+#     is_active = models.BooleanField(default=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+
+#     class Meta:
+#         db_table = "talukas"
+#         unique_together = ("district", "name")
+#         ordering = ["name"]
+
+#     def __str__(self):
+#         return self.name
+
 class Taluka(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    district = models.ForeignKey(District, on_delete=models.CASCADE, related_name="talukas")
+    district = models.ForeignKey(
+        District,
+        on_delete=models.CASCADE,
+        related_name="talukas"
+    )
     name = models.CharField(max_length=255)
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50)  # Removed unique=True
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "talukas"
-        unique_together = ("district", "name")
+        unique_together = (
+            ("district", "name"),
+            ("district", "code"),
+        )
         ordering = ["name"]
 
     def __str__(self):
         return self.name
 
+# class City(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     taluka = models.ForeignKey(Taluka, on_delete=models.CASCADE, related_name="cities")
+#     name = models.CharField(max_length=255)
+#     code = models.CharField(max_length=50, unique=True)
+#     is_active = models.BooleanField(default=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+
+#     class Meta:
+#         db_table = "cities"
+#         unique_together = ("taluka", "name")
+#         ordering = ["name"]
+
+#     def __str__(self):
+#         return self.name
 
 class City(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    taluka = models.ForeignKey(Taluka, on_delete=models.CASCADE, related_name="cities")
+    taluka = models.ForeignKey(
+        Taluka,
+        on_delete=models.CASCADE,
+        related_name="cities"
+    )
     name = models.CharField(max_length=255)
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50)  # Removed unique=True
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "cities"
-        unique_together = ("taluka", "name")
+        unique_together = (
+            ("taluka", "name"),
+            ("taluka", "code"),
+        )
         ordering = ["name"]
 
     def __str__(self):
         return self.name
-
 
 class Branch(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -550,7 +667,16 @@ class Branch(models.Model):
         if ht == HierarchyType.GEOGRAPHICAL and not (self.city_id or self.taluka_id):
             raise ValidationError("This customer follows the Geographical hierarchy: select a Taluka or City.")
         if ht == HierarchyType.ZONAL:
-            levels = (self.customer.zonal_hierarchy_config or default_zonal_hierarchy_config()).get("levels", [])
+            related_zone = self.zone if self.zone_id else None
+            if not related_zone and self.circle_id:
+                related_zone = self.circle.zone
+            if not related_zone and self.region_id:
+                related_zone = self.region.zone if self.region.zone_id else self.region.circle.zone
+            if not related_zone and self.division_id:
+                region = self.division.region
+                related_zone = region.zone if region.zone_id else region.circle.zone
+            zone_config = related_zone.hierarchy_config if related_zone and related_zone.hierarchy_config else self.customer.zonal_hierarchy_config
+            levels = (zone_config or default_zonal_hierarchy_config()).get("levels", [])
             branch_index = levels.index("branch") if "branch" in levels else -1
             expected = levels[branch_index - 1] if branch_index > 0 else None
             parent_ids = {

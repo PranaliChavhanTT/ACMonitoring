@@ -5608,25 +5608,15 @@
                                         "city_id": "AS-D01-T01-C01",
                                         "city_name": "Guwahati",
                                         "branches": [
-                                            {
-                                                "branch_id": "AS-B01",
-                                                "branch_name": "Guwahati Branch 01",
-                                                "floors": [
-                                                    {
-                                                        "floor_id": "AS-B01-F01",
-                                                        "floor_name": "Floor-01",
-                                                        "sites": [
-                                                            {
-                                                                "site_id": "AC-AS-B01-01",
-                                                                "device_name": "AC-01",
-                                                                "status": "ON",
-                                                                "ac_id": "AC-AS-B01-01"
-                                                            }
-                                                        ]
-                                                    }
-                                                ],
-                                                "sites": []
-                                            }
+                                        {
+                                            "branch_id": "AS-B01",
+                                            "branch_name": "Guwahati Branch 01",
+                                            "floors": [
+                                                {
+                                                    "floor_id": "AS-B01-F01",
+                                                    "floor_name": "Floor-01"
+                                                }
+                                            ]                                            }
                                         ]
                                     }
                                 ]
@@ -7223,28 +7213,7 @@
                                 "cities": [
                                     {
                                         "city_id": "BR-D01-T01-C01",
-                                        "city_name": "Patna",
-                                        "branches": [
-                                            {
-                                                "branch_id": "BR-B01",
-                                                "branch_name": "Patna Branch 01",
-                                                "floors": [
-                                                    {
-                                                        "floor_id": "BR-B01-F01",
-                                                        "floor_name": "Floor-01",
-                                                        "sites": [
-                                                            {
-                                                                "site_id": "AC-BR-B01-01",
-                                                                "device_name": "AC-01",
-                                                                "status": "ON",
-                                                                "ac_id": "AC-BR-B01-01"
-                                                            }
-                                                        ]
-                                                    }
-                                                ],
-                                                "sites": []
-                                            }
-                                        ]
+                                        "city_name": "Patna"
                                     }
                                 ]
                             },
@@ -62971,15 +62940,7 @@
                                                 "floors": [
                                                     {
                                                         "floor_id": "WB-B01-F01",
-                                                        "floor_name": "Floor-01",
-                                                        "sites": [
-                                                            {
-                                                                "site_id": "AC-WB-B01-01",
-                                                                "device_name": "AC-01",
-                                                                "status": "ON",
-                                                                "ac_id": "AC-WB-B01-01"
-                                                            }
-                                                        ]
+                                                        "floor_name": "Floor-01"
                                                     },
                                                     {
                                                         "floor_id": "WB-B01-F02",

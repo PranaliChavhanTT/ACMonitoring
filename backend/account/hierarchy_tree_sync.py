@@ -63,12 +63,12 @@ def _path_objects(branch):
         ]
 
     customer = branch.customer
-    levels = (customer.zonal_hierarchy_config or {}).get("levels", ["zone", "circle", "branch", "floor"])
     zone_id = get_branch_zone_id(branch)
     if not zone_id:
         return None, None, None
     from .models import Zone
     zone = Zone.objects.get(pk=zone_id)
+    levels = (zone.hierarchy_config or customer.zonal_hierarchy_config or {}).get("levels", ["zone", "circle", "branch", "floor"])
     include_circle = "circle" in levels
 
     if branch.zone_id:
@@ -172,7 +172,9 @@ def sync_branch_to_tree(branch):
 
 def _sync_branch_to_tree(branch):
     hierarchy, chain, path = _path_objects(branch)
-    if hierarchy is None:
+    if hierarchy is None or hierarchy == HierarchyType.ZONAL:
+        # Zonal hierarchy is authoritative in customer-scoped database rows.
+        # Do not mirror it into locationData_zonal.json.
         return False
 
     v = _views()
@@ -372,9 +374,19 @@ def db_location_tree(hierarchy, customer):
         include_division = "division" in levels
 
         zone_nodes = []
+        # Older releases copied the bundled JSON catalogue into each
+        # customer's tables using a deterministic `-C<customer_id>` suffix.
+        # Those catalogue rows are not customer-created locations. Hide them
+        # from all current Zonal pickers while retaining the rows in the DB so
+        # existing branch/device/site foreign keys are not destroyed.
+        legacy_seed_suffix = f"-C{customer.pk}"
         for z in Zone.objects.filter(
             customer=customer, is_active=True
-        ).order_by("name"):
+        ).exclude(code__endswith=legacy_seed_suffix).order_by("name"):
+            zone_levels = (z.hierarchy_config or customer.zonal_hierarchy_config or {}).get("levels", ["zone", "circle", "branch", "floor"])
+            include_circle = "circle" in zone_levels
+            include_region = "region" in zone_levels
+            include_division = "division" in zone_levels
             z_node = {"zone_id": str(z.pk), "zone_name": z.name}
             if include_circle:
                 z_node["circles"] = []

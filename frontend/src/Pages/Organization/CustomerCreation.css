@@ -1311,3 +1311,41 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Save control stays directly beside the physical-node code input. */
+.physical-node-form__input-save {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+.physical-node-form__input-save input {
+  flex: 1;
+  min-width: 0;
+}
+.physical-node-form__save-icon {
+  width: 42px;
+  min-width: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  font-size: 19px;
+}
+.physical-node-form__save-icon:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.physical-node-form__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: physical-node-spin .7s linear infinite;
+}
+@keyframes physical-node-spin { to { transform: rotate(360deg); } }

@@ -108,17 +108,21 @@
         "tpt_device_id": "22eaf300-e1b1-11f1-b0fa-0d1a0230425c",
         "device_id": "22eaf300-e1b1-11f1-b0fa-0d1a0230425c",
         "local_device_id": "6892dc97-0951-4568-b3cc-7febe5a18850",
-        "customer_id": "12",
-        "customer_name": "ICICI",
-        "branch_id": "ad28e867-87c6-4cdf-a3fd-23430ec2ac8d",
-        "branch_name": "Kothrud",
-        "hierarchy_type": "GEOGRAPHICAL",
+        "customer_id": "19",
+        "customer_name": "Test 2",
+        "branch_id": "631b703e-a612-4ec8-8221-77a9b3784ba8",
+        "branch_name": "Amritsar",
+        "hierarchy_type": "ZONAL",
         "location_type": "DIRECT_BRANCH",
         "state_id": "d243e7a3-0abe-4b9c-bd63-8736d6c7176a",
         "state_name": "Maharashtra",
         "district_id": "6c382c9a-cfce-4ac5-a3c7-bc1aaaf16413",
         "district_name": "Pune",
         "taluka_id": "ed576b03-d5ba-4f42-8805-63b428b8423b",
-        "taluka_name": "Pune City"
+        "taluka_name": "Pune City",
+        "zone_id": "b55d1f07-b08c-4950-9515-345dede99221",
+        "zone_name": "Punjab Zone",
+        "region_id": "d6d0ae58-276b-4b81-824b-b425baee2bc2",
+        "region_name": "Amritsar City"
     }
 ]
