@@ -1,53 +1,8 @@
-# from rest_framework.permissions import BasePermission, SAFE_METHODS
-
-# from .models import Customer, Role
-
-
-# class IsOrgSuperAdmin(BasePermission):
-#     message = "Only organization admins can modify customers."
-
-#     def has_permission(self, request, view):
-#         if request.method in SAFE_METHODS:
-#             return True
-#         return bool(
-#             request.user
-#             and request.user.is_authenticated
-#             and request.user.role == Role.ORG_SUPER_ADMIN
-#         )
-
-# class IsOrgAdminOrCustomerAdmin(BasePermission):
-#     message = "Only organization admins and customer admins can modify admins."
-
-#     def has_permission(self, request, view):
-#         if request.method in SAFE_METHODS:
-#             return bool(request.user and request.user.is_authenticated)
-
-#         user = request.user
-#         if not user or not user.is_authenticated:
-#             return False
-
-#         return user.role in (Role.ORG_SUPER_ADMIN, Role.CUSTOMER)
-
-# class CustomerScopeMixin:
-#     def get_queryset(self):
-#         user = self.request.user
-#         base = Customer.objects.select_related("organization")
-
-#         if user.role == Role.ORG_SUPER_ADMIN:
-#             return base.filter(organization_id=user.organization_id)
-#         if user.customer_id:
-#             return base.filter(pk=user.customer_id)
-#         return base.none()
-
 
 from rest_framework.permissions import BasePermission, SAFE_METHODS
-
 from .models import Customer, Role
 
-
-# ============================================================
 # ROLE SETS
-# ============================================================
 
 ORG_ROLES = {Role.ORG_SUPER_ADMIN}
 
@@ -63,13 +18,10 @@ BRANCH_ADMIN_ROLES = {
 }
 
 
-# ============================================================
 # BASE HELPERS
-# ============================================================
 
 def _authed(user):
     return bool(user and user.is_authenticated)
-
 
 def _has_role(user, roles):
     return _authed(user) and user.role in roles

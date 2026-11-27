@@ -28,7 +28,7 @@ const getValue = (row, ...keys) => {
   return "--";
 };
 
-export default function DeviceTelemetryTable({ data = [], deviceId = "" }) {
+function DeviceTelemetryTable({ data = [], deviceId = "" }) {
   const latestRows = useMemo(() => {
     return [...data]
       .filter((row) => {
@@ -113,3 +113,5 @@ export default function DeviceTelemetryTable({ data = [], deviceId = "" }) {
     </section>
   );
 }
+
+export default DeviceTelemetryTable;
